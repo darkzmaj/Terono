@@ -21,6 +21,7 @@ import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./pre
 import { startPreview } from "./preview";
 import { loadFontPreviews, settings, useSettingsRevision } from "./settings";
 import { UpdatePanel } from "./updater";
+import { USAGE_CSS } from "./usage";
 import { VERSION } from "./version";
 
 interface Group { title?: string; keys: string[]; }
@@ -107,6 +108,8 @@ const TABS: Tab[] = [
             { title: "Performance", keys: ["lite", "pauseUnfocused"] },
             { title: "Shortcuts", keys: ["openKeybind", "bulkMode", "homeDoubleClick"] },
             { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
+            { title: "Taskbar", keys: ["taskbarIcon"] },
+            { title: "Privacy", keys: ["shareUsage", "usageCount"] },
             { title: "Troubleshooting", keys: ["debugInfo"] },
         ],
     },
@@ -338,7 +341,7 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = CSS + BADGES_CSS + BRANDING_CSS;
+    css.textContent = CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS;
     document.head.append(css);
 }
 

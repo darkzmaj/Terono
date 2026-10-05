@@ -17,6 +17,8 @@
 // PUT    /me/afk             { text, until }  away message (until: ms timestamp or 0), shown to Terono users in calls
 // DELETE /me/afk
 // GET    /afk                everyone who's away right now
+// POST   /seen               { id }  counts a user in the Terono user number (stored as a hash; setting can turn it off)
+// GET    /stats              { online, day, total }: the user number, readable only by the owner
 // GET    /live               WebSocket: every badge change as it happens, { u: userId, e: entry | null }
 
 // official-look badges people may wear; Discord Staff, Partner and Moderator Programs are left out on purpose
@@ -53,11 +55,13 @@ async function route(req, env, url) {
     if (m === "GET" && path.startsWith("/img/")) return image(env, path.slice(5).replace(/\.png$/, ""));
     if (m === "POST" && path === "/hello") return hello(req, env);
     if (m === "GET" && path === "/authorize") return authorize(env, url);
+    if (m === "POST" && path === "/seen") return seen(req, env);
 
     if (path === "/me" || path.startsWith("/me/")) {
         const user = await session(req, env);
         if (!user) return json({ error: "Not signed in" }, 401);
         if (m === "GET" && path === "/me") return me(env, user);
+        if (m === "GET" && path === "/stats") return stats(env, user);
         const slot = path.match(/^\/me\/badge\/([0-2])$/);
         if (slot && m === "PUT") return putBadge(req, env, user, Number(slot[1]));
         if (slot && m === "DELETE") return delBadge(env, user, Number(slot[1]));
@@ -117,6 +121,30 @@ function inOgRange(v) {
     if (!m) return false;
     const n = Number(m[1]) * 1e6 + Number(m[2]) * 1e3 + Number(m[3]);
     return n >= 1_000_005 && n <= 1_001_005;
+}
+
+/* ---------------- user count ----------------
+   Only the owner can read it. "total" and "day" come from a table of one-way hashes of Discord user IDs (written about
+   once a day per user by the plugin); "online" is the number of distinct users whose live connection is marked as
+   counted (see Hub). The plugin sends nothing when its "Count me as a Terono user" setting is off. */
+
+const OWNER_ID = "1364930123656335402";
+
+async function seen(req, env) {
+    const body = await req.json().catch(() => null);
+    if (!body || !SNOWFLAKE.test(body.id)) return json({ error: "Bad request" }, 400);
+    const now = Date.now();
+    const h = await sha256Hex(`terono-seen:${body.id}`);
+    await env.DB.prepare("INSERT INTO seen (h, first, last) VALUES (?, ?, ?) ON CONFLICT (h) DO UPDATE SET last = excluded.last WHERE seen.last < excluded.last - 3600000")
+        .bind(h, now, now).run();
+    return json({ ok: true });
+}
+
+async function stats(env, user) {
+    if (user !== (env.OWNER_ID || OWNER_ID)) return json({ error: "Not allowed" }, 403);
+    const row = await env.DB.prepare("SELECT COUNT(*) AS total, COALESCE(SUM(last > ?), 0) AS day FROM seen").bind(Date.now() - 24 * 3600 * 1000).first();
+    const online = await (await env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/count")).json();
+    return json({ online: online.n, day: row.day, total: row.total });
 }
 
 /* ---------------- sign-in ---------------- */
@@ -306,14 +334,28 @@ export class Hub {
             }
             return new Response("ok");
         }
+        if (new URL(req.url).pathname === "/count") {
+            const users = new Set();
+            for (const ws of this.state.getWebSockets()) {
+                const a = ws.deserializeAttachment();
+                if (a?.u) users.add(a.u);
+            }
+            return Response.json({ n: users.size });
+        }
         if (req.headers.get("Upgrade") !== "websocket") return new Response("Expected a WebSocket", { status: 426 });
         const [client, server] = Object.values(new WebSocketPair());
         this.state.acceptWebSocket(server);
         return new Response(null, { status: 101, webSocket: client });
     }
 
-    // clients only listen; anything they send is ignored (a ping keeps some networks from dropping the connection)
-    webSocketMessage() { }
+    // clients only listen, apart from "hi:<user id>" / "bye": whether this connection counts as an online Terono user
+    // (the "Count me" setting). Anything else is ignored (a ping keeps some networks from dropping the connection).
+    webSocketMessage(ws, msg) {
+        if (typeof msg !== "string") return;
+        const id = msg.startsWith("hi:") ? msg.slice(3) : "";
+        if (SNOWFLAKE.test(id)) ws.serializeAttachment({ u: id });
+        else if (msg === "bye") ws.serializeAttachment({});
+    }
 
     webSocketClose(ws, code) {
         try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch { /* already closed */ }

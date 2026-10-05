@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Build: dotnet build -c Release  ->  bin\Release\net48\Terono-Diagnostics.exe
+       .NET Framework 4.8 ships with Windows 10 and 11, so the exe runs without installing anything. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Terono-Diagnostics</AssemblyName>
+    <RootNamespace>TeronoDiagnostics</RootNamespace>
+    <ApplicationIcon>..\installer\terono.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+
+    <Company>Terona Studios</Company>
+    <Authors>Terona Studios</Authors>
+    <Product>Terono</Product>
+    <AssemblyTitle>Terono Diagnostics</AssemblyTitle>
+    <Description>Checks and repairs Discord and Terono, and writes a report for Terona Studios.</Description>
+    <Copyright>Copyright © 2026 Terona Studios</Copyright>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\installer\DiscordKit.cs" Link="DiscordKit.cs" />
+    <Reference Include="System.Web.Extensions" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

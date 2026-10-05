@@ -1,4 +1,4 @@
-# Terono tutorial
+﻿# Terono tutorial
 
 Everything from installing to building your own look, step by step.
 
@@ -161,7 +161,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 | Setting | Options |
 | --- | --- |
 | **Server list** | Left (Discord default), Top, Bottom, Right |
-| **Server order** (Top and Bottom only) | Left to right, Right to left |
+| **Server order** (Top and Bottom only) | Left to right, Right to left (both scroll with the mouse wheel; fixed in 1.1.0) |
 | **Channel list side** | Left, Right |
 | **Member list side** | Right, Left |
 
@@ -206,6 +206,8 @@ In the **Profiles** tab:
 - **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
 - **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
 - **Extras → Updates:** **Update automatically** (on by default): when Discord starts, and every few hours, a new Terono installs itself in the background and a notification offers a restart. With it off, **Notify about new versions** just tells you.
+- **Extras → Taskbar:** **Terono icon on the taskbar** (on by default, Windows): Discord's icon on the taskbar, Start menu and desktop shortcuts becomes the Terono logo. Turn it off to get Discord's own icon back.
+- **Extras → Privacy:** **Count me as a Terono user** (on by default) lets Terono be counted anonymously (see Privacy in the README). Turn it off and nothing is sent.
 - **Extras → Shortcuts:**
   - **Bulk select with Ctrl:** hold **Ctrl** and click servers, DMs or friends to select several (they get a colored outline). Then **right-click any of them**: it's Discord's normal menu with *For all N servers* on top, and whatever you pick (mark as read, mute for a time, notification settings, hide muted channels, leave, close DM, remove friend, block, …) is done to all of them. Leaving, removing and blocking ask once for all. **Esc** clears the selection.
   - **Double-click Home: read all** marks every server and DM as read.
@@ -229,7 +231,7 @@ Under **Font, Logo & Icons → Your own pictures for Discord's buttons**: click 
 
 In the **Badges** tab:
 
-- **Terono OG:** everyone who uses Terono between 1.0.5 and 1.1.5 gets this badge automatically, and keeps it.
+- **Terono OG:** everyone who uses Terono between 1.0.0 and 1.1.5 gets this badge automatically, and keeps it.
 - **Connect with Discord** once: Discord asks you to **Authorize**. Terono only gets your user ID. This makes sure only you can change your badges.
 - **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
 - **Discord badges:** click the ones you want to wear (Nitro, Server Booster, HypeSquad, Early Supporter and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
@@ -309,4 +311,6 @@ Those match Discord's English names. Set Discord to English, or type the names e
   Then delete `~/Terono`.
 - **Browser:** remove the extension on the extensions page. If you had the normal Vencord extension, switch it back on.
 - **Theme only:** remove the link in **Online Themes**.
+
+
 

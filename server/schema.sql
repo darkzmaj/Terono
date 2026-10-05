@@ -44,3 +44,10 @@ CREATE TABLE IF NOT EXISTS afk (
     until INTEGER NOT NULL DEFAULT 0,
     since INTEGER NOT NULL
 );
+
+-- the Terono user number: one row per user, keyed by a SHA-256 of the Discord user ID (never the ID itself)
+CREATE TABLE IF NOT EXISTS seen (
+    h TEXT PRIMARY KEY,
+    first INTEGER NOT NULL,
+    last INTEGER NOT NULL
+);

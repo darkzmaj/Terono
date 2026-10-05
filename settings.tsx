@@ -20,6 +20,7 @@ import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { addTicker, isAway, removeTicker, setPauseWhenUnfocused } from "./motion";
 import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
+import { isOwner, UsagePanel } from "./usage";
 import { TeronoSettings } from "./settingsUi";
 
 export const DEFAULT_LOGO = TERONO_LOGO;
@@ -447,6 +448,22 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Ctrl + 1 opens these settings from anywhere in Discord.",
         default: true,
+    },
+    taskbarIcon: {
+        type: OptionType.BOOLEAN,
+        description: "Show the Terono logo as Discord's icon on the taskbar, in the Start menu and on desktop shortcuts (Windows). Turn it off to get Discord's own icon back.",
+        default: true,
+        hidden: () => !IS_DISCORD_DESKTOP || navigator.platform !== "Win32",
+    },
+    shareUsage: {
+        type: OptionType.BOOLEAN,
+        description: "Count me in the number of Terono users. Sends only a one-way hash of your Discord user ID about once a day, and tells the server you're online while Discord is open. Turn it off and nothing is sent.",
+        default: true,
+    },
+    usageCount: {
+        type: OptionType.COMPONENT,
+        component: () => <UsagePanel />,
+        hidden: () => !isOwner(),
     },
     lastVersion: {
         type: OptionType.STRING,
@@ -1019,7 +1036,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
+    taskbarIcon: "Terono icon on the taskbar", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -1315,7 +1332,12 @@ export function applyAttrs() {
 
     // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
     const horizontal = s.serverList === "top" || s.serverList === "bottom";
-    const rtl = horizontal && s.serverListDirection === "rtl" ? "\nhtml:root { --HSL-server-direction: column-reverse; --HSL-server-alignment: flex-end; }" : "";
+    // Right to left: the list keeps the normal (scrollable) order and is mirrored along its length instead of being
+    // laid out in reverse. A reversed flex column with end alignment pushed the first servers past the edge that
+    // can't be scrolled to, so the list wouldn't scroll. Each icon is mirrored back so it stays upright.
+    const rtl = horizontal && s.serverListDirection === "rtl"
+        ? "\n.guilds__5e434 .scroller_ef3116 { scale: 1 -1; }\n.guilds__5e434 :is(.wrapper__6e9f8, .folderPreview__48112, .folderIconWrapper__48112, .lowerBadge_cc5dd2, .upperBadge_cc5dd2) { scale: -1 1; }"
+        : "";
     sheet("hsl", !horizontal ? "" : HSL_CSS + (s.serverList === "bottom" ? "\n" + HSL_BOTTOM_CSS : "") + rtl);
 }
 

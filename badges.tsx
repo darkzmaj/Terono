@@ -79,7 +79,7 @@ const frontBadges: ProfileBadge = {
         const e = list[userId];
         if (!e) return [];
         const out: ProfileBadge[] = [];
-        if (e.o) out.push({ id: "terono-og", description: "Terono OG: used Terono from the start (1.0.5 – 1.1.5)", iconSrc: OG_BADGE });
+        if (e.o) out.push({ id: "terono-og", description: "OG (Version 1.0.0 - 1.1.5)", iconSrc: OG_BADGE });
         for (const c of e.c ?? []) out.push({
             id: `terono-custom-${c.s}`,
             description: c.n,
@@ -156,6 +156,7 @@ function connect() {
         if (retry) refresh(true);
         retry = 0;
         lastHeard = Date.now();
+        sendPresence();
     };
     ws.onmessage = e => {
         lastHeard = Date.now();
@@ -180,6 +181,16 @@ function connect() {
         clearTimeout(retryTimer);
         retryTimer = window.setTimeout(connect, Math.min(2 ** retry * 1000, 300_000));
     };
+}
+
+// "online now" for the Terono user count: tells the server this connection is a counted user (usage.tsx)
+let present = false;
+function sendPresence() {
+    if (socket?.readyState === WebSocket.OPEN) socket.send(present ? `hi:${UserStore.getCurrentUser()?.id ?? ""}` : "bye");
+}
+export function setPresence(on: boolean) {
+    present = on;
+    sendPresence();
 }
 
 // a connection can die silently (sleep, network change): ping it, and start over when it stops answering
@@ -231,7 +242,7 @@ export async function getAuth() {
     return id && auth?.[id] ? { token: auth[id], id } as Auth : null;
 }
 
-function authorize() {
+export function authorize() {
     return new Promise<boolean>(resolve => openModal(props => (
         <OAuth2AuthorizeModal
             {...props}

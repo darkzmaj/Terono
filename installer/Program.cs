@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
+using TeronoTools;
 
 namespace TeronoSetup;
 
@@ -107,15 +108,38 @@ internal static class Program
         CloseDiscord();
 
         Step("Installing into Discord");
-        if (Exec("node", "scripts/runInstaller.mjs -- --install --branch auto", vencord) != 0)
-            throw new SetupException("Installing into Discord failed. Make sure Discord is installed, then run Terono Setup again.");
+        // Vencord's installer reports problems only in its own output (its exit code is always 0), so look at the result
+        Exec("node", "scripts/runInstaller.mjs -- --install --branch auto", vencord);
+        var patcher = Path.Combine(vencord, "dist", "patcher.js");
+        var patched = new System.Collections.Generic.List<DiscordInstall>();
+        foreach (var d in DiscordKit.Find())
+        {
+            var state = DiscordKit.State(d, out _);
+            Log($"{d.Name}: {state}");
+            if (state != PatchState.Patched && state != PatchState.Guarded) continue;
+            DiscordKit.WriteGuard(d, patcher);
+            patched.Add(d);
+        }
+        if (patched.Count == 0)
+            throw new SetupException("Installing into Discord failed. Make sure Discord is installed (and has been opened once), then run Terono Setup again. If it keeps failing, run Terono Diagnostics.");
 
         Step("Turning on Terono");
         if (Exec("node", Quote(Path.Combine(plugin, "scripts", "enable.mjs")), vencord) != 0)
             throw new SetupException("Turning on Terono failed. Run Terono Setup again.");
 
-        var update = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Discord", "Update.exe");
-        if (File.Exists(update)) Exec(update, "--processStart Discord.exe", null, wait: false);
+        // Never leave Discord unable to open: start it, and if it doesn't come up, put plain Discord back
+        Step("Opening Discord to check that it works");
+        var main = patched[0];
+        if (DiscordKit.Launch(main, 75, out var note)) { Log(note); return; }
+
+        Warn($"Discord didn't open properly with Terono ({note}). Putting plain Discord back so it works.");
+        DiscordKit.Kill(main);
+        DiscordKit.Unpatch(main);
+        var back = DiscordKit.Launch(main, 60, out var backNote);
+        Log($"plain Discord: {backNote}");
+        throw new SetupException(back
+            ? "Terono couldn't be started safely, so Discord was left as it was (it opens normally). Run Terono Diagnostics and send its report to Terona Studios."
+            : "Discord doesn't open, even without Terono. Run Terono Diagnostics: it repairs Discord and makes a report for Terona Studios.");
     }
 
     /* ---------- steps ---------- */

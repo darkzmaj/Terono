@@ -8,11 +8,12 @@ import { ConnectSrc, CspPolicies, ImageSrc } from "@main/csp";
 import { RendererSettings } from "@main/settings";
 import { SETTINGS_DIR } from "@main/utils/constants";
 import { execFile } from "child_process";
-import { app, BrowserWindow, globalShortcut, IpcMainInvokeEvent, screen, shell } from "electron";
-import { existsSync, readFileSync, renameSync, rmSync, unlinkSync } from "fs";
-import { join } from "path";
+import { app, BrowserWindow, globalShortcut, IpcMainInvokeEvent, NativeImage, nativeImage, screen, shell } from "electron";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 
 import { TERONO_LOGO } from "./assets";
+import { TERONO_ICON } from "./iconData";
 import { BADGE_API, badgesReady } from "./badgeConfig";
 import { OVERLAY_HTML } from "./overlayPage";
 import { canUpdate, getState, latestRelease, startUpdate } from "./update";
@@ -279,7 +280,114 @@ function restoreShortcuts() {
 
 if (existsSync(LINKS_FILE) || OLD_FILES.some(existsSync)) app.whenReady().then(restoreShortcuts);
 
+/* ================= Terono icon on the taskbar, Start menu and shortcuts (Windows) =================
+   The taskbar shows a pinned program's shortcut icon and an open window's own icon, so both get the Terono logo:
+   Discord's shortcuts (Start menu, Desktop, pinned on the taskbar) point at a Terono .ico, and every Discord window
+   gets the logo as its icon. What the shortcuts had is saved first and put back when this is turned off.
+   Discord's updater recreates its shortcuts, so it's checked again at every start. */
+
+const TB_ICO = join(SETTINGS_DIR, "terono-taskbar.ico");
+const TB_SAVED = join(SETTINGS_DIR, "terono-taskbar.json");
+const DISCORD_ROOT = dirname(dirname(process.execPath));
+const DISCORD_ICO = join(DISCORD_ROOT, "app.ico");
+let tbOn = false;
+
+const logoImage = () => nativeImage.createFromDataURL(TERONO_ICON);
+
+// an .ico holding PNG images (Windows Vista and later), which shortcuts can use
+function writeIco(img: NativeImage) {
+    const sizes = [256, 64, 48, 32, 24, 16];
+    const pngs = sizes.map(n => img.resize({ width: n, height: n, quality: "best" }).toPNG());
+    const head = Buffer.alloc(6 + 16 * sizes.length);
+    head.writeUInt16LE(1, 2);
+    head.writeUInt16LE(sizes.length, 4);
+    let offset = head.length;
+    sizes.forEach((n, i) => {
+        const e = 6 + 16 * i;
+        head.writeUInt8(n >= 256 ? 0 : n, e);
+        head.writeUInt8(n >= 256 ? 0 : n, e + 1);
+        head.writeUInt16LE(1, e + 4);
+        head.writeUInt16LE(32, e + 6);
+        head.writeUInt32LE(pngs[i].length, e + 8);
+        head.writeUInt32LE(offset, e + 12);
+        offset += pngs[i].length;
+    });
+    writeFileSync(TB_ICO, Buffer.concat([head, ...pngs]));
+}
+
+function shortcutDirs() {
+    const roaming = app.getPath("appData");
+    return [
+        join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "Discord Inc"),
+        join(roaming, "Microsoft", "Windows", "Start Menu", "Programs"),
+        app.getPath("desktop"),
+        join(roaming, "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar"),
+    ];
+}
+
+// only this Discord's own shortcuts: its Update.exe (started with Discord.exe) or its Discord.exe
+const isThisDiscord = (target: string) => target.toLowerCase().startsWith(DISCORD_ROOT.toLowerCase() + "\\");
+
+function brandShortcuts(on: boolean) {
+    try {
+        const saved: Record<string, { icon: string; iconIndex: number; }> = existsSync(TB_SAVED) ? JSON.parse(readFileSync(TB_SAVED, "utf8")) : {};
+        if (on) writeIco(logoImage());
+        let changed = false;
+
+        for (const dir of shortcutDirs()) {
+            if (!existsSync(dir)) continue;
+            for (const file of readdirSync(dir)) {
+                if (!file.toLowerCase().endsWith(".lnk")) continue;
+                const path = join(dir, file);
+                let link: Electron.ShortcutDetails;
+                try { link = shell.readShortcutLink(path); } catch { continue; }
+                if (!isThisDiscord(link.target)) continue;
+                if (/Update\.exe$/i.test(link.target) && !/Discord\.exe/i.test(link.args ?? "")) continue;
+
+                const cur = link.icon ?? "";
+                const ours = cur.toLowerCase() === TB_ICO.toLowerCase();
+                if (on && !ours) saved[path] = { icon: cur, iconIndex: link.iconIndex ?? 0 };
+
+                const want = on ? { icon: TB_ICO, iconIndex: 0 } : saved[path];
+                if (!want || (cur === want.icon && (link.iconIndex ?? 0) === want.iconIndex)) continue;
+                shell.writeShortcutLink(path, "update", { ...link, icon: want.icon, iconIndex: want.iconIndex });
+                changed = true;
+            }
+        }
+
+        if (on) writeFileSync(TB_SAVED, JSON.stringify(saved));
+        else for (const f of [TB_SAVED, TB_ICO]) rmSync(f, { force: true });
+
+        // Explorer caches icons: ask it to refresh
+        if (changed) execFile("ie4uinit.exe", ["-show"], { windowsHide: true }, () => { });
+    } catch (e) {
+        console.error("[Terono] taskbar icon", e);
+    }
+}
+
+function windowIcon(win: BrowserWindow) {
+    if (win.isDestroyed() || win === ov) return;
+    const original = existsSync(DISCORD_ICO) ? nativeImage.createFromPath(DISCORD_ICO) : null;
+    if (tbOn) win.setIcon(logoImage());
+    else if (original && !original.isEmpty()) win.setIcon(original);
+}
+
+export function setTaskbarIcon(_: IpcMainInvokeEvent, on: boolean) {
+    tbOn = !!on;
+    if (process.platform !== "win32") return;
+    BrowserWindow.getAllWindows().forEach(windowIcon);
+    brandShortcuts(tbOn);
+}
+
+// at start: on unless turned off (and nothing is touched when Terono is off and there's nothing to put back)
+{
+    const s = RendererSettings.store.plugins?.Terono;
+    tbOn = process.platform === "win32" && !!s?.enabled && s.taskbarIcon !== false;
+    if (process.platform === "win32" && (tbOn || existsSync(TB_SAVED))) app.whenReady().then(() => brandShortcuts(tbOn));
+}
+
 app.on("browser-window-created", (_, win) => {
+    if (tbOn) windowIcon(win);
     win.webContents.on("dom-ready", () => {
         if (!/[\\/]splash[\\/]index\.html/i.test(win.webContents.getURL())) return;
 

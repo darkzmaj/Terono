@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="assets/terono-icon.png" width="112" alt="Terono">
 </p>
 
@@ -49,7 +49,8 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 - 22 fonts shown in their own style, or your own font. Your own home logo and your own pictures for Discord's icons.
 
 **Layout**
-- Server list left, top, bottom or right; channels and members on either side.
+- Server list left, top, bottom or right (top and bottom scroll left to right or right to left); channels and members on either side.
+- The **Terono logo as Discord's icon** on the taskbar, Start menu and shortcuts (Windows, can be turned off).
 - Channel header: name, buttons and search anywhere; hide any button.
 - Messages: yours on the right and others on the left, or the other way round.
 
@@ -62,9 +63,12 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 - **Plugins:** every Vencord plugin by category, switched on and off instantly.
 - **Bulk mode:** hold Ctrl and click servers, DMs or friends, then right-click one: everything in Discord's menu is done to all of them. Double-click Home to read everything.
 - **Terono overlay:** over your games: who's in your call and who's talking, DMs and mentions as they come in. A hotkey makes it clickable: mute, deafen, leave, open a message.
-- **Badges:** the **Terono OG** badge for everyone on 1.0.5 – 1.1.5, up to 3 badges of your own, and Discord's badges. Seen by everyone with Terono, updated instantly.
+- **Badges:** the **Terono OG** badge for everyone on 1.0.0 – 1.1.5, up to 3 badges of your own, and Discord's badges. Seen by everyone with Terono, updated instantly.
 - **Profiles:** save looks, switch between them, share them as files.
 - Auto-translate, chat bar and right-click menu cleanup, role count styles, Terono loading screens.
+
+**Reliable**
+- **Terono Setup** checks that Discord opens after installing and puts plain Discord back if it doesn't; Discord also starts without Terono if Terono's files go missing. **Terono Diagnostics** repairs the rest ([see below](#discord-wont-open)).
 
 **Light on your PC**
 - Moving effects update 30 times a second instead of at your monitor's full refresh rate and stop completely while Discord is in the background. **Performance mode** for slower PCs.
@@ -98,6 +102,10 @@ Just the look, without the plugin's settings and tools:
   ```
 - **BetterDiscord:** put [Terono.theme.css](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono.theme.css) in your BetterDiscord `themes` folder.
 
+## Discord won't open?
+
+Download **[Terono-Diagnostics.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Diagnostics.exe)** and double-click it. It tests that Discord really opens, repairs what is broken (damaged settings, missing Terono files, caches, a broken install) **without removing your account, messages or Terono settings**, and writes **Terono-Diagnostics-Report.txt** on your Desktop. If it couldn't fix everything, send that file to Terona Studios. Terono Setup also checks that Discord opens after installing and puts plain Discord back if it doesn't.
+
 ## Found a bug?
 
 Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)** (also linked at the top of the Terono settings). Add **Extras → Troubleshooting → Copy debug info** and a screenshot; it shows your versions and what Terono found, so it can be fixed fast.
@@ -107,6 +115,7 @@ Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://t
 Terono only talks to these services, for the features that use them:
 
 - **Terono badge server** (Cloudflare): the list of badges and who's AFK. Only your Discord user ID and what you set yourself; signing in once lets only you change your badges.
+- **Terono user count:** about once a day a one-way hash of your Discord user ID, and an 'online' mark while Discord is open, so the number of Terono users can be counted. Only the creator can see the number. Turn it off with **Extras → Privacy → Count me as a Terono user** and nothing is sent.
 - **Google Translate:** only with *Auto-translate* on (off by default).
 - **Google Fonts:** fonts other than Discord's own.
 - **GitHub / jsDelivr:** updates and preset pictures.
@@ -128,3 +137,5 @@ npx pnpm inject
 ## License
 
 [GPL-3.0](LICENSE). Third-party parts and their licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+

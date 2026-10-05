@@ -8,4 +8,6 @@
 // Shared by the plugin and native.ts (which allows the server in Discord's content security policy).
 export const BADGE_API = "https://terono-badges.teronastudios.workers.dev";
 export const BADGE_CLIENT_ID = "1553751124475908136";
+// the only account that can read the user count (/stats checks this on the server too)
+export const OWNER_ID = "1364930123656335402";
 export const badgesReady = () => !BADGE_API.includes("REPLACE") && !BADGE_CLIENT_ID.includes("REPLACE");

@@ -14,7 +14,7 @@ import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { GoogleLanguages } from "@plugins/translate/languages";
 import { handleTranslate } from "@plugins/translate/TranslationAccessory";
 import type { TranslationValue } from "@plugins/translate/utils";
-import definePlugin from "@utils/types";
+import definePlugin, { PluginNative } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpack/common";
 
@@ -34,6 +34,7 @@ import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, forgetOverl
 import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
 import themeStyle from "./theme/Terono.theme.css?managed";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
+import { applyUsage, startUsage, stopUsage } from "./usage";
 import { VERSION } from "./version";
 
 /* ================= quick settings icon + header popouts =================
@@ -219,7 +220,7 @@ const CREATOR_ID = "1364930123656335402";
 
 const creatorBadge: ProfileBadge = {
     id: "terono-creator",
-    description: "Terono creator: made the theme & plugin you're using",
+    description: "Creator of Terono",
     iconSrc: CREATOR_BADGE,
     position: BadgePosition.START,
     shouldShow: ({ userId }) => userId === CREATOR_ID,
@@ -254,6 +255,12 @@ html[data-dz-lite] [data-dz-vroca] {
 
 let badgeStyle: HTMLStyleElement | null = null;
 
+// the Terono logo as Discord's icon on the taskbar, Start menu and shortcuts (the main process does it, desktop only)
+function setTaskbarIcon(on: boolean) {
+    if (!IS_DISCORD_DESKTOP) return;
+    (VencordNative.pluginHelpers.Terono as PluginNative<typeof import("./native")>).setTaskbarIcon(on).catch(() => { });
+}
+
 /* ================= live settings =================
    This Vencord build never calls a setting's onChange, so listen to the store and re-apply.
    Every apply step skips work when its output is unchanged, so this stays cheap. */
@@ -261,6 +268,8 @@ let badgeStyle: HTMLStyleElement | null = null;
 let pendingApply = 0;
 function onSettingsChange(value: unknown, path: string) {
     if (path === "plugins.Terono.accentPreset" && typeof value === "string" && ACCENTS[value]) settings.store.accent = ACCENTS[value];
+    if (path === "plugins.Terono.shareUsage") applyUsage();
+    if (path === "plugins.Terono.taskbarIcon") setTaskbarIcon(value !== false);
     if (!path.startsWith("plugins.Terono.") || pendingApply) return;
     pendingApply = requestAnimationFrame(() => {
         pendingApply = 0;
@@ -458,6 +467,8 @@ export default definePlugin({
         safely("calls", startCall);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         safely("badges", startBadges); // before the creator badge, which then shows first
+        safely("usage", () => startUsage(() => settings.store.shareUsage));
+        safely("taskbarIcon", () => setTaskbarIcon(settings.store.taskbarIcon));
         safely("creatorBadges", () => {
             addProfileBadge(creatorBadge);
             addProfileBadge(vrocaBadge);
@@ -479,7 +490,9 @@ export default definePlugin({
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
         removeProfileBadge(creatorBadge);
         removeProfileBadge(vrocaBadge);
+        stopUsage();
         stopBadges();
+        setTaskbarIcon(false);
         badgeStyle?.remove();
         badgeStyle = null;
         document.removeEventListener("click", onDocClick, true);
