@@ -17,11 +17,11 @@ import { applyAmbient } from "./call";
 import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
-import { addTicker, isAway, removeTicker, setPauseWhenUnfocused } from "./motion";
+import { addTicker, isAway, MOTION_STEP_MS, removeTicker, setPauseWhenUnfocused } from "./motion";
 import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
-import { isOwner, UsagePanel } from "./usage";
 import { TeronoSettings } from "./settingsUi";
+import { isOwner, UsagePanel } from "./usage";
 
 export const DEFAULT_LOGO = TERONO_LOGO;
 export const LOGO_KEY = "Terono_homeLogo";
@@ -354,22 +354,6 @@ export const settings = definePluginSettings({
         description: "Show a notification when a new Terono is out (when automatic updates are off or can't be used).",
         default: true,
     },
-    afkMode: {
-        type: OptionType.BOOLEAN,
-        description: "Early alpha, can be buggy: Moon button next to camera / screen share while you're in a call: leave a message and a time, you're muted and deafened, and everyone with Terono sees a bubble next to your name. Click it again when you're back.",
-        default: true,
-    },
-    afkStatus: {
-        type: OptionType.BOOLEAN,
-        description: "While AFK, also set your Discord status (\"💤 AFK: your message\"), so people without Terono see it too. Your old status comes back after.",
-        default: false,
-    },
-    afkLastText: {
-        type: OptionType.STRING,
-        description: "Last AFK message.",
-        default: "",
-        hidden: true,
-    },
     overlayShow: {
         type: OptionType.SELECT,
         description: "Early alpha, can be buggy: The Terono overlay: a see-through panel over your games and other apps (windowed or borderless) with the call you're in, who's talking, and your DMs and mentions as they come in. Clicks go through it to the game. Hidden while Discord is in front. Desktop app only.",
@@ -585,6 +569,15 @@ export const settings = definePluginSettings({
         ],
         onChange: () => applyVars(),
     },
+    panels: {
+        type: OptionType.SELECT,
+        description: "Separate cards: Terono's floating panels with space between them. Joined: the panels touch like in normal Discord, with thin lines between them.",
+        options: [
+            { label: "Separate cards (Terono)", value: "cards", default: true },
+            { label: "Joined, like Discord", value: "discord" },
+        ],
+        onChange: () => applyAttrs(),
+    },
     cardStyle: {
         type: OptionType.SELECT,
         description: "Panel material. Glass: see-through panels. Liquid glass: see-through panels with soft light slowly flowing under them. Only the big panels change; buttons, menus and popups stay solid. Performance mode keeps liquid glass still.",
@@ -646,8 +639,9 @@ export const settings = definePluginSettings({
     },
     liquidSpeed: {
         type: OptionType.SELECT,
-        description: "How fast the light flows.",
+        description: "How fast the light flows. Still: the light stays where it is (no motion at all).",
         options: [
+            { label: "Still (no motion)", value: "still" },
             { label: "Slow", value: "slow", default: true },
             { label: "Medium", value: "medium" },
             { label: "Fast", value: "fast" },
@@ -1036,11 +1030,11 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    taskbarIcon: "Terono icon on the taskbar", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
+    taskbarIcon: "Terono icon on the taskbar", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
-    cardShape: "Corners", cardStyle: "Material", glassOpacity: "Glass opacity", glassBlur: "Glass blur",
+    cardShape: "Corners", panels: "Panels", cardStyle: "Material", glassOpacity: "Glass opacity", glassBlur: "Glass blur",
     liquidColor: "Light color", liquidSpeed: "Flow speed",
     embedStyle: "Embed style", embedColor: "Embed color", embedColor2: "Gradient end", embedAngle: "Gradient angle", embedOpacity: "Glass opacity",
     cardMedia: "Picture or video", cardMediaUrl: "Link", cardMediaDim: "Card color over it",
@@ -1069,7 +1063,7 @@ for (const [key, def] of Object.entries(settings.def as Record<string, any>)) {
         const d = def.description.replace(/^(Servers|DMs|Chat bar): /, "");
         def.description = d.charAt(0).toUpperCase() + d.slice(1);
     }
-    def.dzHidden = key === "lastVersion" || key === "presetId" || key === "afkLastText" ? true : def.hidden;
+    def.dzHidden = key === "lastVersion" || key === "presetId" ? true : def.hidden;
     def.hidden = true;
 }
 
@@ -1311,6 +1305,8 @@ export function applyAttrs() {
     d.dzGuilds = s.serverList;
     d.dzChannels = s.channelsSide;
     d.dzMembers = s.membersSide;
+    if (s.panels === "discord") d.dzPanels = "discord";
+    else delete d.dzPanels;
     flag("dzGlass", s.cardStyle === "glass" || s.cardStyle === "liquid" || cardActive);
     flag("dzCardMedia", cardActive);
     flag("dzGlassBlur", (s.cardStyle === "glass" || s.cardStyle === "liquid") && s.glassBlur);
@@ -1695,7 +1691,7 @@ export function applyLiquid() {
     const size = Math.round(Math.max(innerWidth, innerHeight) * 0.9);
     sheet("liquid", `
 .dz-liquid { position: absolute; inset: 0; overflow: hidden; pointer-events: none; clip-path: inset(50%); contain: strict; }
-.dz-liquid i { position: absolute; left: 0; top: 0; border-radius: 50%; will-change: transform; }
+.dz-liquid i { position: absolute; left: 0; top: 0; border-radius: 50%; will-change: transform; transition: transform ${MOTION_STEP_MS}ms linear; }
 ${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.round(size * k)}px; height: ${Math.round(size * k)}px; margin: ${-Math.round(size * k / 2)}px 0 0 ${-Math.round(size * k / 2)}px;
     background: radial-gradient(circle closest-side, color-mix(in srgb, ${colors[i]} ${white ? 22 : 55}%, transparent), transparent); }`).join("\n")}
 .dz-liquid i:last-child { width: ${Math.round(size * 0.35)}px; height: 300vh; top: -100vh; border-radius: 0;
@@ -1709,8 +1705,8 @@ ${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.
         stopLiquidWatch = watchOutline(updateLiquidClip);
     }
     updateLiquidClip();
-    // Performance mode: the light stays where it is
-    if (s.lite) {
+    // Performance mode or "Still": the light stays where it is
+    if (s.lite || s.liquidSpeed === "still") {
         removeTicker(liquidTick);
         liquidTick(12);
     } else addTicker(liquidTick);
@@ -1744,6 +1740,7 @@ const MOTION_CSS = `
 html[data-dz-plugin] #app-mount .bg__960e4::before {
     animation: none !important;
     transform: translate3d(var(--dz-dx, 0%), var(--dz-dy, 0%), 0);
+    transition: transform ${MOTION_STEP_MS}ms linear;
 }
 html[data-dz-plugin] .numberBadge__463b7,
 html[data-dz-plugin] .listItem__650eb::after {

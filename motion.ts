@@ -11,7 +11,10 @@
    look for ~5-8x less GPU work). Nothing ticks while Discord is hidden, minimized, or (by default) while another
    window, e.g. a game, has focus. */
 
-const FPS = 30;
+// Moving things get a new position twice a second and the GPU glides to it (a CSS transition of the same length).
+// Changing styles 30 times a second kept Discord's main thread busy 30-50% of the time while doing nothing, which
+// made clicks and streams lag; this looks the same and costs almost nothing.
+export const MOTION_STEP_MS = 500;
 
 type Ticker = (seconds: number) => void;
 const tickers = new Set<Ticker>();
@@ -29,7 +32,7 @@ function sync() {
     // CSS can pause its own small animations (badges) with this too
     document.documentElement.toggleAttribute("data-dz-away", away());
     const run = tickers.size > 0 && !away() && !reducedMotion.matches;
-    if (run && !timer) timer = window.setInterval(tick, 1000 / FPS);
+    if (run && !timer) timer = window.setInterval(tick, MOTION_STEP_MS);
     else if (!run && timer) {
         clearInterval(timer);
         timer = 0;

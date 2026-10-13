@@ -21,9 +21,9 @@
     <AssemblyTitle>Terono Diagnostics</AssemblyTitle>
     <Description>Checks and repairs Discord and Terono, and writes a report for Terona Studios.</Description>
     <Copyright>Copyright © 2026 Terona Studios</Copyright>
-    <Version>1.1.0</Version>
-    <FileVersion>1.1.0.0</FileVersion>
-    <InformationalVersion>1.1.0</InformationalVersion>
+    <Version>1.1.1</Version>
+    <FileVersion>1.1.1.0</FileVersion>
+    <InformationalVersion>1.1.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

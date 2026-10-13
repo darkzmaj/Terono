@@ -117,7 +117,7 @@ At the top is the **Updates** box and a small **search box**: type anything ("bo
 
 ### Presets: a whole look in one click
 
-The **Presets** tab has 11 complete looks, the same ones as the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
+The **Presets** tab has 12 complete looks: **Default** (normal Discord: panels joined like Discord, its colors, font and layout, and still everything changeable) and the ones in the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
 
 1. Not sure? Click **Preview**. The settings close and the preset is shown on your actual Discord. The bar at the bottom lets you:
    - flip through the presets with **‹** and **›**,
@@ -143,7 +143,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**) and **Card color**. The text color is under **Colors → Text**.
 - **Shape & material:**
   - **Corners:** **Sharp**, **Soft**, **Curved** or **Round**.
-  - **Material:** **Solid**, **Glass** or **Liquid glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Liquid glass is see-through panels with soft light slowly flowing under them: pick the **Light color** (your colors, or white for clear glass) and the **Flow speed**. With **Glass blur** on, the light is blurred too. Performance mode keeps the light still. Menus, popups and buttons always stay solid so they stay readable.
+  - **Material:** **Solid**, **Glass** or **Liquid glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Liquid glass is see-through panels with soft light slowly flowing under them: pick the **Light color** (your colors, or white for clear glass) and the **Flow speed** (**Still** turns the motion off completely). With **Glass blur** on, the light is blurred too. Performance mode keeps the light still. Menus, popups and buttons always stay solid so they stay readable.
 - **Embeds (link previews):** **Like the cards**, **One color**, **Gradient** (with **Gradient end** and **Gradient angle**) or **Glass** (with **Glass opacity**). With one color or a gradient, the embed text turns dark or light by itself so it stays readable.
 - **Picture or video in the cards:** an image, GIF or video inside the panels, separate from the background.
   - Choose **URL** and paste a direct link in **Link**, or **File** and upload one (up to 100 MB).
@@ -216,12 +216,11 @@ In the **Profiles** tab:
 
 ### Calls
 
-> **Early alpha:** ambient mode, AFK, bulk mode and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
+> **Early alpha:** ambient mode, bulk mode and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
 
 In the **Calls** tab:
 
 - **Ambient mode:** while you watch a stream, its colors glow softly around it, like on YouTube, following the picture live. Everything else in calls is Discord's own.
-- **AFK:** a 🌙 button next to camera and screen share in the voice panel. Write a message (e.g. "getting food") and how long you'll be; you're muted and deafened, and everyone in the call with Terono sees a speech bubble next to your name with your message and a countdown. Late? It says *running late*. Click 🌙 again when you're back: mute and deafen go back to how they were. Needs **Connect with Discord** in the Badges tab once. **Also set my Discord status** shows it to people without Terono too.
 
 ### Your own icons
 

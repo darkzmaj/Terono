@@ -21,9 +21,9 @@
     <AssemblyTitle>Terono Setup</AssemblyTitle>
     <Description>Installs and updates the Terono theme and plugin for Discord (Vencord).</Description>
     <Copyright>Copyright © 2026 Terona Studios</Copyright>
-    <Version>1.1.0</Version>
-    <FileVersion>1.1.0.0</FileVersion>
-    <InformationalVersion>1.1.0</InformationalVersion>
+    <Version>1.1.1</Version>
+    <FileVersion>1.1.1.0</FileVersion>
+    <InformationalVersion>1.1.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

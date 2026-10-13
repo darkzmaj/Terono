@@ -43,7 +43,7 @@ const TABS: Tab[] = [
         id: "cards", label: "Cards", intro: "The panels: their color, corners, glass or liquid glass, embeds in chat and an optional picture or video inside them.",
         groups: [
             { title: "Card colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle"] },
-            { title: "Shape & material", keys: ["cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed"] },
+            { title: "Shape & material", keys: ["panels", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed"] },
             { title: "Embeds (link previews)", keys: ["embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity"] },
             { title: "Picture or video in the cards", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
         ],
@@ -87,10 +87,9 @@ const TABS: Tab[] = [
         ],
     },
     {
-        id: "calls", label: "Calls (alpha)", intro: "Ambient mode for streams and AFK in calls.",
+        id: "calls", label: "Calls (alpha)", intro: "Ambient mode for streams.",
         groups: [
             { title: "Streams", keys: ["callAmbient"] },
-            { title: "AFK", keys: ["afkMode", "afkStatus"] },
         ],
     },
     {

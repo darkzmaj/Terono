@@ -13,8 +13,8 @@ import { existsSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, 
 import { dirname, join } from "path";
 
 import { TERONO_LOGO } from "./assets";
-import { TERONO_ICON } from "./iconData";
 import { BADGE_API, badgesReady } from "./badgeConfig";
+import { TERONO_ICON } from "./iconData";
 import { OVERLAY_HTML } from "./overlayPage";
 import { canUpdate, getState, latestRelease, startUpdate } from "./update";
 

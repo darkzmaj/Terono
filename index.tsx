@@ -18,7 +18,6 @@ import definePlugin, { PluginNative } from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpack/common";
 
-import { AFK_CSS, startAfk, stopAfk } from "./afk";
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
@@ -288,8 +287,8 @@ const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
-    if (raw.dzVersion === 10) return;
-    if (raw.dzVersion !== 9 && raw.dzVersion !== 7 && raw.dzVersion !== 8 && raw.dzVersion !== 6) await migrateLegacy(raw);
+    if (raw.dzVersion === 11) return;
+    if (raw.dzVersion !== 10 && raw.dzVersion !== 9 && raw.dzVersion !== 7 && raw.dzVersion !== 8 && raw.dzVersion !== 6) await migrateLegacy(raw);
 
     // 1.0.4: the text color got its own switch (before, only custom card colors used it)
     if (raw.cardPreset === "custom" && raw.customText === undefined) raw.customText = true;
@@ -298,7 +297,9 @@ async function migrate() {
     delete raw.appIcon;
     // 1.0.9: the call look and minimized stream options are gone (Discord's own again)
     for (const k of ["callLook", "callCircles", "callWave", "callLiveRing", "callLayout", "callSide", "pipShape", "pipX", "pipY"]) delete raw[k];
-    raw.dzVersion = 10;
+    // 1.1.1: AFK mode is gone
+    for (const k of ["afkMode", "afkStatus", "afkLastText"]) delete raw[k];
+    raw.dzVersion = 11;
 }
 
 /* ================= the theme, built in =================
@@ -463,7 +464,6 @@ export default definePlugin({
         safely("branding", startBranding);
         safely("shapes", startShapes);
         safely("bulk", startBulk);
-        safely("afk", startAfk);
         safely("calls", startCall);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         safely("badges", startBadges); // before the creator badge, which then shows first
@@ -473,7 +473,7 @@ export default definePlugin({
             addProfileBadge(creatorBadge);
             addProfileBadge(vrocaBadge);
         });
-        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + AFK_CSS + CALL_CSS });
+        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS });
         document.head.append(badgeStyle);
         safely("menus", () => addGlobalContextMenuPatch(menuPatch));
         document.addEventListener("click", onDocClick, true);
@@ -504,7 +504,6 @@ export default definePlugin({
         stopBranding();
         stopShapes();
         stopBulk();
-        stopAfk();
         stopCall();
         stopOverlay();
         forgetOverlay();

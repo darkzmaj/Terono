@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = TeronoDiagnostics
+build_property.ProjectDir = C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 

@@ -8,8 +8,8 @@ import * as DataStore from "@api/DataStore";
 import { Button } from "@components/Button";
 import { FluxDispatcher, useEffect, UserStore, useState } from "@webpack/common";
 
-import { api, authorize, getAuth, setPresence } from "./badges";
 import { BADGE_API, badgesReady, OWNER_ID } from "./badgeConfig";
+import { api, authorize, getAuth, setPresence } from "./badges";
 import { VERSION } from "./version";
 
 // How many people use Terono: a number only the creator can read (Settings > Extras > Privacy).

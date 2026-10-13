@@ -163,7 +163,7 @@ function connect() {
         if (e.data === "pong") return;
         try {
             const msg = JSON.parse(e.data);
-            // other kinds of live messages (AFK) go to whoever listens for them
+            // other kinds of live messages go to whoever listens for them
             if (msg.t) return liveListeners.forEach(l => l(msg));
             const { u, e: entry } = msg;
             if (typeof u !== "string") return;

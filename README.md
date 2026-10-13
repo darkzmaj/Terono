@@ -42,7 +42,7 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 ## What you get
 
 **Look**
-- 11 **presets** with live preview, then change anything.
+- 12 **presets** with live preview, then change anything. **Default** is normal Discord that you can still recolor and rearrange.
 - Colors: primary, text, icons, status, window buttons and an **app border** (color, gradient or your own picture).
 - Cards: dark, gray, white or your own color or gradient; sharp to round corners; solid, **glass** or **liquid glass**; a picture or video inside them.
 - Embeds in their own color, gradient or glass. Background: animated, static, solid, picture, GIF or video.
@@ -56,7 +56,6 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 
 **Calls** *(early alpha: expect bugs)*
 - **Ambient mode:** the colors of the stream you watch glow softly around it, like on YouTube.
-- **AFK:** one click mutes and deafens you and shows your message and when you're back to everyone with Terono.
 
 **Tools** *(bulk mode and the overlay are early alpha: expect bugs)*
 - **Search** every setting and plugin from one box.
@@ -114,7 +113,7 @@ Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://t
 
 Terono only talks to these services, for the features that use them:
 
-- **Terono badge server** (Cloudflare): the list of badges and who's AFK. Only your Discord user ID and what you set yourself; signing in once lets only you change your badges.
+- **Terono badge server** (Cloudflare): the list of badges and the anonymous user count. Only your Discord user ID and what you set yourself; signing in once lets only you change your badges.
 - **Terono user count:** about once a day a one-way hash of your Discord user ID, and an 'online' mark while Discord is open, so the number of Terono users can be counted. Only the creator can see the number. Turn it off with **Extras → Privacy → Count me as a Terono user** and nothing is sent.
 - **Google Translate:** only with *Auto-translate* on (off by default).
 - **Google Fonts:** fonts other than Discord's own.

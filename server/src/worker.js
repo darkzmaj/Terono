@@ -14,9 +14,6 @@
 // PUT    /me/badge/<0-2>     { name, effect, color, image (base64 PNG, 64x64, static) }
 // DELETE /me/badge/<0-2>
 // PUT    /me/official        { badges: [key, ...] }
-// PUT    /me/afk             { text, until }  away message (until: ms timestamp or 0), shown to Terono users in calls
-// DELETE /me/afk
-// GET    /afk                everyone who's away right now
 // POST   /seen               { id }  counts a user in the Terono user number (stored as a hash; setting can turn it off)
 // GET    /stats              { online, day, total }: the user number, readable only by the owner
 // GET    /live               WebSocket: every badge change as it happens, { u: userId, e: entry | null }
@@ -50,24 +47,26 @@ async function route(req, env, url) {
     const m = req.method;
 
     if (m === "GET" && path === "/badges") return badges(env);
-    if (m === "GET" && path === "/afk") return afkList(env);
     if (m === "GET" && path === "/live") return env.HUB.get(env.HUB.idFromName("hub")).fetch(req);
     if (m === "GET" && path.startsWith("/img/")) return image(env, path.slice(5).replace(/\.png$/, ""));
     if (m === "POST" && path === "/hello") return hello(req, env);
     if (m === "GET" && path === "/authorize") return authorize(env, url);
     if (m === "POST" && path === "/seen") return seen(req, env);
 
+    if (path === "/stats") {
+        const user = await session(req, env);
+        if (!user) return json({ error: "Not signed in" }, 401);
+        if (m === "GET") return stats(env, user);
+    }
+
     if (path === "/me" || path.startsWith("/me/")) {
         const user = await session(req, env);
         if (!user) return json({ error: "Not signed in" }, 401);
         if (m === "GET" && path === "/me") return me(env, user);
-        if (m === "GET" && path === "/stats") return stats(env, user);
         const slot = path.match(/^\/me\/badge\/([0-2])$/);
         if (slot && m === "PUT") return putBadge(req, env, user, Number(slot[1]));
         if (slot && m === "DELETE") return delBadge(env, user, Number(slot[1]));
         if (m === "PUT" && path === "/me/official") return putOfficial(req, env, user);
-        if (m === "PUT" && path === "/me/afk") return putAfk(req, env, user);
-        if (m === "DELETE" && path === "/me/afk") return delAfk(env, user);
     }
     return json({ error: "Not found" }, 404);
 }
@@ -278,43 +277,6 @@ async function entryOf(env, id) {
 }
 
 // after a change: the list is rebuilt on its next download, and everyone connected gets the change right away
-/* ---------------- AFK ---------------- */
-
-const AFK_MAX_MS = 12 * 60 * 60 * 1000;
-
-async function afkList(env) {
-    const rows = await env.DB.prepare("SELECT user_id, text, until, since FROM afk WHERE since > ?").bind(Date.now() - AFK_MAX_MS).all();
-    const out = {};
-    for (const r of rows.results) out[r.user_id] = { text: r.text, until: r.until, since: r.since };
-    return json({ afk: out });
-}
-
-async function putAfk(req, env, user) {
-    const body = await req.json().catch(() => null);
-    const text = typeof body?.text === "string" ? body.text.trim().replace(/\s+/g, " ").slice(0, 80) : "";
-    const until = Number(body?.until) || 0;
-    if (until && (until < Date.now() || until > Date.now() + AFK_MAX_MS)) return json({ error: "Bad time" }, 400);
-    const since = Date.now();
-    await env.DB.prepare("INSERT INTO afk (user_id, text, until, since) VALUES (?, ?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET text = excluded.text, until = excluded.until, since = excluded.since")
-        .bind(user, text, until, since).run();
-    await broadcast(env, { t: "afk", u: user, a: { text, until, since } });
-    return json({ ok: true });
-}
-
-async function delAfk(env, user) {
-    await env.DB.prepare("DELETE FROM afk WHERE user_id = ?").bind(user).run();
-    await broadcast(env, { t: "afk", u: user, a: null });
-    return json({ ok: true });
-}
-
-const broadcast = (env, msg) => env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/broadcast", { method: "POST", body: JSON.stringify(msg) });
-
-async function changed(env, id) {
-    await dirty(env);
-    const entry = await entryOf(env, id);
-    await env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/broadcast", { method: "POST", body: JSON.stringify({ u: id, e: entry }) });
-}
-
 /* ---------------- live updates ----------------
    One Durable Object holds every open connection (hibernating, so idle connections cost nothing) and sends each
    change to all of them. */

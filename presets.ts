@@ -23,7 +23,7 @@ const BASE: Record<string, string | number | boolean> = {
     cardPreset: "dark", cardFill: "solid", cardColor: "#070708", cardColor2: "#0b1a33", cardAngle: 135, textColor: "#f1f2f4",
     customText: false, customIcons: false,
     embedStyle: "cards",
-    cardShape: "curved", cardStyle: "solid", glassOpacity: 60, glassBlur: true, cardMedia: "none", cardMediaDim: 60,
+    panels: "cards", cardShape: "curved", cardStyle: "solid", glassOpacity: 60, glassBlur: true, cardMedia: "none", cardMediaDim: 60,
     background: "animated", bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
     serverList: "top", serverListDirection: "ltr", channelsSide: "left", membersSide: "right",
     headerName: "left", headerHash: true, headerFollow: false, headerButtons: "left", headerSearch: "right",
@@ -34,6 +34,15 @@ const BASE: Record<string, string | number | boolean> = {
 const CLASSIC = { headerName: "middle", headerHash: false, roleCount: "custom", roleCountCustom: "「%users%」" };
 
 export const PRESETS: Preset[] = [
+    {
+        id: "default", name: "Default",
+        description: "Normal Discord: joined panels, Discord's colors, font and layout. Change any color or layout you like.",
+        values: {
+            panels: "discord", accentPreset: "custom", accent: "#5865f2", cardPreset: "gray", cardShape: "soft", background: "solid", bgBase: "#121214",
+            serverList: "left", headerName: "left", headerButtons: "right", headerSearch: "right", dmHeaderName: "left", dmHeaderButtons: "right",
+            font: "discord", roleCount: "dash",
+        },
+    },
     {
         id: "classic", name: "Terono Classic",
         description: "Blue on black, dark cards, server list on top, channel name centered.",

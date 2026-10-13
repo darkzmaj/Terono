@@ -6,4 +6,4 @@
 
 // The release this code is. The updater compares it with the latest GitHub release, and the theme is loaded from
 // the matching tag (v + VERSION). Bump it together with the release tag.
-export const VERSION = "1.1.0";
+export const VERSION = "1.1.1";

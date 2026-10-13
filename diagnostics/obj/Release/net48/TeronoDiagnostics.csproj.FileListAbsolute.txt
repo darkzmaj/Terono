@@ -1,0 +1,8 @@
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\bin\Release\net48\Terono-Diagnostics.exe.config
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\bin\Release\net48\Terono-Diagnostics.exe
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\TeronoDiagnostics.csproj.AssemblyReference.cache
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\TeronoDiagnostics.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\TeronoDiagnostics.AssemblyInfoInputs.cache
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\TeronoDiagnostics.AssemblyInfo.cs
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\TeronoDiagnostics.csproj.CoreCompileInputs.cache
+C:\Users\majko\Documents\PROJECTS\Mods\Vencord\src\userplugins\terono\diagnostics\obj\Release\net48\Terono-Diagnostics.exe

@@ -3,7 +3,7 @@
  * @author Terona Studios
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 1.1.0
+ * @version 1.1.1
  * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -76,7 +76,7 @@ body {
 .chat_f75fb0 > .container__0b563 /* server channels and roles page */,
 .container__8a031 /* popout modals */ {
     background-color: var(--background-base-lower);
-    border-radius: var(--radius-lg);
+    border-radius: var(--dz-panel-radius, var(--radius-lg));
     border: var(--border-thickness) solid var(--border-subtle);
     backdrop-filter: var(--panel-backdrop-filter);
     box-sizing: border-box;
@@ -2121,7 +2121,7 @@ html[data-dz-card-fill="gradient"] :is(.guilds__5e434, .sidebarList__5e434, .pan
 
 html[data-dz-glass-blur]:not([data-dz-lite]) :is(.guilds__5e434, .sidebarList__5e434, .panels__5e434, .chat_f75fb0 > .subtitleContainer_f75fb0, .chatContent_f75fb0,
     .container_c8ffbb, .content_f75fb0 > .membersWrap_c8ffbb, .container__133bf > .container__9293f, .peopleColumn__133bf,
-    .nowPlayingColumn__133bf, .searchResultsWrap_a98f3b, .container_f369db, .chat_fb64c9, .callContainer_cb9592,
+    .nowPlayingColumn__133bf, .searchResultsWrap_a98f3b, .container_f369db, .chat_fb64c9,
     .content_f75fb0 > aside > .outer_c0bea0, .container_f391e3 > .content_f75fb0, .shop__6db1d) {
     backdrop-filter: blur(14px);
 }
@@ -2218,9 +2218,9 @@ html[data-dz-card-fill="gradient"]:root {
     box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
 }
 
+/* no blur over a stream: it would be redone for every video frame */
 html[data-dz-glass] .callContainer_cb9592 .buttonSection__1405b {
-    background-color: color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent) !important;
-    backdrop-filter: blur(16px);
+    background-color: color-mix(in srgb, var(--dz-card) 94%, transparent) !important;
 }
 
 .callContainer_cb9592 .buttonSection__1405b .colorable_f1ceac:not(.red_f1ceac, .redGlow_f1ceac, .disconnect_f1ceac, .green_f1ceac) {
@@ -2449,20 +2449,23 @@ html[data-dz-members="left"] :is(.content_f75fb0 > .container_c8ffbb, .content_f
     50% { opacity: 0.9; }
 }
 
+/* ================= JOINED PANELS (Panels: "Joined, like Discord", the Default preset) ================= */
+
+html[data-dz-panels="discord"] body {
+    --gap: 0px;
+    --dz-panel-radius: 0px;
+    --custom-guild-list-padding: 8px;
+}
+
 /* ================= HOVERS ================= */
 
 .link__2ea32,
 .interactive__972a0,
 .container__91a9d,
 .member_c8ffbb {
-    transition: background-color 110ms ease, color 110ms ease, transform 110ms ease;
+    transition: background-color 110ms ease, color 110ms ease;
 }
 
-.link__2ea32:hover,
-.interactive__972a0:hover,
-.container__91a9d:hover {
-    transform: translateX(2px);
-}
 
 .menu_c1e9c4 .item_c1e9c4 {
     transition: none !important;
@@ -2479,9 +2482,6 @@ html[data-dz-lite] :is(.link__2ea32, .interactive__972a0, .container__91a9d, .me
     transition: none !important;
 }
 
-html[data-dz-lite] :is(.link__2ea32, .interactive__972a0, .container__91a9d):hover {
-    transform: none;
-}
 
 /* ================= USER VOLUME SLIDER ================= */
 
