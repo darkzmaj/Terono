@@ -36,7 +36,7 @@ Everything from installing to building your own look, step by step.
 3. Wait for the green *Terono is installed* line. The first run takes a few minutes because it downloads Git and Node.js if you don't have them.
 4. Discord closes and opens again with Terono on.
 
-To check the file: right-click it → **Properties → Details** shows *Terono Setup* by *Terona Studios*. If something goes wrong, the steps it took are in `%TEMP%\Terono-Setup.log`.
+To check the file: right-click it → **Properties → Details** shows *Terono Setup* by *darkzmaj*. If something goes wrong, the steps it took are in `%TEMP%\Terono-Setup.log`.
 
 ### macOS / Linux
 
@@ -107,9 +107,16 @@ Either:
 - click the **Terono icon** next to the ← → arrows at the top left, or
 - **User Settings** (⚙ next to your name) → **Vencord** → **Plugins** → search **Terono** → ⚙.
 
-At the top is the **Updates** box and a small **search box**: type anything ("border", "font", "translate", a plugin's name) to find every setting and plugin that matches, wherever it is. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font, Logo & Icons, Calls, Overlay, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
+At the top is a **search box**: type anything ("border", "font", "translate", a plugin's name) to find every setting and plugin that matches, wherever it is. On the left is the menu:
 
-**Shortcut:** press **Ctrl + 1** anywhere in Discord to open the Terono settings. Turn it off under **Extras → Shortcut**.
+- **Look:** Presets, Colors, Panels & background, Font & logo, Layout
+- **You:** Your profile, Badges, People & avatars
+- **Features:** Calls & overlay, Tools, Plugins
+- **Terono:** Profiles & sharing, System (troubleshooting, performance, updates)
+
+Every change shows up straight away; there's nothing to save or restart.
+
+**Shortcut:** press **Ctrl + 1** anywhere in Discord to open the Terono settings. Turn it off under **Tools → Shortcuts**.
 
 ---
 
@@ -182,49 +189,68 @@ You can combine them freely. For example, Server list **Right** + Channel list s
 
 ### Font & Logo
 
-- **Font:** click one of the 22 fonts (each name is written in its own font), or **Custom (upload)** to use your own `.ttf`, `.otf`, `.woff` or `.woff2` file.
+- **Font:** 70 fonts, each shown in its own style. Search them or pick a group (Clean, Rounded, Geometric, Serif, Display, Handwritten, Mono); **Your own file** uses a `.ttf`, `.otf`, `.woff` or `.woff2` file.
 - **Home logo:** the Terono logo sits on the Home button by default. Set **Logo source** to **URL** and paste a **Logo link**, or to **File** and upload an image. **Logo size** makes it bigger or smaller; an empty link brings the Terono logo back.
 - **Quick settings icon:** the Terono icon next to the arrows that opens these settings.
 - **Terono loading screens:** the Terono logo and "Terono Discord" instead of Discord's logo while Discord starts, updates and connects, in your colors. The small update window ("Checking for updates…") changes from the next start.
 
 ---
 
-## 6. Save looks as profiles
+## 6. Save looks as profiles and share them
 
-In the **Profiles** tab:
+In **Profiles & sharing**:
 
 1. Set everything up the way you like.
-2. Type a name, choose which parts to include (everything, or only some sections like colors or layout), and click **Save current**.
-3. Click **Apply** on a profile to switch to it in one go.
-4. **Export** saves a profile as a file you can share. **Import JSON** loads one someone sent you.
-5. **Reset to defaults** puts every Terono setting back to the defaults. Your saved profiles are kept.
+2. Type a name and choose **what to include**: Everything, Look only, Layout only, Features only, or **Pick sections…** (colors, panels, embeds, background, font, logo, layout, header, chat, calls, overlay, tools, menus, translate). Click **Save**.
+3. Click **Apply** on a profile to switch to it in one go. With many profiles, the dropdown above the list shows only the ones with a certain part.
+4. **Share** turns a profile into a code like `a//$//K//…` (30 characters) and copies it. Anyone can paste it under **Load a shared profile** and click **Load & apply**.
+5. **Export** saves a profile as a file; **Import file** loads one.
+6. **Reset Terono to defaults** puts every Terono setting back. Your saved profiles are kept.
 
 ---
 
 ## 7. Extra features
 
 - **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
-- **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
-- **Extras → Updates:** **Update automatically** (on by default): when Discord starts, and every few hours, a new Terono installs itself in the background and a notification offers a restart. With it off, **Notify about new versions** just tells you.
-- **Extras → Taskbar:** **Terono icon on the taskbar** (on by default, Windows): Discord's icon on the taskbar, Start menu and desktop shortcuts becomes the Terono logo. Turn it off to get Discord's own icon back.
-- **Extras → Privacy:** **Count me as a Terono user** (on by default) lets Terono be counted anonymously (see Privacy in the README). Turn it off and nothing is sent.
-- **Extras → Shortcuts:**
+- **Tools → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
+- **System → Updates:** **Update automatically** (on by default): when Discord starts, and every few hours, a new Terono installs itself in the background and a notification offers a restart. With it off, **Notify about new versions** just tells you.
+- **System → Taskbar:** **Terono icon on the taskbar** (on by default, Windows): Discord's icon on the taskbar, Start menu and desktop shortcuts becomes the Terono logo. Turn it off to get Discord's own icon back.
+- **System → Privacy:** **Count me as a Terono user** (on by default) lets Terono be counted anonymously (see Privacy in the README). Turn it off and nothing is sent.
+- **Tools → Search & friends:**
+  - **Search tools:** a button next to the chat's search bar shows every **picture and video** of the chat as a grid, every **link**, or every **file** (this channel or the whole server). In links, a word finds it *inside* the address: "kori" finds coolify.kori.my. Click anything to jump to its message.
+  - **Blocked button on the friends page:** next to **Add Friend**, everyone you've blocked or ignored, with **Unblock**.
+- **Tools → Shortcuts:**
   - **Bulk select with Ctrl:** hold **Ctrl** and click servers, DMs or friends to select several (they get a colored outline). Then **right-click any of them**: it's Discord's normal menu with *For all N servers* on top, and whatever you pick (mark as read, mute for a time, notification settings, hide muted channels, leave, close DM, remove friend, block, …) is done to all of them. Leaving, removing and blocking ask once for all. **Esc** clears the selection.
   - **Double-click Home: read all** marks every server and DM as read.
-- **Overlay tab (Terono overlay):** a see-through panel over your games and other apps (windowed or borderless; desktop app only). It shows the call you're in with who's talking, muted or streaming, and pops up DMs and messages that mention you. Clicks go through it to your game, and it hides while Discord itself is in front. Press the **Hotkey** (Ctrl + Shift + O by default) to make it clickable: **Mute**, **Deafen**, **Open** (Discord at that call) and **Leave**, or click a message to open it in Discord. Press the hotkey again or **Esc** to go back to your game. Pick its **Corner**, **Only who's talking**, **Messages** on or off and **Opacity**; **Only when I press the hotkey** keeps it hidden until you call it up.
-- **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Find one with the search box at the top of the settings, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top, with a **Restart Discord** button.
+- **Calls & overlay → Terono overlay (beta):** a see-through panel, drawn in your Terono look (colors, glass, corners, font), over your games and other apps (windowed or borderless; desktop app only). It shows the call you're in with who's talking, muted or streaming, and pops up DMs and messages that mention you. Clicks go through it to your game, and it hides while Discord itself is in front. Press the **Hotkey** (Ctrl + Shift + O by default) to make it clickable: **Mute**, **Deafen**, **Open** (Discord at that call) and **Leave**, or click a message to open it in Discord. Press the hotkey again or **Esc** to go back to your game. Pick its **Corner**, **Only who's talking**, **Messages** on or off and **Opacity**; **Only when I press the hotkey** keeps it hidden until you call it up.
+- **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Find one with the search box at the top of the settings, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top of the Plugins page, with a **Restart Discord** button.
 
 ### Calls
 
-> **Early alpha:** ambient mode, bulk mode and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
+> **Beta:** ambient mode and the Terono overlay work well but are still new. Found something? Send a report (see [Troubleshooting](#9-troubleshooting)).
 
-In the **Calls** tab:
+In **Calls & overlay**:
 
-- **Ambient mode:** while you watch a stream, its colors glow softly around it, like on YouTube, following the picture live. Everything else in calls is Discord's own.
+- **Ambient mode:** while you watch a stream, its colors glow softly around it, like on YouTube, following the picture live. It plays a tiny copy of the stream, so the stream itself stays as smooth as without it. Everything else in calls is Discord's own.
+
+### Your profile (everyone with Terono sees it)
+
+In **Your profile** (connect with Discord once, like for badges):
+
+- **Your name:** one of Discord's name fonts, an **effect** (Solid, Gradient, Neon, Toon, Pop, Glow, Prism, Gummy) and one or two **colors**.
+- **Avatar decoration**, **Nameplate**, **Profile effect**, **Profile frame:** pick any of them from Discord's whole shop (search by name or collection).
+- **Profile card:** two colors, and a **banner** picture or GIF.
+
+Your own name and avatar show the changes right away; **Save** shows them to everyone with Terono, in chat, the member list, profiles and calls. People without Terono see your normal profile.
+
+### People & avatars
+
+- **People:** right-click anyone → **Name style…** to give their name a font and color. Only you see it. The list shows everyone you've styled.
+- **Profile pictures:** Circle (Discord), Rounded square or Square, for everyone (only you see it).
 
 ### Your own icons
 
-Under **Font, Logo & Icons → Your own pictures for Discord's buttons**: click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
+Under **Font & logo → Your own pictures for Discord's buttons**: click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
 
 ### Badges
 
@@ -233,15 +259,15 @@ In the **Badges** tab:
 - **Terono OG:** everyone who uses Terono between 1.0.0 and 1.1.5 gets this badge automatically, and keeps it.
 - **Connect with Discord** once: Discord asks you to **Authorize**. Terono only gets your user ID. This makes sure only you can change your badges.
 - **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
-- **Discord badges:** click the ones you want to wear (Nitro, Server Booster, HypeSquad, Early Supporter and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
+- **Discord badges:** click the ones you want to wear (Nitro and its tenure tiers from Bronze to Opal, Server Booster, HypeSquad, Early Supporter, Gifting Champion and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
 
 Everyone who uses Terono sees your changes right away (open profiles update the next time they're opened). People without Terono don't see them at all.
 
 ### Performance
 
-Terono's moving effects (animated background, liquid glass) update 30 times a second, which looks the same for such slow motion but is far lighter than your monitor's full refresh rate. While Discord isn't the active window, e.g. while you play, they stop completely (**Extras → Pause when Discord isn't in front**, on by default).
+Terono's moving effects (animated background, liquid glass) take a new position twice a second and your graphics card glides smoothly in between, so Discord itself stays free for clicks, scrolling and streams. While Discord isn't the active window, e.g. while you play, they stop completely (**System → Pause when Discord isn't in front**, on by default), and they hold still while a stream or camera plays. Liquid glass can also be **Still** (Flow speed).
 
-On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
+On a slow PC or a laptop on battery, turn on **Performance mode** (System). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
 
 - **Background** set to **Static gradient** or **Solid color**, instead of Animated or a GIF/video.
 - **Material** set to **Solid**, or Glass with **Glass blur** off.
@@ -250,7 +276,7 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). 
 
 ## 8. Updating
 
-- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. By default Terono also updates itself when Discord starts and every few hours, and shows a notification with a restart button when it's ready. Turn that off with **Update automatically** (Extras tab).
+- **Discord app, inside Discord:** open the Terono settings. **System** shows your version in the Updates box; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. By default Terono also updates itself when Discord starts and every few hours, and shows a notification with a restart button when it's ready. Turn that off with **Update automatically** (System).
 - **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
@@ -262,7 +288,9 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). 
 
 ## 9. Troubleshooting
 
-**Found a bug?** Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings. Go to **Extras → Troubleshooting → Copy debug info** and paste it with a screenshot. It lists your Terono, Vencord and Discord versions and what Terono found on your screen (no messages or account details).
+**Start here:** **System → Troubleshooting** checks the usual causes one by one (theme loaded, other themes or QuickCSS in the way, start-up errors, Discord changes, the Terono server, updates, start-up time) and has a fix button next to everything Terono can fix itself (**Fix all** does them at once). **Clear Terono caches** and **Restart Discord** are there too.
+
+**Still broken?** Click **Send report**: you get a short code (like `4FL5YEGT`, also copied). Give it to darkzmaj at **[darkzmaj.eu](https://darkzmaj.eu)**, who opens your report with it. It lists your Terono, Vencord and Discord versions, the checks and your Terono settings (no messages, names or account details). **Copy report** gives you the same text to paste yourself.
 
 **It works for my friend but not for me (or the other way round).**
 Check the version at the top of the Terono settings: you might be on an older Terono. Click **Check for updates**. If there's no update button, or it says the install can't update itself, download and run **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** once. It updates everything and keeps your settings. Browser versions don't update themselves: download the newest zip.

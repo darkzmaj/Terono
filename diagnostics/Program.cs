@@ -1,5 +1,5 @@
 ﻿// Terono Diagnostics: checks Discord and Terono, tests that Discord really opens, repairs what it can without
-// touching your data (messages, login, servers, your Terono settings), and writes a report to send to Terona Studios.
+// touching your data (messages, login, servers, your Terono settings), and writes a report to send to darkzmaj.
 //
 // What it never does: delete Discord's login/session data, read your messages, or send anything anywhere. The report
 // is a text file on your Desktop; your Windows user name is replaced in it.
@@ -42,7 +42,7 @@ internal static class Program
         if (!first) { Console.WriteLine("Terono Diagnostics is already running in another window."); return 1; }
 
         var version = typeof(Program).Assembly.GetName().Version;
-        Say($"Terono Diagnostics {version.Major}.{version.Minor}.{version.Build}  |  Terona Studios", ConsoleColor.Cyan);
+        Say($"Terono Diagnostics {version.Major}.{version.Minor}.{version.Build}  |  darkzmaj.eu", ConsoleColor.Cyan);
         Console.WriteLine("Checks Discord and Terono, repairs what is broken (your data stays), and writes a report.");
         Console.WriteLine("Discord will be closed and opened again a few times. This takes a minute or two.");
         Rep($"Terono Diagnostics {version} at {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -70,7 +70,7 @@ internal static class Program
         if (Unfixed.Count == 0) Say(Fixed.Count == 0 ? "Everything works." : "Everything was repaired and Discord opens.", ConsoleColor.Green);
         else Say("Some things could not be fixed automatically.", ConsoleColor.Yellow);
         Console.WriteLine("Report: " + reportPath);
-        if (Unfixed.Count > 0 || Fixed.Count > 0) Console.WriteLine("Send this file to Terona Studios (teronastudios.com/discord) so it can be looked at.");
+        if (Unfixed.Count > 0 || Fixed.Count > 0) Console.WriteLine("Send this file to darkzmaj (darkzmaj.eu) so it can be looked at.");
         try { Process.Start("notepad.exe", Quote(reportPath)); } catch { /* optional */ }
         if (!Console.IsInputRedirected) { Console.WriteLine(); Console.WriteLine("Press Enter to close."); Console.ReadLine(); }
         return Unfixed.Count == 0 ? 0 : 1;

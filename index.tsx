@@ -5,7 +5,7 @@
  */
 
 import { addProfileBadge, BadgePosition, ProfileBadge, removeProfileBadge } from "@api/Badges";
-import { addGlobalContextMenuPatch, GlobalContextMenuPatchCallback, removeGlobalContextMenuPatch } from "@api/ContextMenu";
+import { addContextMenuPatch, addGlobalContextMenuPatch, GlobalContextMenuPatchCallback, removeContextMenuPatch, removeGlobalContextMenuPatch } from "@api/ContextMenu";
 import * as DataStore from "@api/DataStore";
 import { plugins } from "@api/PluginManager";
 import { Settings, SettingsStore, useSettings } from "@api/Settings";
@@ -23,15 +23,17 @@ import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
 import { BULK_CSS, startBulk, stopBulk } from "./bulk";
 import { CALL_CSS, startCall, stopCall } from "./call";
-import { recordError, safely } from "./diagnostics";
+import { AVATAR_CSS, bannerHook, personMenu, profileHook, startCosmetics, stopCosmetics } from "./cosmetics";
+import { recordError, safely, startupTimes } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
 import { overlayAction, stopOverlay } from "./overlay";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
-import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
+import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
 import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
 import themeStyle from "./theme/Terono.theme.css?managed";
+import { startTools, stopTools } from "./tools";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
 import { applyUsage, startUsage, stopUsage } from "./usage";
 import { VERSION } from "./version";
@@ -361,8 +363,8 @@ async function migrateLegacy(raw: Record<string, any>) {
 
 export default definePlugin({
     name: "Terono",
-    description: "Companion for the Terono theme by Terona Studios: colors, cards, card media, background, layout, header, home logo, loading screens, chat bar, activities, menu cleanup, auto-translate, profiles and a hub for the plugins it pairs with.",
-    authors: [{ name: "Terona Studios", id: 0n }],
+    description: "Terono by darkzmaj: a fully customizable Discord look (colors, panels, background, layout, fonts), free Nitro profile items seen by everyone with Terono, badges, sharing profiles, search and call tools, and a hub for every Vencord plugin.",
+    authors: [{ name: "darkzmaj", id: 1364930123656335402n }],
     enabledByDefault: true,
     // marks your own messages (data-is-self), which the message sides option needs
     dependencies: ["ThemeAttributes"],
@@ -422,6 +424,22 @@ export default definePlugin({
                 },
             ],
         },
+        {
+            // profile looks: card colors, profile effect and frame (same hook as Vencord's FakeProfileThemes)
+            find: "UserProfileStore",
+            replacement: {
+                match: /(?<=getUserProfile\(\i\){return )(.+?)(?=})/,
+                replace: "$self.profileHook($1)",
+            },
+        },
+        {
+            // profile looks: the banner (same place as Vencord's USRBG)
+            find: ':"SHOULD_LOAD");',
+            replacement: {
+                match: /\i(?:\?)?.getPreviewBanner\(\i,\i,\i\)(?=.{0,100}"COMPLETE")/,
+                replace: "$self.bannerHook(arguments[0]?.displayProfile)||$&",
+            },
+        },
     ],
 
     flux: {
@@ -431,6 +449,11 @@ export default definePlugin({
     },
 
     showActivities: () => settings.store.showActivities,
+    profileHook,
+    bannerHook,
+    // for troubleshooting from the console: Vencord.Plugins.plugins.Terono.startupTimes()
+    startupTimes,
+    applyTimes,
     overlayAction,
     connectionIcon,
     connectionIconLoaded,
@@ -465,6 +488,8 @@ export default definePlugin({
         safely("shapes", startShapes);
         safely("bulk", startBulk);
         safely("calls", startCall);
+        safely("cosmetics", startCosmetics);
+        safely("tools", startTools);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         safely("badges", startBadges); // before the creator badge, which then shows first
         safely("usage", () => startUsage(() => settings.store.shareUsage));
@@ -473,9 +498,10 @@ export default definePlugin({
             addProfileBadge(creatorBadge);
             addProfileBadge(vrocaBadge);
         });
-        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS });
+        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS });
         document.head.append(badgeStyle);
         safely("menus", () => addGlobalContextMenuPatch(menuPatch));
+        safely("personMenu", () => addContextMenuPatch("user-context", personMenu));
         document.addEventListener("click", onDocClick, true);
         document.addEventListener("keydown", onKeyDown, true);
         safely("channelKind", () => syncChannelKind(SelectedChannelStore.getChannelId()));
@@ -487,6 +513,7 @@ export default definePlugin({
 
     stop() {
         removeGlobalContextMenuPatch(menuPatch);
+        removeContextMenuPatch("user-context", personMenu);
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
         removeProfileBadge(creatorBadge);
         removeProfileBadge(vrocaBadge);
@@ -505,6 +532,8 @@ export default definePlugin({
         stopShapes();
         stopBulk();
         stopCall();
+        stopCosmetics();
+        stopTools();
         stopOverlay();
         forgetOverlay();
         removeAll();

@@ -6,9 +6,10 @@
 
 import { addGlobalContextMenuPatch, GlobalContextMenuPatchCallback, removeGlobalContextMenuPatch } from "@api/ContextMenu";
 import { findByPropsLazy } from "@webpack";
-import { ActiveJoinedThreadsStore, Alerts, ChannelStore, createRoot, FluxDispatcher, GuildChannelStore, GuildStore, Menu, React, ReactDOM, ReadStateStore, RelationshipStore, showToast, Toasts, UserStore } from "@webpack/common";
+import { ActiveJoinedThreadsStore, Alerts, ChannelStore, createRoot, FluxDispatcher, GuildChannelStore, GuildStore, Menu, React, ReactDOM, ReadStateStore, RelationshipStore, UserStore } from "@webpack/common";
 
 import { settings } from "./settings";
+import { toast } from "./toast";
 
 /* ================= bulk mode =================
    Hold Ctrl and click servers (server list), DMs (DM list) or friends (friends page) to select several. Then
@@ -83,7 +84,7 @@ export function markEverythingRead() {
         ...Object.keys(GuildStore.getGuilds()).flatMap(guildChannelIds),
         ...ChannelStore.getSortedPrivateChannels().map(c => c.id),
     ]);
-    showToast("Everything marked as read.", Toasts.Type.SUCCESS);
+    toast("Everything marked as read.", "success");
 }
 
 /* ---------- Discord's own menu, for all of them ---------- */
@@ -172,7 +173,7 @@ async function runForAll(navId: string, k: Kind, anchor: string, item: any, orig
         } else if (it && before !== undefined && it.props.checked !== before) done++;
     }
     busy = false;
-    showToast(`${item.props.label ?? "Done"}: ${done} of ${others.length + 1} ${NAMES[k][1]}.`, done === others.length + 1 ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE);
+    toast(`${item.props.label ?? "Done"}: ${done} of ${others.length + 1} ${NAMES[k][1]}.`, done === others.length + 1 ? "success" : "message");
     renderBar();
 }
 
@@ -194,7 +195,7 @@ function confirmAll(title: string, k: Kind, what: string, run: (id: string) => u
                 await pause(1200);
             }
             busy = false;
-            showToast(`${what}: ${done} of ${ids.length} done.`, done === ids.length ? Toasts.Type.SUCCESS : Toasts.Type.FAILURE);
+            toast(`${what}: ${done} of ${ids.length} done.`, done === ids.length ? "success" : "failure");
             clear();
         },
     });

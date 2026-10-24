@@ -4,7 +4,7 @@
 
 <h1 align="center">Terono</h1>
 
-<p align="center">A fast, fully customizable Discord look and toolkit by <b>Terona Studios</b>.<br>Windows · macOS · Linux · Browser</p>
+<p align="center">A fast, fully customizable Discord look and toolkit by <b>darkzmaj</b>.<br>Windows · macOS · Linux · Browser</p>
 
 <p align="center">
   <img src="assets/screenshots/classic.png" alt="Terono" width="100%">
@@ -44,33 +44,40 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 **Look**
 - 12 **presets** with live preview, then change anything. **Default** is normal Discord that you can still recolor and rearrange.
 - Colors: primary, text, icons, status, window buttons and an **app border** (color, gradient or your own picture).
-- Cards: dark, gray, white or your own color or gradient; sharp to round corners; solid, **glass** or **liquid glass**; a picture or video inside them.
+- Panels: dark, gray, white or your own color or gradient; sharp to round corners; solid, **glass** or **liquid glass** (moving or still); a picture or video inside them; joined like Discord or as separate cards.
 - Embeds in their own color, gradient or glass. Background: animated, static, solid, picture, GIF or video.
-- 22 fonts shown in their own style, or your own font. Your own home logo and your own pictures for Discord's icons.
+- **70 fonts** in 7 styles with a search, or your own font file. Your own home logo and your own pictures for Discord's icons.
+
+**Your profile** (seen by everyone with Terono)
+- Discord's **Nitro profile items, free**: a font, effect (gradient, neon, glow, …) and colors for your name, any **avatar decoration**, **nameplate**, **profile effect** and **profile frame** from Discord's shop, profile card colors and your own **banner** (picture or GIF). Discord draws them itself, in chat, the member list, profiles and calls.
+- **Badges:** the **Terono OG** badge for everyone on 1.0.0 – 1.1.5, up to 3 badges of your own, and Discord's badges (now with the Nitro tenure tiers, Gifting Champion and more).
+- **People:** give anyone's name your own font and color (only you see it). **Square or rounded profile pictures** for everyone.
 
 **Layout**
-- Server list left, top, bottom or right (top and bottom scroll left to right or right to left); channels and members on either side.
+- Server list left, top, bottom or right (top and bottom scroll left to right or right to left); channels and members on either side. The open server gets an outline in your color.
 - The **Terono logo as Discord's icon** on the taskbar, Start menu and shortcuts (Windows, can be turned off).
 - Channel header: name, buttons and search anywhere; hide any button.
 - Messages: yours on the right and others on the left, or the other way round.
 
-**Calls** *(early alpha: expect bugs)*
-- **Ambient mode:** the colors of the stream you watch glow softly around it, like on YouTube.
+**Calls & overlay** *(beta)*
+- **Ambient mode:** the colors of the stream you watch glow softly around it, like on YouTube, without slowing the stream.
+- **Terono overlay** over your games, in your Terono look: who's in your call and who's talking, DMs and mentions as they come in. A hotkey makes it clickable: mute, deafen, leave, open a message.
 
-**Tools** *(bulk mode and the overlay are early alpha: expect bugs)*
+**Tools**
 - **Search** every setting and plugin from one box.
+- **Pictures, links and files** of a chat in one click (next to the search bar). Search *inside* links: "kori" finds coolify.kori.my.
+- **Blocked** button on the friends page, with everyone you've blocked or ignored.
 - **Plugins:** every Vencord plugin by category, switched on and off instantly.
 - **Bulk mode:** hold Ctrl and click servers, DMs or friends, then right-click one: everything in Discord's menu is done to all of them. Double-click Home to read everything.
-- **Terono overlay:** over your games: who's in your call and who's talking, DMs and mentions as they come in. A hotkey makes it clickable: mute, deafen, leave, open a message.
-- **Badges:** the **Terono OG** badge for everyone on 1.0.0 – 1.1.5, up to 3 badges of your own, and Discord's badges. Seen by everyone with Terono, updated instantly.
-- **Profiles:** save looks, switch between them, share them as files.
+- **Profiles:** save everything or only parts (look, layout, features, or pick sections), switch between them, and **share them as a code** (`a//$//K//…`) anyone can paste.
 - Auto-translate, chat bar and right-click menu cleanup, role count styles, Terono loading screens.
 
 **Reliable**
+- **Troubleshooting** in Terono (System): checks the usual causes one by one with a fix button, repairs caches, and **sends a report as a short code** you give to darkzmaj.
 - **Terono Setup** checks that Discord opens after installing and puts plain Discord back if it doesn't; Discord also starts without Terono if Terono's files go missing. **Terono Diagnostics** repairs the rest ([see below](#discord-wont-open)).
 
 **Light on your PC**
-- Moving effects update 30 times a second instead of at your monitor's full refresh rate and stop completely while Discord is in the background. **Performance mode** for slower PCs.
+- Moving effects take a new position twice a second and the GPU glides in between, stop completely while Discord is in the background, and hold still while you watch a stream. **Performance mode** for slower PCs.
 
 ## Presets
 
@@ -103,18 +110,18 @@ Just the look, without the plugin's settings and tools:
 
 ## Discord won't open?
 
-Download **[Terono-Diagnostics.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Diagnostics.exe)** and double-click it. It tests that Discord really opens, repairs what is broken (damaged settings, missing Terono files, caches, a broken install) **without removing your account, messages or Terono settings**, and writes **Terono-Diagnostics-Report.txt** on your Desktop. If it couldn't fix everything, send that file to Terona Studios. Terono Setup also checks that Discord opens after installing and puts plain Discord back if it doesn't.
+Download **[Terono-Diagnostics.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Diagnostics.exe)** and double-click it. It tests that Discord really opens, repairs what is broken (damaged settings, missing Terono files, caches, a broken install) **without removing your account, messages or Terono settings**, and writes **Terono-Diagnostics-Report.txt** on your Desktop. If it couldn't fix everything, send that file to darkzmaj ([darkzmaj.eu](https://darkzmaj.eu)). Terono Setup also checks that Discord opens after installing and puts plain Discord back if it doesn't.
 
 ## Found a bug?
 
-Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)** (also linked at the top of the Terono settings). Add **Extras → Troubleshooting → Copy debug info** and a screenshot; it shows your versions and what Terono found, so it can be fixed fast.
+Get help at **[darkzmaj.eu](https://darkzmaj.eu)** (also linked at the top of the Terono settings). In **System → Troubleshooting**, fix what it finds with one click, or **Send report** and give the short code to darkzmaj.
 
 ## Privacy
 
 Terono only talks to these services, for the features that use them:
 
-- **Terono badge server** (Cloudflare): the list of badges and the anonymous user count. Only your Discord user ID and what you set yourself; signing in once lets only you change your badges.
-- **Terono user count:** about once a day a one-way hash of your Discord user ID, and an 'online' mark while Discord is open, so the number of Terono users can be counted. Only the creator can see the number. Turn it off with **Extras → Privacy → Count me as a Terono user** and nothing is sent.
+- **Terono server** (Cloudflare): badges and profile looks (name style, decorations, card colors, banner) with your Discord user ID, only what you set yourself; signing in once lets only you change yours. **Shared profiles** are kept under their code (anyone with the code can load it). **Reports** you choose to send are kept 30 days and only the creator can open them. Nothing else.
+- **Terono user count:** about once a day a one-way hash of your Discord user ID, and an 'online' mark while Discord is open, so the number of Terono users can be counted. Only the creator can see the number. Turn it off with **System → Privacy → Count me as a Terono user** and nothing is sent.
 - **Google Translate:** only with *Auto-translate* on (off by default).
 - **Google Fonts:** fonts other than Discord's own.
 - **GitHub / jsDelivr:** updates and preset pictures.

@@ -16,6 +16,14 @@
 // PUT    /me/official        { badges: [key, ...] }
 // POST   /seen               { id }  counts a user in the Terono user number (stored as a hash; setting can turn it off)
 // GET    /stats              { online, day, total }: the user number, readable only by the owner
+// PUT    /me/look            { look }  your profile look (name font / effect / colors, avatar decoration, nameplate,
+//                             profile effect, card colors, banner), shown to everyone with Terono; DELETE removes it
+// PUT    /me/banner          { image (base64 PNG / JPEG / WEBP / GIF, up to 900 KB), type }  -> { hash }
+// GET    /banner/<hash>      an uploaded banner
+// POST   /share              { profile }  stores a shared Terono profile -> { code } (30 characters)
+// POST   /share/get          { code }     -> { profile }
+// POST   /report             { report }   a troubleshooting report -> { code } (8 characters, kept 30 days)
+// GET    /report/<code>      the report, readable only by the owner
 // GET    /live               WebSocket: every badge change as it happens, { u: userId, e: entry | null }
 
 // official-look badges people may wear; Discord Staff, Partner and Moderator Programs are left out on purpose
@@ -23,6 +31,7 @@ const OFFICIAL = new Set([
     "hypesquad", "bravery", "brilliance", "balance", "bughunter", "bughunter_gold", "early_supporter", "verified_developer",
     "active_developer", "nitro", "booster_1", "booster_2", "booster_3", "booster_4", "booster_5", "booster_6", "booster_7",
     "booster_8", "booster_9", "legacy_username", "quest", "supports_commands", "automod",
+    "tenure_1", "tenure_3", "tenure_6", "tenure_12", "tenure_24", "tenure_36", "tenure_60", "tenure_72", "gifting", "level67",
 ]);
 const EFFECTS = new Set(["none", "glow", "outline"]);
 const SNOWFLAKE = /^\d{17,20}$/;
@@ -49,6 +58,15 @@ async function route(req, env, url) {
     if (m === "GET" && path === "/badges") return badges(env);
     if (m === "GET" && path === "/live") return env.HUB.get(env.HUB.idFromName("hub")).fetch(req);
     if (m === "GET" && path.startsWith("/img/")) return image(env, path.slice(5).replace(/\.png$/, ""));
+    if (m === "GET" && path.startsWith("/banner/")) return banner(env, path.slice(8));
+    if (m === "POST" && path === "/share") return shareSave(req, env);
+    if (m === "POST" && path === "/share/get") return shareGet(req, env);
+    if (m === "POST" && path === "/report") return reportSave(req, env);
+    if (m === "GET" && path.startsWith("/report/")) {
+        const user = await session(req, env);
+        if (!user) return json({ error: "Not signed in" }, 401);
+        return reportGet(env, user, path.slice(8));
+    }
     if (m === "POST" && path === "/hello") return hello(req, env);
     if (m === "GET" && path === "/authorize") return authorize(env, url);
     if (m === "POST" && path === "/seen") return seen(req, env);
@@ -67,6 +85,9 @@ async function route(req, env, url) {
         if (slot && m === "PUT") return putBadge(req, env, user, Number(slot[1]));
         if (slot && m === "DELETE") return delBadge(env, user, Number(slot[1]));
         if (m === "PUT" && path === "/me/official") return putOfficial(req, env, user);
+        if (m === "PUT" && path === "/me/look") return putLook(req, env, user);
+        if (m === "DELETE" && path === "/me/look") return delLook(env, user);
+        if (m === "PUT" && path === "/me/banner") return putBanner(req, env, user);
     }
     return json({ error: "Not found" }, 404);
 }
@@ -88,6 +109,8 @@ async function badges(env) {
         if (off.length) e.b = off;
     }
     for (const b of custom.results) (out[b.user_id] ??= {}).c = [...(out[b.user_id].c ?? []), { s: b.slot, n: b.name, e: b.effect, k: b.color, h: b.hash }];
+    const looks = await env.DB.prepare("SELECT user_id, json FROM looks").all();
+    for (const l of looks.results) (out[l.user_id] ??= {}).l = JSON.parse(l.json);
 
     const version = Date.now();
     const body = { v: version, u: out };
@@ -243,6 +266,146 @@ async function putOfficial(req, env, user) {
     return json({ ok: true });
 }
 
+/* ---------------- profile looks ----------------
+   What a Terono user shows to other Terono users: Discord's own name styles, avatar decorations, nameplates and
+   profile effects (by their shop IDs, drawn by Discord itself), profile card colors and an uploaded banner. */
+
+const SKU = /^\d{17,20}$/;
+const COLOR = v => Number.isInteger(v) && v >= 0 && v <= 0xffffff;
+
+function cleanLook(b) {
+    if (!b || typeof b !== "object" || Array.isArray(b)) return null;
+    const l = {};
+    if (b.f != null) { if (!Number.isInteger(b.f) || b.f < 1 || b.f > 64) return null; l.f = b.f; }
+    if (b.x != null) { if (!Number.isInteger(b.x) || b.x < 1 || b.x > 64) return null; l.x = b.x; }
+    if (b.c != null) { if (!Array.isArray(b.c) || b.c.length > 5 || !b.c.every(COLOR)) return null; if (b.c.length) l.c = b.c; }
+    if (b.d != null) {
+        if (typeof b.d.a !== "string" || !/^(a_)?[0-9a-f]{32}$/.test(b.d.a) || !SKU.test(b.d.s)) return null;
+        l.d = { a: b.d.a, s: b.d.s };
+    }
+    if (b.n != null) {
+        if (typeof b.n.a !== "string" || !/^nameplates\/[\w/-]{1,120}\/$/.test(b.n.a) || b.n.a.includes("//") || !SKU.test(b.n.s)) return null;
+        l.n = { a: b.n.a, s: b.n.s, p: typeof b.n.p === "string" && /^[a-z_]{1,24}$/.test(b.n.p) ? b.n.p : "none", t: String(b.n.t ?? "").slice(0, 160) };
+    }
+    if (b.e != null) { if (!SKU.test(b.e)) return null; l.e = b.e; }
+    if (b.r != null) { if (!SKU.test(b.r)) return null; l.r = b.r; }
+    if (b.t != null) { if (!Array.isArray(b.t) || b.t.length !== 2 || !b.t.every(COLOR)) return null; l.t = b.t; }
+    if (b.b != null) { if (!/^[0-9a-f]{20}$/.test(b.b)) return null; l.b = b.b; }
+    return l;
+}
+
+async function putLook(req, env, user) {
+    const body = await req.json().catch(() => null);
+    const look = cleanLook(body?.look);
+    if (!look) return json({ error: "Bad look" }, 400);
+    if (!Object.keys(look).length) return delLook(env, user);
+    await env.DB.prepare("INSERT INTO looks (user_id, json, updated) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET json = excluded.json, updated = excluded.updated")
+        .bind(user, JSON.stringify(look), Date.now()).run();
+    await changed(env, user);
+    return json({ ok: true, look });
+}
+
+async function delLook(env, user) {
+    await env.DB.prepare("DELETE FROM looks WHERE user_id = ?").bind(user).run();
+    await changed(env, user);
+    return json({ ok: true });
+}
+
+const BANNER_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const MAX_BANNER = 900 * 1024;
+
+async function putBanner(req, env, user) {
+    const body = await req.json().catch(() => null);
+    if (!BANNER_TYPES.has(body?.type) || typeof body.image !== "string" || body.image.length > MAX_BANNER * 1.4) return json({ error: "Use a PNG, JPEG, WEBP or GIF up to 900 KB" }, 400);
+    let img;
+    try { img = Uint8Array.from(atob(body.image), c => c.charCodeAt(0)); } catch { return json({ error: "Bad image" }, 400); }
+    if (img.length > MAX_BANNER || !sniff(img, body.type)) return json({ error: "Use a PNG, JPEG, WEBP or GIF up to 900 KB" }, 400);
+    const hash = (await sha256Hex(img)).slice(0, 20);
+    // one banner per person: the old one goes
+    await env.DB.batch([
+        env.DB.prepare("DELETE FROM banners WHERE user_id = ? AND hash != ?").bind(user, hash),
+        env.DB.prepare("INSERT OR IGNORE INTO banners (hash, user_id, type, image) VALUES (?, ?, ?, ?)").bind(hash, user, body.type, img),
+    ]);
+    return json({ ok: true, hash });
+}
+
+// the bytes really are the image type claimed
+function sniff(b, type) {
+    const at = (sig, o = 0) => sig.every((v, i) => b[o + i] === v);
+    if (type === "image/png") return at([137, 80, 78, 71]);
+    if (type === "image/jpeg") return at([255, 216, 255]);
+    if (type === "image/gif") return at([71, 73, 70, 56]);
+    return at([82, 73, 70, 70]) && at([87, 69, 66, 80], 8);
+}
+
+async function banner(env, hash) {
+    if (!/^[0-9a-f]{20}$/.test(hash)) return json({ error: "Not found" }, 404);
+    const row = await env.DB.prepare("SELECT type, image FROM banners WHERE hash = ?").bind(hash).first();
+    if (!row) return json({ error: "Not found" }, 404);
+    return new Response(new Uint8Array(row.image), {
+        headers: { "Content-Type": row.type, "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" },
+    });
+}
+
+/* ---------------- shared profiles ----------------
+   A Terono profile (a saved look) under a 30-character code people can paste to load it. The plugin shows the
+   code with "//" between the characters; that's only presentation, the code itself is the 30 characters. */
+
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789$#@%&*+=?!";
+const MAX_SHARE = 120 * 1024;
+
+function randomCode(n, chars) {
+    const bytes = crypto.getRandomValues(new Uint8Array(n));
+    return [...bytes].map(b => chars[b % chars.length]).join("");
+}
+
+async function shareSave(req, env) {
+    const text = await req.text();
+    if (text.length > MAX_SHARE) return json({ error: "Profile too large" }, 400);
+    let body;
+    try { body = JSON.parse(text); } catch { return json({ error: "Bad request" }, 400); }
+    if (!body?.profile || typeof body.profile !== "object" || Array.isArray(body.profile)) return json({ error: "Bad profile" }, 400);
+    const code = randomCode(30, CODE_CHARS);
+    await env.DB.prepare("INSERT INTO shares (code, json, created) VALUES (?, ?, ?)").bind(code, JSON.stringify(body.profile), Date.now()).run();
+    return json({ code });
+}
+
+async function shareGet(req, env) {
+    const body = await req.json().catch(() => null);
+    const code = typeof body?.code === "string" ? body.code.replace(/\/\/|\s/g, "") : "";
+    if (code.length !== 30) return json({ error: "That isn't a Terono profile code" }, 400);
+    const row = await env.DB.prepare("SELECT json FROM shares WHERE code = ?").bind(code).first();
+    if (!row) return json({ error: "No profile with that code" }, 404);
+    return json({ profile: JSON.parse(row.json) });
+}
+
+/* ---------------- troubleshooting reports ----------------
+   Someone with a problem sends their Terono report and gets a short code to give the creator, who opens it in the
+   plugin (signed in). Reports are kept 30 days. */
+
+const MAX_REPORT = 200 * 1024;
+
+async function reportSave(req, env) {
+    const text = await req.text();
+    if (text.length > MAX_REPORT) return json({ error: "Report too large" }, 400);
+    let body;
+    try { body = JSON.parse(text); } catch { return json({ error: "Bad request" }, 400); }
+    if (!body?.report || typeof body.report !== "object") return json({ error: "Bad report" }, 400);
+    const code = randomCode(8, "ABCDEFGHJKLMNPQRSTUVWXYZ23456789");
+    await env.DB.batch([
+        env.DB.prepare("DELETE FROM reports WHERE created < ?").bind(Date.now() - 30 * 24 * 3600 * 1000),
+        env.DB.prepare("INSERT INTO reports (code, json, created) VALUES (?, ?, ?)").bind(code, JSON.stringify(body.report), Date.now()),
+    ]);
+    return json({ code });
+}
+
+async function reportGet(env, user, code) {
+    if (user !== (env.OWNER_ID || OWNER_ID)) return json({ error: "Not allowed" }, 403);
+    const row = await env.DB.prepare("SELECT json, created FROM reports WHERE code = ?").bind(code.toUpperCase()).first();
+    if (!row) return json({ error: "No report with that code" }, 404);
+    return json({ report: JSON.parse(row.json), created: row.created });
+}
+
 /* ---------------- helpers ---------------- */
 
 // a real, static (not animated) 64x64 PNG
@@ -273,10 +436,18 @@ async function entryOf(env, id) {
     const off = u ? JSON.parse(u.official) : [];
     if (off.length) e.b = off;
     if (custom.results.length) e.c = custom.results.map(b => ({ s: b.slot, n: b.name, e: b.effect, k: b.color, h: b.hash }));
+    const look = await env.DB.prepare("SELECT json FROM looks WHERE user_id = ?").bind(id).first();
+    if (look) e.l = JSON.parse(look.json);
     return Object.keys(e).length ? e : null;
 }
 
 // after a change: the list is rebuilt on its next download, and everyone connected gets the change right away
+async function changed(env, id) {
+    await dirty(env);
+    const entry = await entryOf(env, id);
+    await env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/broadcast", { method: "POST", body: JSON.stringify({ u: id, e: entry }) });
+}
+
 /* ---------------- live updates ----------------
    One Durable Object holds every open connection (hibernating, so idle connections cost nothing) and sends each
    change to all of them. */

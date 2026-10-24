@@ -8,10 +8,11 @@ import * as DataStore from "@api/DataStore";
 import { plugins } from "@api/PluginManager";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { filters, mapMangledModuleLazy } from "@webpack";
-import { FluxDispatcher, showToast, Toasts } from "@webpack/common";
+import { FluxDispatcher } from "@webpack/common";
 
 import { applyPreset, Preset, PRESET_KEYS, PRESETS, writePresetValues } from "./presets";
 import { refreshSettingsUi, settings } from "./settings";
+import { toast } from "./toast";
 
 // Preset preview: settings close, the preset is tried on the real app, and a bar at the bottom offers Keep or
 // Go back (plus the layout switch and browsing to the next preset). What was set before is kept in the
@@ -76,7 +77,7 @@ function finish(keep: boolean) {
     DataStore.del(BACKUP_KEY);
     removeBar();
     refreshSettingsUi();
-    if (keep) showToast(`${p.name} applied. Change anything you like in the settings.`, Toasts.Type.SUCCESS);
+    if (keep) toast(`${p.name} applied. Change anything you like in the settings.`, "success");
     openPluginModal(plugins.Terono);
 }
 

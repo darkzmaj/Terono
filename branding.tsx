@@ -6,7 +6,9 @@
 
 import * as DataStore from "@api/DataStore";
 import { Button } from "@components/Button";
-import { showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { useEffect, useState } from "@webpack/common";
+
+import { toast } from "./toast";
 
 
 // Any of Discord's icons swapped for your own picture.
@@ -82,8 +84,8 @@ function pickImage(onPicked: (file: File) => void) {
     input.onchange = () => {
         const f = input.files?.[0];
         if (!f) return;
-        if (!f.type.startsWith("image/")) return showToast("Pick an image file.", Toasts.Type.FAILURE);
-        if (f.size > 20 * 1024 * 1024) return showToast("Image must be 20 MB or smaller.", Toasts.Type.FAILURE);
+        if (!f.type.startsWith("image/")) return toast("Pick an image file.", "failure");
+        if (f.size > 20 * 1024 * 1024) return toast("Image must be 20 MB or smaller.", "failure");
         onPicked(f);
     };
     input.click();
@@ -104,7 +106,7 @@ export function IconSwaps() {
         try {
             await save({ ...swaps, [key]: await toPng(f, 64) });
         } catch {
-            showToast("That image couldn't be read.", Toasts.Type.FAILURE);
+            toast("That image couldn't be read.", "failure");
         }
     });
     const reset = (key: string) => {

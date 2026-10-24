@@ -65,7 +65,7 @@ internal static class Program
     {
         var version = typeof(Program).Assembly.GetName().Version;
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"Terono Setup {version.Major}.{version.Minor}.{version.Build}  |  Terona Studios");
+        Console.WriteLine($"Terono Setup {version.Major}.{version.Minor}.{version.Build}  |  darkzmaj.eu");
         Console.ResetColor();
         Console.WriteLine("Installs or updates the Terono theme and plugin. Discord closes and reopens at the end.");
         Log($"Terono Setup {version} on {Environment.OSVersion}");
@@ -96,7 +96,7 @@ internal static class Program
 
         Step("Building");
         if (Npx($"{pnpm} build", vencord) != 0)
-            throw new SetupException("Building failed. Run Terono Setup again; if it keeps failing, send the log file below to Terona Studios.");
+            throw new SetupException("Building failed. Run Terono Setup again; if it keeps failing, send the log file below to darkzmaj (darkzmaj.eu).");
 
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TERONO_NO_INJECT")))
         {
@@ -138,8 +138,8 @@ internal static class Program
         var back = DiscordKit.Launch(main, 60, out var backNote);
         Log($"plain Discord: {backNote}");
         throw new SetupException(back
-            ? "Terono couldn't be started safely, so Discord was left as it was (it opens normally). Run Terono Diagnostics and send its report to Terona Studios."
-            : "Discord doesn't open, even without Terono. Run Terono Diagnostics: it repairs Discord and makes a report for Terona Studios.");
+            ? "Terono couldn't be started safely, so Discord was left as it was (it opens normally). Run Terono Diagnostics and send its report to darkzmaj (darkzmaj.eu)."
+            : "Discord doesn't open, even without Terono. Run Terono Diagnostics: it repairs Discord and makes a report for darkzmaj (darkzmaj.eu).");
     }
 
     /* ---------- steps ---------- */

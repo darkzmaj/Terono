@@ -9,7 +9,9 @@ import { Settings } from "@api/Settings";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { Switch } from "@components/Switch";
 import { Plugin } from "@utils/types";
-import { showToast, Toasts, useMemo, useState } from "@webpack/common";
+import { useMemo, useState } from "@webpack/common";
+
+import { toast } from "./toast";
 
 // Every Vencord plugin in this build, in one place: by category, searchable. Plugins stay separate (Vencord keeps
 // them updated); this is a quicker place to switch and set them up.
@@ -89,7 +91,7 @@ function toggle(p: Plugin): boolean {
     if (!was) {
         const { restartNeeded, failures } = startDependenciesRecursive(p);
         if (failures.length) {
-            showToast(`Couldn't turn on what ${p.name} needs: ${failures.join(", ")}`, Toasts.Type.FAILURE);
+            toast(`Couldn't turn on what ${p.name} needs: ${failures.join(", ")}`, "failure");
             return was;
         }
         if (restartNeeded) {
@@ -106,7 +108,7 @@ function toggle(p: Plugin): boolean {
     const ok = was ? stopPlugin(p) : startPlugin(p);
     if (!ok) {
         settings.enabled = false;
-        showToast(`${p.name} couldn't be ${was ? "turned off" : "turned on"}. Restart Discord and try again.`, Toasts.Type.FAILURE);
+        toast(`${p.name} couldn't be ${was ? "turned off" : "turned on"}. Restart Discord and try again.`, "failure");
         return false;
     }
     settings.enabled = !was;

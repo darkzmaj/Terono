@@ -40,6 +40,8 @@ function sync() {
 }
 
 function tick() {
+    // while a stream or camera plays (call view or the small stream window), the GPU is the video's: hold still
+    if (document.querySelector("[data-selenium-video-tile] video, .pictureInPictureWindow__6341f video")) return;
     const t = (performance.now() - start) / 1000;
     for (const f of tickers) f(t);
 }

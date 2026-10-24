@@ -10,11 +10,12 @@ import { Button } from "@components/Button";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { PluginNative } from "@utils/types";
-import { createRoot, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { createRoot, useEffect, useState } from "@webpack/common";
 import type { CSSProperties } from "react";
 
 import { TERONO_LOGO } from "./assets";
 import { pluginsWaitingForRestart } from "./hub";
+import { toast } from "./toast";
 import type { UpdateState } from "./update";
 import { VERSION } from "./version";
 
@@ -170,7 +171,7 @@ export function stopAutoCheck() {
 
 export function announceUpdated(last: string) {
     if (last && last !== VERSION && isNewer(VERSION, last))
-        showToast(`Terono updated to ${VERSION}`, Toasts.Type.SUCCESS);
+        toast(`Terono updated to ${VERSION}`, "success");
 }
 
 /* ================= update screen ================= */

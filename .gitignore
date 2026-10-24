@@ -1,3 +1,5 @@
 installer/bin/
 installer/obj/
 design/
+diagnostics/bin/
+diagnostics/obj/

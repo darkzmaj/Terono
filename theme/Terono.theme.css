@@ -1,10 +1,10 @@
 /**
  * @name Terono
- * @author Terona Studios
+ * @author darkzmaj
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 1.1.1
- * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
+ * @version 1.1.2
+ * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
@@ -2388,6 +2388,60 @@ html[data-dz-members="left"] :is(.content_f75fb0 > .container_c8ffbb, .content_f
 
 .guilds__5e434 .childWrapper__6e9f8 {
     transition: background-color 90ms ease, color 90ms ease !important;
+}
+
+/* the list reserves room for its scrollbar on one side only, which put every icon (and folder) off-center:
+   reserve it on both sides, and drop the offset Discord adds to the open folder's background to make up for it */
+.guilds__5e434 .scroller_ef3116 {
+    scrollbar-gutter: stable both-edges !important;
+}
+
+.guilds__5e434 .folderGroupBackground__48112 {
+    inset: 0 !important;
+}
+
+/* the open server or DM gets an outline in your color that hugs its icon; no pill on hover or when open (unread dots
+   stay), and Home shows none */
+.guilds__5e434 .item__58105:is(.selected__58105, .hovered__58105),
+.guilds__5e434 .listItem__650eb:has([data-list-item-id="guildsnav___home"]) .wrapper__58105 {
+    display: none !important;
+}
+
+.guilds__5e434 .listItem__650eb:has(.blobContainer_e5445c.selected_e5445c)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: var(--guildbar-avatar-size, 40px);
+    height: var(--guildbar-avatar-size, 40px);
+    border-radius: 32%;
+    outline: 2px solid var(--dz-accent, var(--accent-2));
+    outline-offset: 2px;
+    pointer-events: none;
+}
+
+/* round icons (DMs, round server pictures) get a round outline */
+.guilds__5e434 .listItem__650eb[data-dz-shape="round"]::before,
+.guilds__5e434 .listItem__650eb:has([data-list-item-id^="guildsnav___"] img[src*="/avatars/"])::before {
+    border-radius: 50%;
+}
+
+/* hover: the icon gives way a little and springs back, instead of a pill */
+.guilds__5e434 .listItem__650eb > :not(.wrapper__58105) {
+    transition: scale 220ms cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.guilds__5e434 .listItem__650eb:hover > :not(.wrapper__58105) {
+    scale: .86;
+}
+
+.guilds__5e434 .listItem__650eb:active > :not(.wrapper__58105) {
+    scale: .8;
+    transition-duration: 90ms;
+}
+
+html[data-dz-lite] .guilds__5e434 .listItem__650eb > :not(.wrapper__58105) {
+    transition: none;
 }
 
 /* ================= HOME LOGO: original colors, spins when opened ================= */

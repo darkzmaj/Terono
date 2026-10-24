@@ -7,10 +7,11 @@
 import { addProfileBadge, BadgePosition, ProfileBadge, removeProfileBadge } from "@api/Badges";
 import * as DataStore from "@api/DataStore";
 import { Button } from "@components/Button";
-import { FluxDispatcher, OAuth2AuthorizeModal, openModal, showToast, Toasts, useEffect, UserStore, useState } from "@webpack/common";
+import { FluxDispatcher, OAuth2AuthorizeModal, openModal, useEffect, UserStore, useState } from "@webpack/common";
 
 import { OG_BADGE } from "./assets";
 import { BADGE_API, BADGE_CLIENT_ID, badgesReady } from "./badgeConfig";
+import { toast } from "./toast";
 import { VERSION } from "./version";
 
 /* ================= where the badges live =================
@@ -51,14 +52,30 @@ export const OFFICIAL: [key: string, name: string, icon: string][] = [
     ["quest", "Completed a Quest", "7d9ae358c8c5e118768335dbe68b4fb8"],
     ["supports_commands", "Supports Commands", "6f9e37f9029ff57aef81db857890005e"],
     ["automod", "Uses AutoMod", "f2459b691ac7453ed6039bbcfaccbfcd"],
+    ["tenure_1", "Nitro Bronze (1 month)", "4f33c4a9c64ce221936bd256c356f91f"],
+    ["tenure_3", "Nitro Silver (3 months)", "4514fab914bdbfb4ad2fa23df76121a6"],
+    ["tenure_6", "Nitro Gold (6 months)", "2895086c18d5531d499862e41d1155a6"],
+    ["tenure_12", "Nitro Platinum (1 year)", "0334688279c8359120922938dcb1d6f8"],
+    ["tenure_24", "Nitro Diamond (2 years)", "0d61871f72bb9a33a7ae568c1fb4f20a"],
+    ["tenure_36", "Nitro Emerald (3 years)", "11e2d339068b55d3a506cff34d3780f3"],
+    ["tenure_60", "Nitro Ruby (5 years)", "cd5e2cfd9d7f27a8cdcd3e8a8d5dc9f4"],
+    ["tenure_72", "Nitro Opal (6+ years)", "5b154df19c53dce2af92c9b61e6be5e2"],
+    ["gifting", "Gifting Champion", "8b7792c4f65953d3ff564f23429cb79e"],
+    ["level67", "Level 67 Reached (April Fools 2026)", "ca105ad9cfc8580c765101d17bbb2323"],
 ];
 const OFFICIAL_BY_KEY = new Map(OFFICIAL.map(o => [o[0], o]));
 export const officialIcon = (hash: string) => `https://cdn.discordapp.com/badge-icons/${hash}.png`;
 
 export interface CustomBadge { s: number; n: string; e: "none" | "glow" | "outline"; k: string; h: string; }
-interface Entry { o?: 1; b?: string[]; c?: CustomBadge[]; }
+// l: the profile look (name style, decoration, nameplate, profile effect / frame / colors, banner), see cosmetics.tsx
+interface Entry { o?: 1; b?: string[]; c?: CustomBadge[]; l?: Record<string, any>; }
 
 let list: Record<string, Entry> = {};
+// whoever needs to know when someone's entry changes (the profile looks)
+const listListeners = new Set<() => void>();
+export const onListChange = (fn: () => void) => { listListeners.add(fn); return () => void listListeners.delete(fn); };
+const listChanged = () => listListeners.forEach(f => { try { f(); } catch { } });
+export const looks = () => list;
 let timer = 0;
 
 /* ================= showing them ================= */
@@ -112,6 +129,7 @@ async function refresh(fresh = false) {
         if (body && typeof body.u === "object") {
             list = body.u;
             DataStore.set(CACHE_KEY, list);
+            listChanged();
         }
     } catch { /* offline: keep the last list */ }
 }
@@ -169,6 +187,7 @@ function connect() {
             if (typeof u !== "string") return;
             if (entry) list[u] = entry;
             else delete list[u];
+            listChanged();
             clearTimeout(saveTimer);
             saveTimer = window.setTimeout(() => DataStore.set(CACHE_KEY, list), 2000);
         } catch { /* not ours */ }
@@ -210,7 +229,7 @@ export function startBadges() {
     addProfileBadge(frontBadges);
     addProfileBadge(officialBadges);
     // last list first (instant), then the current one, then live changes
-    DataStore.get(CACHE_KEY).then(saved => { if (saved && !Object.keys(list).length) list = saved; });
+    DataStore.get(CACHE_KEY).then(saved => { if (saved && !Object.keys(list).length) { list = saved; listChanged(); } });
     refresh(true).then(hello);
     connect();
     pingTimer = window.setInterval(keepAlive, 60_000);
@@ -242,6 +261,8 @@ export async function getAuth() {
     return id && auth?.[id] ? { token: auth[id], id } as Auth : null;
 }
 
+export const refreshBadges = () => refresh(true);
+
 export function authorize() {
     return new Promise<boolean>(resolve => openModal(props => (
         <OAuth2AuthorizeModal
@@ -259,10 +280,10 @@ export function authorize() {
                     if (!res.ok || !body.token) throw new Error(body.error ?? res.statusText);
                     const all = await DataStore.get<Record<string, string>>(AUTH_KEY) ?? {};
                     await DataStore.set(AUTH_KEY, { ...all, [body.id]: body.token });
-                    showToast("Connected. You can set your badges now.", Toasts.Type.SUCCESS);
+                    toast("Connected. You can set your badges and profile now.", "success");
                     resolve(true);
                 } catch (e) {
-                    showToast(`Couldn't connect: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
+                    toast(`Couldn't connect: ${e instanceof Error ? e.message : e}`, "failure");
                     resolve(false);
                 }
             }}
@@ -316,33 +337,33 @@ function Slot({ index, saved, onSaved }: { index: number; saved?: CustomBadge; o
 
     async function pick(file?: File) {
         if (!file) return;
-        if (!file.type.startsWith("image/")) return showToast("Pick an image file.", Toasts.Type.FAILURE);
-        if (file.size > 20 * 1024 * 1024) return showToast("Image must be 20 MB or smaller.", Toasts.Type.FAILURE);
+        if (!file.type.startsWith("image/")) return toast("Pick an image file.", "failure");
+        if (file.size > 20 * 1024 * 1024) return toast("Image must be 20 MB or smaller.", "failure");
         try {
             const { url, base64 } = await toBadgePng(file);
             set({ preview: url, image: base64 });
         } catch {
-            showToast("That image couldn't be read.", Toasts.Type.FAILURE);
+            toast("That image couldn't be read.", "failure");
         }
     }
 
     async function save() {
-        if (!d.name.trim()) return showToast("Give the badge a name (shown when hovering it).", Toasts.Type.FAILURE);
+        if (!d.name.trim()) return toast("Give the badge a name (shown when hovering it).", "failure");
         let { image } = d;
         if (!image && d.hash) {
             // only the name / effect / color changed: send the same picture again
             const blob = await (await fetch(customImage(d.hash))).blob();
             image = (await toBadgePng(new File([blob], "badge.png", { type: "image/png" }))).base64;
         }
-        if (!image) return showToast("Choose an image first.", Toasts.Type.FAILURE);
+        if (!image) return toast("Choose an image first.", "failure");
         setBusy(true);
         try {
             const r = await api(`/me/badge/${index}`, "PUT", { name: d.name.trim(), effect: d.effect, color: d.color, image });
             set({ hash: r.hash, image: undefined });
-            showToast("Badge saved. Everyone with Terono sees it right away.", Toasts.Type.SUCCESS);
+            toast("Badge saved. Everyone with Terono sees it right away.", "success");
             onSaved();
         } catch (e) {
-            showToast(`Couldn't save: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
+            toast(`Couldn't save: ${e instanceof Error ? e.message : e}`, "failure");
         }
         setBusy(false);
     }
@@ -354,7 +375,7 @@ function Slot({ index, saved, onSaved }: { index: number; saved?: CustomBadge; o
             setD(EMPTY);
             onSaved();
         } catch (e) {
-            showToast(`Couldn't remove: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
+            toast(`Couldn't remove: ${e instanceof Error ? e.message : e}`, "failure");
         }
         setBusy(false);
     }
@@ -405,10 +426,10 @@ export function BadgesPanel() {
     async function saveOfficial() {
         try {
             await api("/me/official", "PUT", { badges: official });
-            showToast("Saved. Everyone with Terono sees them right away.", Toasts.Type.SUCCESS);
+            toast("Saved. Everyone with Terono sees them right away.", "success");
             reload();
         } catch (e) {
-            showToast(`Couldn't save: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
+            toast(`Couldn't save: ${e instanceof Error ? e.message : e}`, "failure");
         }
     }
 

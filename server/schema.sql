@@ -38,11 +38,33 @@ CREATE TABLE IF NOT EXISTS snapshot (
 INSERT OR IGNORE INTO snapshot (id, json, version, dirty) VALUES (1, '{}', 0, 1);
 
 -- who's away in calls right now (AFK mode); rows older than 12 hours are ignored
-CREATE TABLE IF NOT EXISTS afk (
+-- profile looks shown to other Terono users (JSON, see cleanLook in worker.js)
+CREATE TABLE IF NOT EXISTS looks (
     user_id TEXT PRIMARY KEY,
-    text TEXT NOT NULL,
-    until INTEGER NOT NULL DEFAULT 0,
-    since INTEGER NOT NULL
+    json TEXT NOT NULL,
+    updated INTEGER NOT NULL
+);
+
+-- uploaded profile banners (one per user)
+CREATE TABLE IF NOT EXISTS banners (
+    hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    image BLOB NOT NULL
+);
+
+-- shared Terono profiles, by their 30-character code
+CREATE TABLE IF NOT EXISTS shares (
+    code TEXT PRIMARY KEY,
+    json TEXT NOT NULL,
+    created INTEGER NOT NULL
+);
+
+-- troubleshooting reports, by their 8-character code (30 days)
+CREATE TABLE IF NOT EXISTS reports (
+    code TEXT PRIMARY KEY,
+    json TEXT NOT NULL,
+    created INTEGER NOT NULL
 );
 
 -- the Terono user number: one row per user, keyed by a SHA-256 of the Discord user ID (never the ID itself)

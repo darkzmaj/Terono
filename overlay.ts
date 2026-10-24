@@ -63,7 +63,6 @@ function pushCall() {
         people,
         selfMute: MediaEngineStore.isSelfMute(),
         selfDeaf: MediaEngineStore.isSelfDeaf(),
-        accent: getComputedStyle(document.documentElement).getPropertyValue("--dz-accent").trim(),
     });
 }
 

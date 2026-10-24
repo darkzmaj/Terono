@@ -6,41 +6,62 @@
 
 import * as DataStore from "@api/DataStore";
 import { Button } from "@components/Button";
-import { HeadingTertiary } from "@components/Heading";
-import { Paragraph } from "@components/Paragraph";
+import { copyToClipboard } from "@utils/clipboard";
 import { OptionType } from "@utils/types";
 import { chooseFile, saveFile } from "@utils/web";
-import { Alerts, showToast, TextInput, Toasts, useEffect, useState } from "@webpack/common";
+import { Alerts, useEffect, useState } from "@webpack/common";
 
+import { BADGE_API, badgesReady } from "./badgeConfig";
 import { applyAll, getUploadedLogo, HEX_RE, LOGO_DATA_RE, refreshSettingsUi, settings, setUploadedLogo, URL_RE } from "./settings";
+import { toast } from "./toast";
+
+/* ================= profiles =================
+   Saved setups: all of Terono or only some parts (just the colors, just the layout, …), applied in one click,
+   exported as files, or shared as a code: 30 characters shown with "//" between them (a//$//K//…). Pasting a code
+   anywhere in Terono loads that profile. Codes are kept on the Terono server; imported data is always checked. */
 
 const PROFILES_KEY = "Terono_profiles";
 const FORMAT = "terono-profile";
 const OLD_FORMAT = "darkness-profile";
 const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+const MAX_SHARED_LOGO = 90 * 1024;
 
-const GROUPS: Record<string, { label: string; keys: string[]; }> = {
+export const GROUPS: Record<string, { label: string; keys: string[]; }> = {
     colors: { label: "Colors", keys: ["accentPreset", "accent", "customText", "textColor", "customIcons", "iconColor", "voice", "close", "minimize", "maximize", "appBorder", "borderColor", "borderColor2", "appBorderWidth"] },
-    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed",
-        "embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
+    cards: { label: "Panels", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "panels", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
+    embeds: { label: "Embeds", keys: ["embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity"] },
     background: { label: "Background", keys: ["background", "bgBase", "bgColor1", "bgColor2", "bgMediaSource", "bgMediaUrl", "bgMediaDim"] },
-    layout: { label: "Layout & logo", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite", "pauseUnfocused", "bulkMode", "homeDoubleClick", "callAmbient", "overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity", "autoUpdate"] },
+    fonts: { label: "Font", keys: ["font"] },
+    logo: { label: "Logo & icons", keys: ["logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "avatarShape"] },
+    layout: { label: "Layout", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide"] },
     header: { label: "Channel header", keys: ["headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch", "headerHiddenButtons"] },
-    chat: { label: "Chat bar & activities", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities", "chatSides"] },
+    chat: { label: "Chat & members", keys: ["chatSides", "chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities", "roleCount", "roleCountCustom"] },
+    calls: { label: "Calls", keys: ["callAmbient"] },
+    overlay: { label: "Overlay", keys: ["overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity"] },
+    tools: { label: "Tools & shortcuts", keys: ["bulkMode", "homeDoubleClick", "openKeybind", "searchTools", "blockedButton"] },
     menus: { label: "Menus", keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] },
     translate: { label: "Translate", keys: ["autoTranslate", "keepLanguages"] },
 };
 
+// ready-made choices for "what goes into this profile"
+const KINDS: Record<string, { label: string; groups: string[]; }> = {
+    all: { label: "Everything", groups: Object.keys(GROUPS) },
+    look: { label: "Look only (colors, panels, background, font)", groups: ["colors", "cards", "embeds", "background", "fonts", "logo"] },
+    layout: { label: "Layout only (sides, header, chat)", groups: ["layout", "header", "chat"] },
+    features: { label: "Features only (calls, overlay, tools)", groups: ["calls", "overlay", "tools", "menus", "translate"] },
+    custom: { label: "Pick sections…", groups: [] },
+};
+
 const ALL_KEYS = new Set(Object.values(GROUPS).flatMap(g => g.keys));
 
-interface Profile {
+export interface Profile {
     name: string;
     groups: string[];
     settings: Record<string, unknown>;
     logo?: string;
 }
 
-/* ================= validation (imported JSON is untrusted) ================= */
+/* ================= validation (imported and shared profiles are untrusted) ================= */
 
 function isValidValue(key: string, value: unknown) {
     const def = (settings.def as Record<string, any>)[key];
@@ -80,9 +101,9 @@ function sanitize(raw: any): Profile | null {
 function snapshot(name: string, groups: string[]): Profile {
     const store = settings.store as Record<string, unknown>;
     const data: Record<string, unknown> = {};
-    for (const g of groups) for (const k of GROUPS[g].keys) data[k] = store[k];
+    for (const g of groups) for (const k of GROUPS[g].keys) if (k in settings.def) data[k] = store[k];
 
-    const logo = groups.includes("layout") && store.logoSource === "file" ? getUploadedLogo() ?? undefined : undefined;
+    const logo = groups.includes("logo") && store.logoSource === "file" ? getUploadedLogo() ?? undefined : undefined;
     return { name, groups, settings: data, logo };
 }
 
@@ -96,13 +117,36 @@ async function applyProfile(p: Profile) {
     if (p.logo) await setUploadedLogo(p.logo);
     applyAll();
     refreshSettingsUi();
-    showToast(`Applied “${p.name}”.`, Toasts.Type.SUCCESS);
+    toast(`Applied “${p.name}”.`, "success");
 }
 
 function exportProfile(p: Profile) {
     const safe = p.name.replace(/[^\w-]+/g, "_").slice(0, 40) || "profile";
     const json = JSON.stringify({ format: FORMAT, version: 1, ...p }, null, 2);
     saveFile(new File([json], `${safe}.terono.json`, { type: "application/json" }));
+}
+
+/* ---------- share codes ---------- */
+
+export const showCode = (code: string) => code.split("").join("//");
+const looksLikeCode = (s: string) => s.replace(/\/\/|\s/g, "").length === 30;
+
+async function shareProfile(p: Profile) {
+    // the server keeps shared profiles small: a big uploaded logo stays out
+    const body = { ...p, logo: p.logo && p.logo.length <= MAX_SHARED_LOGO ? p.logo : undefined };
+    const res = await fetch(`${BADGE_API}/share`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile: { format: FORMAT, version: 1, ...body } }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.code) throw new Error(data.error ?? `Error ${res.status}`);
+    return { code: data.code as string, droppedLogo: !!p.logo && !body.logo };
+}
+
+export async function loadCode(text: string) {
+    const res = await fetch(`${BADGE_API}/share/get`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: text.trim() }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`);
+    const p = sanitize(data.profile);
+    if (!p || !Object.keys(p.settings).length) throw new Error("That code has no Terono profile");
+    return p;
 }
 
 function defaultOf(def: any) {
@@ -119,26 +163,30 @@ function resetAll() {
         async onConfirm() {
             const store = settings.store as Record<string, unknown>;
             for (const [k, def] of Object.entries(settings.def as Record<string, any>)) {
+                if (k === "peopleLooks") continue;
                 const v = defaultOf(def);
                 if (v !== undefined) store[k] = v;
             }
             await setUploadedLogo(null);
             applyAll();
             refreshSettingsUi();
-            showToast("Terono reset to defaults.", Toasts.Type.SUCCESS);
+            toast("Terono reset to defaults.", "success");
         },
     });
 }
 
 /* ================= UI ================= */
 
-const row = { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } as const;
-const box = { padding: 12, borderRadius: 8, border: "1px solid var(--border-subtle)", marginBottom: 12 } as const;
+const groupsLabel = (p: Profile) => p.groups.length === Object.keys(GROUPS).length ? "Everything" : p.groups.map(g => GROUPS[g]?.label).filter(Boolean).join(", ") || "Custom";
 
 export function ProfilesPanel() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [name, setName] = useState("");
+    const [kind, setKind] = useState("all");
     const [groups, setGroups] = useState<string[]>(Object.keys(GROUPS));
+    const [filter, setFilter] = useState("");
+    const [code, setCode] = useState("");
+    const [shared, setShared] = useState<Record<string, string>>({});
 
     useEffect(() => {
         DataStore.get<unknown[]>(PROFILES_KEY).then(list =>
@@ -152,79 +200,140 @@ export function ProfilesPanel() {
 
     const upsert = (p: Profile) => persist([...profiles.filter(x => x.name !== p.name), p]);
 
+    function pickKind(k: string) {
+        setKind(k);
+        if (k !== "custom") setGroups(KINDS[k].groups);
+    }
+
     async function save() {
         const n = name.trim().slice(0, 60);
-        if (!n) return showToast("Give the profile a name.", Toasts.Type.FAILURE);
-        if (!groups.length) return showToast("Pick at least one section to save.", Toasts.Type.FAILURE);
+        if (!n) return toast("Give the profile a name.", "failure");
+        if (!groups.length) return toast("Pick at least one section to save.", "failure");
         await upsert(snapshot(n, groups));
         setName("");
-        showToast(`Saved “${n}”.`, Toasts.Type.SUCCESS);
+        toast(`Saved “${n}”.`, "success");
     }
 
     async function importFile() {
         const file = await chooseFile("application/json,.json");
         if (!file) return;
-        if (file.size > MAX_IMPORT_BYTES) return showToast("File is too large.", Toasts.Type.FAILURE);
-
+        if (file.size > MAX_IMPORT_BYTES) return toast("File is too large.", "failure");
         let parsed: any;
         try {
             parsed = JSON.parse(await file.text());
         } catch {
-            return showToast("That file isn't valid JSON.", Toasts.Type.FAILURE);
+            return toast("That file isn't valid JSON.", "failure");
         }
-
         const p = parsed?.format === FORMAT || parsed?.format === OLD_FORMAT ? sanitize(parsed) : null;
-        if (!p || !Object.keys(p.settings).length) return showToast("Not a Terono profile.", Toasts.Type.FAILURE);
-
+        if (!p || !Object.keys(p.settings).length) return toast("Not a Terono profile.", "failure");
         await upsert(p);
-        showToast(`Imported “${p.name}”. Press Apply to use it.`, Toasts.Type.SUCCESS);
+        toast(`Imported “${p.name}”. Press Apply to use it.`, "success");
     }
 
+    async function share(p: Profile) {
+        try {
+            const { code: c, droppedLogo } = await shareProfile(p);
+            setShared(s => ({ ...s, [p.name]: c }));
+            await copyToClipboard(showCode(c));
+            toast(`Code copied${droppedLogo ? " (the uploaded logo is too big to share)" : ""}. Anyone can paste it in Terono → Profiles.`, "success");
+        } catch (e) {
+            toast(`Couldn't share: ${e instanceof Error ? e.message : e}`, "failure");
+        }
+    }
+
+    async function load(apply: boolean) {
+        try {
+            const p = await loadCode(code);
+            await upsert(p);
+            setCode("");
+            if (apply) await applyProfile(p);
+            else toast(`Added “${p.name}”. Press Apply to use it.`, "success");
+        } catch (e) {
+            toast(`Couldn't load: ${e instanceof Error ? e.message : e}`, "failure");
+        }
+    }
+
+    const shown = profiles.filter(p => !filter || (filter in GROUPS ? p.groups.includes(filter) : true));
+
     return (
-        <div>
-            <HeadingTertiary>Profiles</HeadingTertiary>
-            <Paragraph style={{ marginBottom: 8 }}>Save your setup (all of it or only some sections), switch between saved looks, back them up as files.</Paragraph>
-
-            <div style={box}>
-                <div style={row}>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                        <TextInput value={name} onChange={setName} placeholder="Profile name, e.g. Sigma" maxLength={60} />
-                    </div>
-                    <Button size="small" onClick={save}>Save current</Button>
+        <div className="dz-profiles">
+            <section className="dz-set-group">
+                <h3 className="dz-set-group-title">Load a shared profile</h3>
+                <div className="dz-prof-row">
+                    <input className="dz-input dz-grow" placeholder="Paste a code, like a//$//K//…" value={code} onChange={e => setCode(e.currentTarget.value)} />
+                    <Button size="small" disabled={!badgesReady() || !looksLikeCode(code)} onClick={() => load(true)}>Load & apply</Button>
+                    <Button size="small" variant="secondary" disabled={!badgesReady() || !looksLikeCode(code)} onClick={() => load(false)}>Only add</Button>
                 </div>
-                <div style={{ ...row, marginTop: 10 }}>
-                    {Object.entries(GROUPS).map(([id, g]) => (
-                        <label key={id} style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--text-default)", cursor: "pointer" }}>
-                            <input
-                                type="checkbox"
-                                checked={groups.includes(id)}
-                                onChange={e => setGroups(e.currentTarget.checked ? [...groups, id] : groups.filter(x => x !== id))}
-                            />
-                            {g.label}
-                        </label>
-                    ))}
-                </div>
-            </div>
+            </section>
 
-            {profiles.map(p => (
-                <div key={p.name} style={{ ...box, ...row, justifyContent: "space-between" }}>
-                    <div>
-                        <HeadingTertiary>{p.name}</HeadingTertiary>
-                        <Paragraph>{p.groups.map(g => GROUPS[g]?.label).filter(Boolean).join(", ") || "Custom"}</Paragraph>
+            <section className="dz-set-group">
+                <h3 className="dz-set-group-title">Save what you have now</h3>
+                <div className="dz-prof-row">
+                    <input className="dz-input dz-grow" value={name} onChange={e => setName(e.currentTarget.value)} placeholder="Profile name, e.g. Night blue" maxLength={60} />
+                    <select className="dz-input" value={kind} onChange={e => pickKind(e.currentTarget.value)} aria-label="What to include">
+                        {Object.entries(KINDS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                    <Button size="small" onClick={save}>Save</Button>
+                </div>
+                {kind === "custom" && (
+                    <div className="dz-prof-chips">
+                        {Object.entries(GROUPS).map(([id, g]) => (
+                            <button key={id} className={`dz-chip ${groups.includes(id) ? "dz-on" : ""}`} aria-pressed={groups.includes(id)}
+                                onClick={() => setGroups(groups.includes(id) ? groups.filter(x => x !== id) : [...groups, id])}>{g.label}</button>
+                        ))}
                     </div>
-                    <div style={row}>
+                )}
+            </section>
+
+            <section className="dz-set-group">
+                <div className="dz-prof-head">
+                    <h3 className="dz-set-group-title">Your profiles</h3>
+                    {profiles.length > 1 && (
+                        <select className="dz-input" value={filter} onChange={e => setFilter(e.currentTarget.value)} aria-label="Show profiles with">
+                            <option value="">All profiles</option>
+                            {Object.entries(GROUPS).map(([id, g]) => <option key={id} value={id}>With {g.label.toLowerCase()}</option>)}
+                        </select>
+                    )}
+                </div>
+                {shown.length === 0 && <p className="dz-look-note">{profiles.length ? "None with that." : "None yet: save one above or load a code."}</p>}
+                {shown.map(p => (
+                    <div key={p.name} className="dz-prof">
+                        <div className="dz-prof-text">
+                            <b>{p.name}</b>
+                            <span>{groupsLabel(p)}</span>
+                            {shared[p.name] && <code className="dz-prof-code" title="Click to copy" onClick={() => { copyToClipboard(showCode(shared[p.name])); toast("Copied.", "success"); }}>{showCode(shared[p.name])}</code>}
+                        </div>
                         <Button size="small" onClick={() => applyProfile(p)}>Apply</Button>
+                        <Button size="small" variant="secondary" disabled={!badgesReady()} onClick={() => share(p)}>Share</Button>
                         <Button size="small" variant="secondary" onClick={() => exportProfile(p)}>Export</Button>
                         <Button size="small" variant="dangerSecondary" onClick={() => persist(profiles.filter(x => x !== p))}>Delete</Button>
                     </div>
-                </div>
-            ))}
+                ))}
+            </section>
 
-            <div style={{ ...row, marginBottom: 20 }}>
-                <Button size="small" variant="secondary" onClick={importFile}>Import JSON</Button>
-                <Button size="small" variant="secondary" onClick={() => exportProfile(snapshot("Current", Object.keys(GROUPS)))}>Export current</Button>
-                <Button size="small" variant="dangerPrimary" onClick={resetAll}>Reset to defaults</Button>
+            <div className="dz-prof-row">
+                <Button size="small" variant="secondary" onClick={importFile}>Import file</Button>
+                <Button size="small" variant="secondary" onClick={() => exportProfile(snapshot("Current", Object.keys(GROUPS)))}>Export everything</Button>
+                <span className="dz-grow" />
+                <Button size="small" variant="dangerPrimary" onClick={resetAll}>Reset Terono to defaults</Button>
             </div>
         </div>
     );
 }
+
+export const PROFILES_CSS = `
+.dz-profiles { display: flex; flex-direction: column; gap: 14px; }
+.dz-prof-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0 10px; }
+.dz-grow { flex: 1; min-width: 160px; }
+.dz-prof-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 10px; }
+.dz-chip { padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 600 12px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa);
+    background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
+.dz-chip.dz-on { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff); }
+.dz-prof-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dz-prof { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0; border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
+.dz-prof:first-of-type { border-top: none; }
+.dz-prof-text { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 2px; color: var(--text-default, #fff); }
+.dz-prof-text span { font-size: 12px; color: var(--text-muted, #aaa); }
+.dz-prof-code { margin-top: 4px; padding: 4px 8px; border-radius: 6px; cursor: copy; font-size: 11px; word-break: break-all; color: var(--dz-accent, #429cff);
+    background: color-mix(in srgb, var(--dz-accent, #429cff) 10%, transparent); }
+`;

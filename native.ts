@@ -56,7 +56,7 @@ export function restartDiscord(_: IpcMainInvokeEvent) {
    - the hotkey makes it clickable: mute, deafen, leave the call, open a message in Discord. Again or Esc: back.
    It's hidden while Discord itself is in front. The page only shows what Discord sends it (overlayPage.ts). */
 
-interface OverlayConfig { key: string; show: "on" | "hotkey" | "off"; corner: string; opacity: number; accent: string; compact: boolean; }
+interface OverlayConfig { key: string; show: "on" | "hotkey" | "off"; corner: string; opacity: number; accent: string; compact: boolean; theme?: Record<string, string | boolean>; }
 let ovCfg: OverlayConfig = { key: "", show: "off", corner: "top-left", opacity: 1, accent: "#429cff", compact: false };
 let ov: BrowserWindow | null = null;
 let ovReady = false;

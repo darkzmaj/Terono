@@ -8,37 +8,29 @@ import { settings } from "./settings";
 
 /* ================= ambient mode =================
    The colors of the stream you're watching glow softly around it, like YouTube's ambient mode. Discord's call view
-   itself is left exactly as it is. The glow is a 32 x 18 copy of the picture, redrawn with every video frame (at
-   most 30 times a second), drawn small and blurred and scaled up by the GPU: it follows the stream without delay
-   and costs next to nothing. Only the big stream in the focused view gets one. */
+   itself is left exactly as it is. The glow is a second, tiny video element playing the same stream (Discord gives
+   its video a live MediaStream), blurred and stretched by the GPU. Nothing is copied off the GPU, so it follows the
+   stream frame for frame and costs the stream nothing. (Copying frames into a canvas, as before, pulled every
+   1440p frame back to the CPU and made streams stutter.) Only the big stream in the focused view gets one. */
 
-interface Glow { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; video: HTMLVideoElement; host: HTMLElement; last: number; handle: number; ro: ResizeObserver; }
+interface Glow { glow: HTMLVideoElement; video: HTMLVideoElement; host: HTMLElement; ro: ResizeObserver; sync(): void; }
 const glows = new Map<HTMLVideoElement, Glow>();
-
-function drawGlow(g: Glow) {
-    const now = performance.now();
-    if (now - g.last >= 33 && !document.hidden) {
-        g.last = now;
-        try { g.ctx.drawImage(g.video, 0, 0, 32, 18); } catch { /* frame not ready */ }
-    }
-    g.handle = "requestVideoFrameCallback" in g.video
-        ? (g.video as any).requestVideoFrameCallback(() => drawGlow(g))
-        : requestAnimationFrame(() => drawGlow(g));
-}
+// the glow is decoded tiny and scaled up: its own size barely matters, so keep it cheap
+const GW = 64, GH = 36;
 
 function sizeGlow(g: Glow) {
     const w = g.host.clientWidth, h = g.host.clientHeight;
-    g.canvas.style.setProperty("--dz-sx", String(w * 1.14 / 32));
-    g.canvas.style.setProperty("--dz-sy", String(h * 1.24 / 18));
-    g.canvas.style.left = `${-w * .07}px`;
-    g.canvas.style.top = `${-h * .12}px`;
+    g.glow.style.setProperty("--dz-sx", String(w * 1.14 / GW));
+    g.glow.style.setProperty("--dz-sy", String(h * 1.24 / GH));
+    g.glow.style.left = `${-w * .07}px`;
+    g.glow.style.top = `${-h * .12}px`;
 }
 
 function stopGlow(g: Glow) {
-    if ("cancelVideoFrameCallback" in g.video) (g.video as any).cancelVideoFrameCallback(g.handle);
-    cancelAnimationFrame(g.handle);
+    for (const e of ["loadstart", "emptied", "play"]) g.video.removeEventListener(e, g.sync);
     g.ro.disconnect();
-    g.canvas.remove();
+    g.glow.srcObject = null;
+    g.glow.remove();
 }
 
 function syncGlows() {
@@ -54,13 +46,22 @@ function syncGlows() {
         if (glows.has(v)) continue;
         const host = v.closest<HTMLElement>(".wrapper__2f4f7");
         if (!host) continue;
-        const canvas = Object.assign(document.createElement("canvas"), { className: "dz-ambient", width: 32, height: 18 });
-        host.prepend(canvas);
-        const g: Glow = { canvas, ctx: canvas.getContext("2d")!, video: v, host, last: 0, handle: 0, ro: new ResizeObserver(() => sizeGlow(g)) };
+        const glow = Object.assign(document.createElement("video"), { className: "dz-ambient", muted: true, autoplay: true, playsInline: true, disablePictureInPicture: true, width: GW, height: GH });
+        glow.setAttribute("aria-hidden", "true");
+        host.prepend(glow);
+        const g: Glow = {
+            glow, video: v, host, ro: new ResizeObserver(() => sizeGlow(g)),
+            // Discord swaps the stream object when a stream pauses or restarts: follow it
+            sync: () => {
+                if (glow.srcObject !== v.srcObject) glow.srcObject = v.srcObject;
+                if (glow.srcObject && glow.paused) glow.play().catch(() => { });
+            },
+        };
+        for (const e of ["loadstart", "emptied", "play"]) v.addEventListener(e, g.sync);
         g.ro.observe(host);
         sizeGlow(g);
         glows.set(v, g);
-        drawGlow(g);
+        g.sync();
     }
 }
 
@@ -105,8 +106,8 @@ export function stopCall() {
 }
 
 export const CALL_CSS = `
-.dz-ambient { position: absolute; width: 32px !important; height: 18px !important; z-index: -1; pointer-events: none; transform-origin: 0 0;
-    transform: scale(var(--dz-sx, 20), var(--dz-sy, 20)); filter: blur(1.6px) saturate(1.5); opacity: .6; will-change: transform; animation: dz-amb-in .5s ease both; }
+.dz-ambient { position: absolute; width: 64px !important; height: 36px !important; object-fit: fill; z-index: -1; pointer-events: none; transform-origin: 0 0;
+    transform: scale(var(--dz-sx, 20), var(--dz-sy, 20)); filter: blur(3px) saturate(1.5); opacity: .6; will-change: transform; animation: dz-amb-in .5s ease both; }
 .wrapper__2f4f7:has(> .dz-ambient) { overflow: visible !important; isolation: isolate; }
 @keyframes dz-amb-in { from { opacity: 0; } }
 `;

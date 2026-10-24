@@ -8,12 +8,14 @@ import * as DataStore from "@api/DataStore";
 import { definePluginSettings, useSettings } from "@api/Settings";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
+import { localStorage } from "@utils/localStorage";
 import { OptionType, PluginNative } from "@utils/types";
-import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
+import { useEffect, useRef, useState } from "@webpack/common";
 
 import { TERONO_LOGO } from "./assets";
 import { IconSwaps } from "./branding";
 import { applyAmbient } from "./call";
+import { MyLookPanel, PeoplePanel } from "./cosmetics";
 import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
@@ -21,6 +23,7 @@ import { addTicker, isAway, MOTION_STEP_MS, removeTicker, setPauseWhenUnfocused 
 import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
+import { toast } from "./toast";
 import { isOwner, UsagePanel } from "./usage";
 
 export const DEFAULT_LOGO = TERONO_LOGO;
@@ -156,8 +159,8 @@ function LogoUpload() {
 
     async function onFile(file: File | undefined) {
         if (!file) return;
-        if (!LOGO_TYPES.includes(file.type)) return showToast("Use a PNG, JPG, GIF, WEBP or SVG image.", Toasts.Type.FAILURE);
-        if (file.size > LOGO_MAX_BYTES) return showToast("Image must be 5 MB or smaller.", Toasts.Type.FAILURE);
+        if (!LOGO_TYPES.includes(file.type)) return toast("Use a PNG, JPG, GIF, WEBP or SVG image.", "failure");
+        if (file.size > LOGO_MAX_BYTES) return toast("Image must be 5 MB or smaller.", "failure");
 
         const dataUrl = await new Promise<string>((res, rej) => {
             const r = new FileReader();
@@ -165,12 +168,12 @@ function LogoUpload() {
             r.onerror = rej;
             r.readAsDataURL(file);
         });
-        if (!LOGO_DATA_RE.test(dataUrl)) return showToast("That file isn't a valid image.", Toasts.Type.FAILURE);
+        if (!LOGO_DATA_RE.test(dataUrl)) return toast("That file isn't a valid image.", "failure");
 
         settings.store.logoSource = "file";
         await setUploadedLogo(dataUrl);
         setPreview(dataUrl);
-        showToast("Home logo updated.", Toasts.Type.SUCCESS);
+        toast("Home logo updated.", "success");
     }
 
     return (
@@ -191,26 +194,34 @@ function LogoUpload() {
 const FONT_PATH = ["plugins.Terono.font"] as any[];
 
 function FontPicker() {
+    const groups = ["All", ...new Set(FONT_LIST.map(f => f[2]))];
     useSettings(FONT_PATH);
     const current = settings.store.font;
+    const [q, setQ] = useState("");
+    const [group, setGroup] = useState("All");
     useEffect(loadFontPreviews, []);
-    const { options } = (settings.def.font as { options: { label: string; value: string; }[]; });
+    const w = q.trim().toLowerCase();
+    const shown = FONT_LIST.filter(([k, f, g]) => (group === "All" || g === group) && (!w || `${f} ${FONT_LABELS[k] ?? ""} ${g}`.toLowerCase().includes(w)));
+    const pick = (v: string) => { settings.store.font = v; applyFont(); };
 
     return (
-        <div className="dz-fonts" role="radiogroup" aria-label="Font">
-            {options.map(o => (
-                <button
-                    key={o.value}
-                    role="radio"
-                    aria-checked={current === o.value}
-                    className="dz-font"
-                    style={{ fontFamily: fontStack(o.value) }}
-                    onClick={() => { settings.store.font = o.value; applyFont(); }}
-                >
-                    <span className="dz-font-name">{o.label}</span>
-                    <span className="dz-font-sample">Aa Bb Cc 123</span>
-                </button>
-            ))}
+        <div className="dz-fontpick">
+            <div className="dz-fontpick-bar">
+                <input className="dz-input dz-grow" placeholder={`Search ${FONT_LIST.length} fonts`} value={q} onChange={e => setQ(e.currentTarget.value)} />
+                <button className={`dz-chip ${current === "custom" ? "dz-on" : ""}`} onClick={() => pick("custom")}>Your own file</button>
+            </div>
+            <div className="dz-prof-chips">
+                {groups.map(g => <button key={g} className={`dz-chip ${group === g ? "dz-on" : ""}`} onClick={() => setGroup(g)}>{g}</button>)}
+            </div>
+            <div className="dz-fonts" role="radiogroup" aria-label="Font">
+                {shown.map(([value, family]) => (
+                    <button key={value} role="radio" aria-checked={current === value} className="dz-font" style={{ fontFamily: fontStack(value) }} onClick={() => pick(value)}>
+                        <span className="dz-font-name">{FONT_LABELS[value] ?? family}</span>
+                        <span className="dz-font-sample">The quick brown fox 123</span>
+                    </button>
+                ))}
+                {shown.length === 0 && <p className="dz-look-note">No font matches.</p>}
+            </div>
         </div>
     );
 }
@@ -254,13 +265,13 @@ function setBorderBlob(b: Blob | null) {
 }
 
 async function onBorderFile(file: File) {
-    if (!IMAGE_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF or WEBP.", Toasts.Type.FAILURE);
-    if (file.size > 20 * 1024 * 1024) return showToast("The frame picture must be 20 MB or smaller.", Toasts.Type.FAILURE);
+    if (!IMAGE_TYPES.includes(file.type)) return toast("Use PNG, JPG, GIF or WEBP.", "failure");
+    if (file.size > 20 * 1024 * 1024) return toast("The frame picture must be 20 MB or smaller.", "failure");
     setBorderBlob(file);
     await DataStore.set(BORDER_KEY, file);
     settings.store.appBorder = "image";
     applyBorder();
-    showToast("Frame picture updated.", Toasts.Type.SUCCESS);
+    toast("Frame picture updated.", "success");
 }
 
 async function registerFont(buf: ArrayBuffer) {
@@ -272,7 +283,7 @@ async function registerFont(buf: ArrayBuffer) {
         document.fonts.add(face);
         customFont = face;
     } catch {
-        showToast("That font file could not be loaded.", Toasts.Type.FAILURE);
+        toast("That font file could not be loaded.", "failure");
     }
 }
 
@@ -287,47 +298,115 @@ function FileRow({ title, note, accept, onFile }: { title: string; note: string;
 }
 
 async function onMediaFile(file: File) {
-    if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
-    if (file.size > MEDIA_MAX_BYTES) return showToast("Background file must be 100 MB or smaller.", Toasts.Type.FAILURE);
+    if (!MEDIA_TYPES.includes(file.type)) return toast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", "failure");
+    if (file.size > MEDIA_MAX_BYTES) return toast("Background file must be 100 MB or smaller.", "failure");
     mediaBlob = file;
     dropObjectUrl("bg");
     await DataStore.set(MEDIA_KEY, file);
     settings.store.bgMediaSource = "file";
     applyMedia();
-    showToast("Background updated.", Toasts.Type.SUCCESS);
+    toast("Background updated.", "success");
 }
 
 async function onCardMediaFile(file: File) {
-    if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
-    if (file.size > MEDIA_MAX_BYTES) return showToast("Card media must be 100 MB or smaller.", Toasts.Type.FAILURE);
+    if (!MEDIA_TYPES.includes(file.type)) return toast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", "failure");
+    if (file.size > MEDIA_MAX_BYTES) return toast("Card media must be 100 MB or smaller.", "failure");
     cardBlob = file;
     dropObjectUrl("card");
     await DataStore.set(CARD_MEDIA_KEY, file);
     settings.store.cardMedia = "file";
     applyCardMedia();
-    showToast("Card media updated.", Toasts.Type.SUCCESS);
+    toast("Card media updated.", "success");
 }
 
 async function onFontFile(file: File) {
-    if (!FONT_EXT.test(file.name)) return showToast("Use a TTF, OTF, WOFF or WOFF2 font.", Toasts.Type.FAILURE);
-    if (file.size > FONT_MAX_BYTES) return showToast("Font must be 10 MB or smaller.", Toasts.Type.FAILURE);
+    if (!FONT_EXT.test(file.name)) return toast("Use a TTF, OTF, WOFF or WOFF2 font.", "failure");
+    if (file.size > FONT_MAX_BYTES) return toast("Font must be 10 MB or smaller.", "failure");
     const buf = await file.arrayBuffer();
     await registerFont(buf);
     if (!customFont) return;
     await DataStore.set(FONT_KEY, buf);
     settings.store.font = "custom";
     applyFont();
-    showToast("Custom font applied.", Toasts.Type.SUCCESS);
+    toast("Custom font applied.", "success");
 }
 
-// Google Fonts (fonts.googleapis.com / gstatic are on Vencord's default allow-list)
-const FONTS: Record<string, string> = {
-    discord: "", terono: "Figtree", inter: "Inter", roboto: "Roboto", poppins: "Poppins", montserrat: "Montserrat",
-    nunito: "Nunito", outfit: "Outfit", manrope: "Manrope", dmsans: "DM Sans", jakarta: "Plus Jakarta Sans",
-    lexend: "Lexend", rubik: "Rubik", quicksand: "Quicksand", spacegrotesk: "Space Grotesk", sora: "Sora",
-    urbanist: "Urbanist", worksans: "Work Sans", plex: "IBM Plex Sans", ubuntu: "Ubuntu", comfortaa: "Comfortaa",
-    jetbrains: "JetBrains Mono",
-};
+// Google Fonts (fonts.googleapis.com / gstatic are on Vencord's default allow-list): [setting value, family, group].
+// The values of fonts from earlier versions never change, so saved settings and profiles keep their font.
+export const FONT_LIST: [string, string, string][] = [
+    ["discord", "", "Clean"],
+    ["terono", "Figtree", "Clean"],
+    ["inter", "Inter", "Clean"],
+    ["roboto", "Roboto", "Clean"],
+    ["dmsans", "DM Sans", "Clean"],
+    ["worksans", "Work Sans", "Clean"],
+    ["plex", "IBM Plex Sans", "Clean"],
+    ["ubuntu", "Ubuntu", "Clean"],
+    ["manrope", "Manrope", "Clean"],
+    ["jakarta", "Plus Jakarta Sans", "Clean"],
+    ["lexend", "Lexend", "Clean"],
+    ["onest", "Onest", "Clean"],
+    ["geist", "Geist", "Clean"],
+    ["instrument", "Instrument Sans", "Clean"],
+    ["albert", "Albert Sans", "Clean"],
+    ["redhat", "Red Hat Display", "Clean"],
+    ["hanken", "Hanken Grotesk", "Clean"],
+    ["schibsted", "Schibsted Grotesk", "Clean"],
+    ["rubik", "Rubik", "Clean"],
+    ["nunito", "Nunito", "Rounded"],
+    ["quicksand", "Quicksand", "Rounded"],
+    ["comfortaa", "Comfortaa", "Rounded"],
+    ["varela", "Varela Round", "Rounded"],
+    ["mplus", "M PLUS Rounded 1c", "Rounded"],
+    ["baloo", "Baloo 2", "Rounded"],
+    ["fredoka", "Fredoka", "Rounded"],
+    ["poppins", "Poppins", "Geometric"],
+    ["montserrat", "Montserrat", "Geometric"],
+    ["outfit", "Outfit", "Geometric"],
+    ["sora", "Sora", "Geometric"],
+    ["urbanist", "Urbanist", "Geometric"],
+    ["spacegrotesk", "Space Grotesk", "Geometric"],
+    ["syne", "Syne", "Geometric"],
+    ["unbounded", "Unbounded", "Geometric"],
+    ["archivo", "Archivo", "Geometric"],
+    ["kanit", "Kanit", "Geometric"],
+    ["bricolage", "Bricolage Grotesque", "Geometric"],
+    ["playfair", "Playfair Display", "Serif"],
+    ["lora", "Lora", "Serif"],
+    ["fraunces", "Fraunces", "Serif"],
+    ["dmserif", "DM Serif Display", "Serif"],
+    ["instrumentserif", "Instrument Serif", "Serif"],
+    ["youngserif", "Young Serif", "Serif"],
+    ["merriweather", "Merriweather", "Serif"],
+    ["righteous", "Righteous", "Display"],
+    ["audiowide", "Audiowide", "Display"],
+    ["orbitron", "Orbitron", "Display"],
+    ["bungee", "Bungee", "Display"],
+    ["russo", "Russo One", "Display"],
+    ["michroma", "Michroma", "Display"],
+    ["exo", "Exo 2", "Display"],
+    ["rajdhani", "Rajdhani", "Display"],
+    ["oxanium", "Oxanium", "Display"],
+    ["chakra", "Chakra Petch", "Display"],
+    ["grandstander", "Grandstander", "Display"],
+    ["lilita", "Lilita One", "Display"],
+    ["silkscreen", "Silkscreen", "Display"],
+    ["pressstart", "Press Start 2P", "Display"],
+    ["caveat", "Caveat", "Handwritten"],
+    ["patrick", "Patrick Hand", "Handwritten"],
+    ["gochi", "Gochi Hand", "Handwritten"],
+    ["kalam", "Kalam", "Handwritten"],
+    ["comicneue", "Comic Neue", "Handwritten"],
+    ["shantell", "Shantell Sans", "Handwritten"],
+    ["jetbrains", "JetBrains Mono", "Mono"],
+    ["firacode", "Fira Code", "Mono"],
+    ["spacemono", "Space Mono", "Mono"],
+    ["plexmono", "IBM Plex Mono", "Mono"],
+    ["geistmono", "Geist Mono", "Mono"],
+    ["vt323", "VT323", "Mono"],
+];
+const FONTS: Record<string, string> = Object.fromEntries(FONT_LIST.map(([k, f]) => [k, f]));
+const FONT_LABELS: Record<string, string> = { discord: "Discord (gg sans)", terono: "Terono (Figtree)" };
 
 /* ================= settings ================= */
 
@@ -356,7 +435,7 @@ export const settings = definePluginSettings({
     },
     overlayShow: {
         type: OptionType.SELECT,
-        description: "Early alpha, can be buggy: The Terono overlay: a see-through panel over your games and other apps (windowed or borderless) with the call you're in, who's talking, and your DMs and mentions as they come in. Clicks go through it to the game. Hidden while Discord is in front. Desktop app only.",
+        description: "Beta: the Terono overlay, in your Terono look: a see-through panel over your games and other apps (windowed or borderless) with the call you're in, who's talking, and your DMs and mentions as they come in. Clicks go through it to the game. Hidden while Discord is in front. Desktop app only.",
         options: [
             { label: "On: calls and messages over other apps", value: "on", default: true },
             { label: "Only when I press the hotkey", value: "hotkey" },
@@ -414,13 +493,13 @@ export const settings = definePluginSettings({
     },
     callAmbient: {
         type: OptionType.BOOLEAN,
-        description: "Early alpha, can be buggy: Ambient mode: the colors of the stream you're watching glow softly around it, like on YouTube.",
+        description: "Beta: ambient mode: the colors of the stream you're watching glow softly around it, like on YouTube.",
         default: true,
         onChange: () => applyAmbient(),
     },
     bulkMode: {
         type: OptionType.BOOLEAN,
-        description: "Early alpha, can be buggy: Hold Ctrl and click servers, DMs or friends to select several, then right-click one of them: whatever you pick in Discord's menu is done to all of them. Esc clears the selection.",
+        description: "Beta: Hold Ctrl and click servers, DMs or friends to select several, then right-click one of them: whatever you pick in Discord's menu is done to all of them. Esc clears the selection.",
         default: true,
     },
     homeDoubleClick: {
@@ -462,6 +541,45 @@ export const settings = definePluginSettings({
     debugInfo: {
         type: OptionType.COMPONENT,
         component: () => <DebugInfo />,
+    },
+
+    /* --- you: profile look, people, avatars --- */
+    myLook: {
+        type: OptionType.COMPONENT,
+        component: () => <MyLookPanel />,
+    },
+    people: {
+        type: OptionType.COMPONENT,
+        component: () => <PeoplePanel />,
+    },
+    // your own name styles for other people (cosmetics.tsx), JSON
+    peopleLooks: {
+        type: OptionType.STRING,
+        description: "Name styles for other people.",
+        default: "{}",
+        hidden: true,
+    },
+    avatarShape: {
+        type: OptionType.SELECT,
+        description: "Shape of everyone's profile pictures (only you see this).",
+        options: [
+            { label: "Circle (Discord)", value: "circle", default: true },
+            { label: "Rounded square", value: "rounded" },
+            { label: "Square", value: "square" },
+        ],
+        onChange: () => applyAttrs(),
+    },
+
+    /* --- tools --- */
+    searchTools: {
+        type: OptionType.BOOLEAN,
+        description: "Media, links and files buttons next to the search bar: all pictures and videos of a chat as a grid, every link (with a search inside the links, e.g. \"kori\" finds coolify.kori.my), or every file.",
+        default: true,
+    },
+    blockedButton: {
+        type: OptionType.BOOLEAN,
+        description: "A \"Blocked\" button next to \"Add Friend\" on the friends page, with everyone you've blocked.",
+        default: true,
     },
 
     /* --- accent --- */
@@ -798,28 +916,7 @@ export const settings = definePluginSettings({
         type: OptionType.SELECT,
         description: "Font for the whole app.",
         options: [
-            { label: "Discord (gg sans)", value: "discord" },
-            { label: "Terono (Figtree)", value: "terono", default: true },
-            { label: "Inter", value: "inter" },
-            { label: "Roboto", value: "roboto" },
-            { label: "Poppins", value: "poppins" },
-            { label: "Montserrat", value: "montserrat" },
-            { label: "Nunito", value: "nunito" },
-            { label: "Outfit", value: "outfit" },
-            { label: "Manrope", value: "manrope" },
-            { label: "DM Sans", value: "dmsans" },
-            { label: "Plus Jakarta Sans", value: "jakarta" },
-            { label: "Lexend", value: "lexend" },
-            { label: "Rubik", value: "rubik" },
-            { label: "Quicksand", value: "quicksand" },
-            { label: "Space Grotesk", value: "spacegrotesk" },
-            { label: "Sora", value: "sora" },
-            { label: "Urbanist", value: "urbanist" },
-            { label: "Work Sans", value: "worksans" },
-            { label: "IBM Plex Sans", value: "plex" },
-            { label: "Ubuntu", value: "ubuntu" },
-            { label: "Comfortaa", value: "comfortaa" },
-            { label: "JetBrains Mono", value: "jetbrains" },
+            ...FONT_LIST.map(([value, family]) => ({ label: FONT_LABELS[value] ?? family, value, default: value === "terono" })),
             { label: "Custom (upload)", value: "custom" },
         ],
     },
@@ -875,7 +972,7 @@ export const settings = definePluginSettings({
     },
     quickIcon: {
         type: OptionType.BOOLEAN,
-        description: "Show the Terona icon next to the back/forward arrows (opens these settings).",
+        description: "Show the Terono icon next to the back/forward arrows (opens these settings).",
         default: true,
         onChange: () => applyAttrs(),
     },
@@ -1030,7 +1127,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    taskbarIcon: "Terono icon on the taskbar", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
+    taskbarIcon: "Terono icon on the taskbar", avatarShape: "Profile pictures", searchTools: "Search tools", blockedButton: "Blocked button on the friends page", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -1305,6 +1402,8 @@ export function applyAttrs() {
     d.dzGuilds = s.serverList;
     d.dzChannels = s.channelsSide;
     d.dzMembers = s.membersSide;
+    if (s.avatarShape && s.avatarShape !== "circle") d.dzAvatars = s.avatarShape;
+    else delete d.dzAvatars;
     if (s.panels === "discord") d.dzPanels = "discord";
     else delete d.dzPanels;
     flag("dzGlass", s.cardStyle === "glass" || s.cardStyle === "liquid" || cardActive);
@@ -1349,7 +1448,7 @@ let previewLink: HTMLLinkElement | null = null;
 export function loadFontPreviews() {
     if (previewLink?.isConnected) return;
     const families = Object.values(FONTS).filter(Boolean);
-    const text = [...new Set(families.join("") + "Terono()Custom uploadDiscordgs AaBbCc123")].sort().join("");
+    const text = [...new Set(families.join("") + "Terono()Custom uploadDiscordgs The quick brown fox 123")].sort().join("");
     previewLink = document.head.appendChild(document.createElement("link"));
     previewLink.rel = "stylesheet";
     previewLink.href = `https://fonts.googleapis.com/css2?${families.map(f => `family=${encodeURIComponent(f)}:wght@500`).join("&")}&text=${encodeURIComponent(text)}&display=swap`;
@@ -1402,7 +1501,7 @@ function startProbe(url: string) {
     const done = (kind: "image" | "video" | "fail") => {
         probed.set(url, kind);
         if (kind === "fail") {
-            showToast("Image / video couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
+            toast("Image / video couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", "failure");
             setTimeout(() => probed.get(url) === "fail" && probed.delete(url), 15_000);
         }
         applyMedia();
@@ -1704,7 +1803,8 @@ ${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.
         liquidLayer.innerHTML = "<i></i>".repeat(SPOTS.length + 1);
         stopLiquidWatch = watchOutline(updateLiquidClip);
     }
-    updateLiquidClip();
+    // measuring the panels forces a layout: wait for the next frame instead of doing it while Discord starts
+    requestAnimationFrame(updateLiquidClip);
     // Performance mode or "Still": the light stays where it is
     if (s.lite || s.liquidSpeed === "still") {
         removeTicker(liquidTick);
@@ -1784,7 +1884,7 @@ export function applyMedia() {
             videoEl.className = "dz-bg-video";
             videoEl.onerror = () => {
                 if (!videoEl?.src.startsWith("blob:")) probed.set(videoEl!.src, "fail");
-                showToast("Background video couldn't be played.", Toasts.Type.FAILURE);
+                toast("Background video couldn't be played.", "failure");
             };
             Object.assign(videoEl, { muted: true, defaultMuted: true, volume: 0, loop: true, autoplay: true, playsInline: true, disableRemotePlayback: true });
             document.addEventListener("visibilitychange", onVisibility);
@@ -1810,7 +1910,15 @@ export function applyMedia() {
    Neither Midnight nor this theme target those classes, so such popups (e.g. the screenshare
    picker) fell back to stock Discord colors. Make their custom properties inherit ours instead. */
 
+// reading every rule of Discord's stylesheets takes ~30 ms: the result is kept per Discord build (its CSS file names)
+const DARKER_KEY = "Terono_darkerPalette";
+
 export function applyDarkerPalette() {
+    const build = [...document.styleSheets].map(s => s.href ?? "").filter(h => h.includes("discord")).join("|");
+    try {
+        const saved = JSON.parse(localStorage.getItem(DARKER_KEY) ?? "null");
+        if (build && saved?.build === build) return sheet("darker", saved.css);
+    } catch { /* recompute */ }
     const props = new Set<string>();
     for (const sheetObj of document.styleSheets) {
         let rules: CSSRuleList;
@@ -1821,15 +1929,41 @@ export function applyDarkerPalette() {
         }
     }
     const decl = [...props].map(p => `${p}: inherit;`).join("");
-    sheet("darker", decl ? `html :is(.theme-darker, .theme-midnight):not(html) { ${decl} }` : "");
+    const css = decl ? `html :is(.theme-darker, .theme-midnight):not(html) { ${decl} }` : "";
+    sheet("darker", css);
+    if (build) try { localStorage.setItem(DARKER_KEY, JSON.stringify({ build, css })); } catch { /* full storage: recompute next time */ }
 }
 
 /* ---------- overlay (the main process does it) ---------- */
 
 let lastOverlay = "";
 export const forgetOverlay = () => { lastOverlay = ""; };
+
+// the overlay is drawn in your Terono look: panel color, glass, accent, text, corners and font
+function overlayTheme() {
+    const root = getComputedStyle(document.documentElement);
+    const v = (k: string) => root.getPropertyValue(k).trim();
+    const key = settings.store.font;
+    const family = key === "custom" || key === "discord" ? "" : FONTS[key] ?? "Figtree";
+    return {
+        accent: v("--dz-accent"),
+        panel: v("--dz-card"),
+        text: v("--dz-text"),
+        radius: v("--radius-lg"),
+        glass: document.documentElement.hasAttribute("data-dz-glass"),
+        font: family,
+        fontHref: family ? `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@500;600;700;800&display=swap` : "",
+    };
+}
+// reading the theme forces a style calculation: done once things have settled, and once for a burst of changes
+let overlayTimer = 0;
 export function applyOverlay() {
     if (!IS_DISCORD_DESKTOP) return;
+    clearTimeout(overlayTimer);
+    overlayTimer = window.setTimeout(applyOverlayNow, 400);
+}
+
+function applyOverlayNow() {
     syncOverlay();
     const s = settings.store;
     const cfg = {
@@ -1839,28 +1973,30 @@ export function applyOverlay() {
         opacity: (Number(s.overlayOpacity) || 100) / 100,
         accent: getComputedStyle(document.documentElement).getPropertyValue("--dz-accent").trim() || "#429cff",
         compact: !!s.overlayCompact,
+        theme: overlayTheme(),
     };
     const key = JSON.stringify(cfg);
     if (key === lastOverlay) return;
     lastOverlay = key;
     const Native = VencordNative.pluginHelpers.Terono as PluginNative<typeof import("./native")>;
     Native.overlayConfig(cfg).then(ok => {
-        if (!ok) showToast(`The overlay hotkey ${cfg.key} is taken by another app. Pick another one in the Overlay tab.`, Toasts.Type.FAILURE);
+        if (!ok) toast(`The overlay hotkey ${cfg.key} is taken by another app. Pick another one in the Overlay tab.`, "failure");
     }).catch(() => { });
 }
 
+// how long each part took the last time (shown in troubleshooting reports)
+export const applyTimes: Record<string, number> = {};
+
 export function applyAll() {
-    applyAttrs();
-    applyVars();
-    applyLogo();
-    applyChat();
-    applyHeader();
-    applyFont();
-    applyMedia();
-    applyCardMedia();
-    applyLiquid();
-    applyLoading();
-    applyOverlay();
+    const steps: [string, () => void][] = [
+        ["attrs", applyAttrs], ["vars", applyVars], ["logo", applyLogo], ["chat", applyChat], ["header", applyHeader], ["font", applyFont],
+        ["media", applyMedia], ["cardMedia", applyCardMedia], ["liquid", applyLiquid], ["loading", applyLoading], ["overlay", applyOverlay],
+    ];
+    for (const [name, fn] of steps) {
+        const t = performance.now();
+        fn();
+        applyTimes[name] = Math.round((performance.now() - t) * 10) / 10;
+    }
 }
 
 export function removeAll() {

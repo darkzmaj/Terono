@@ -12,73 +12,51 @@ import { useSettings } from "@api/Settings";
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { OptionComponentMap } from "@components/settings/tabs/plugins/components";
-import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Modal, openModal, useEffect, useState } from "@webpack/common";
 
 import { BADGES_CSS, BadgesPanel } from "./badges";
 import { BRANDING_CSS } from "./branding";
+import { COSMETICS_CSS } from "./cosmetics";
+import { DEBUG_CSS } from "./diagnostics";
 import { listedPlugins, PluginHub, Row } from "./hub";
 import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./presets";
 import { startPreview } from "./preview";
+import { PROFILES_CSS } from "./profiles";
 import { loadFontPreviews, settings, useSettingsRevision } from "./settings";
+import { toast } from "./toast";
+import { TOOLS_CSS } from "./tools";
 import { UpdatePanel } from "./updater";
 import { USAGE_CSS } from "./usage";
 import { VERSION } from "./version";
 
 interface Group { title?: string; keys: string[]; }
-interface Tab { id: string; label: string; intro: string; groups?: Group[]; }
+interface Tab { id: string; label: string; section: string; icon: string; groups?: Group[]; }
 
+// the sidebar: a few short sections instead of a wall of buttons
 const TABS: Tab[] = [
-    { id: "presets", label: "Presets", intro: "Complete looks in one click. Apply one, then change anything you like in the other tabs." },
+    { id: "presets", section: "Look", label: "Presets", icon: "M4 5h16v4H4zM4 11h7v8H4zM13 11h7v8h-7z" },
     {
-        id: "colors", label: "Colors", intro: "The primary color used for buttons, links, mentions and glow, text and icon colors, plus status and window colors.",
+        id: "colors", section: "Look", label: "Colors", icon: "M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Zm-5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm4 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z",
         groups: [
             { title: "Primary color", keys: ["accentPreset", "accent"] },
             { title: "Text", keys: ["customText", "textColor"] },
             { title: "Icons", keys: ["customIcons", "iconColor"] },
             { title: "Status & window buttons", keys: ["voice", "close", "minimize", "maximize"] },
-            { title: "App border", keys: ["appBorder", "borderColor", "borderColor2", "appBorderWidth"] },
+            { title: "App border", keys: ["appBorder", "borderColor", "borderColor2", "appBorderFile", "appBorderWidth"] },
         ],
     },
     {
-        id: "cards", label: "Cards", intro: "The panels: their color, corners, glass or liquid glass, embeds in chat and an optional picture or video inside them.",
+        id: "panels", section: "Look", label: "Panels & background", icon: "M3 5a2 2 0 0 1 2-2h5v18H5a2 2 0 0 1-2-2V5Zm9-2h7a2 2 0 0 1 2 2v6h-9V3Zm0 10h9v6a2 2 0 0 1-2 2h-7v-8Z",
         groups: [
-            { title: "Card colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle"] },
+            { title: "Panel colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle"] },
             { title: "Shape & material", keys: ["panels", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed"] },
+            { title: "Picture or video in the panels", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
             { title: "Embeds (link previews)", keys: ["embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity"] },
-            { title: "Picture or video in the cards", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
+            { title: "Background", keys: ["background", "bgMediaSource", "bgMediaUrl", "bgMediaFile", "bgMediaDim", "bgBase", "bgColor1", "bgColor2"] },
         ],
     },
     {
-        id: "background", label: "Background", intro: "What's behind the panels.",
-        groups: [
-            { title: "Type", keys: ["background"] },
-            { title: "Picture, GIF or video", keys: ["bgMediaSource", "bgMediaUrl", "bgMediaFile", "bgMediaDim"] },
-            { title: "Colors", keys: ["bgBase", "bgColor1", "bgColor2"] },
-        ],
-    },
-    {
-        id: "layout", label: "Layout", intro: "Where the server list, channel list and member list sit.",
-        groups: [{ keys: ["serverList", "serverListDirection", "channelsSide", "membersSide"] }],
-    },
-    {
-        id: "header", label: "Header", intro: "The bar above the chat: channel name, buttons and search, separately for servers and DMs.",
-        groups: [
-            { title: "In servers", keys: ["headerName", "headerHash", "headerButtons", "headerSearch", "headerFollow"] },
-            { title: "In DMs", keys: ["dmHeaderName", "dmHeaderButtons", "dmHeaderSearch"] },
-            { title: "Hidden buttons", keys: ["headerHiddenButtons"] },
-        ],
-    },
-    {
-        id: "chat", label: "Chat & Members", intro: "Chat bar buttons, the member list and activities.",
-        groups: [
-            { title: "Messages", keys: ["chatSides"] },
-            { title: "Chat bar buttons", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord"] },
-            { title: "Member list", keys: ["roleCount", "roleCountCustom"] },
-            { title: "Activities", keys: ["showActivities"] },
-        ],
-    },
-    {
-        id: "branding", label: "Font, Logo & Icons", intro: "Font, home logo, loading screens, and your own pictures instead of Discord's button icons (Friends, Nitro, microphone, …).",
+        id: "fonts", section: "Look", label: "Font & logo", icon: "M5 4h14v3h-2V6h-4v12h2v2H9v-2h2V6H7v1H5V4Z",
         groups: [
             { title: "Font", keys: ["fontPicker", "fontFile"] },
             { title: "Home logo", keys: ["logoSource", "logoUrl", "logoFile", "logoSize"] },
@@ -87,42 +65,58 @@ const TABS: Tab[] = [
         ],
     },
     {
-        id: "calls", label: "Calls (alpha)", intro: "Ambient mode for streams.",
+        id: "layout", section: "Look", label: "Layout", icon: "M4 4h6v16H4zM12 4h8v7h-8zM12 13h8v7h-8z",
         groups: [
-            { title: "Streams", keys: ["callAmbient"] },
+            { title: "Where things sit", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide"] },
+            { title: "Messages", keys: ["chatSides"] },
+            { title: "Channel header in servers", keys: ["headerName", "headerHash", "headerButtons", "headerSearch", "headerFollow"] },
+            { title: "Channel header in DMs", keys: ["dmHeaderName", "dmHeaderButtons", "dmHeaderSearch"] },
+            { title: "Hidden header buttons", keys: ["headerHiddenButtons"] },
+            { title: "Chat bar buttons", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord"] },
+            { title: "Member list & activities", keys: ["roleCount", "roleCountCustom", "showActivities"] },
+            { title: "Right-click menus", keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] },
+        ],
+    },
+    { id: "profile", section: "You", label: "Your profile", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c0-3.3 3.6-6 8-6s8 2.7 8 6v1H4v-1Z", groups: [{ keys: ["myLook"] }] },
+    { id: "badges", section: "You", label: "Badges", icon: "M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.3 7.2 16.9l.9-5.4-3.9-3.8 5.4-.8L12 2Z" },
+    {
+        id: "people", section: "You", label: "People & avatars", icon: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 19c0-2.8 3.1-5 7-5s7 2.2 7 5v1H2v-1Zm16 1v-1c0-1.5-.6-2.8-1.7-3.9 2.8.3 4.7 1.9 4.7 3.9v1h-3Z",
+        groups: [{ keys: ["people"] }, { title: "Profile pictures", keys: ["avatarShape"] }],
+    },
+    {
+        id: "calls", section: "Features", label: "Calls & overlay", icon: "M15 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2l5 3V5l-5 3Z",
+        groups: [
+            { title: "Streams (beta)", keys: ["callAmbient"] },
+            { title: "Terono overlay (beta)", keys: ["overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity"] },
         ],
     },
     {
-        id: "overlay", label: "Overlay (alpha)", intro: "The Terono overlay over your games and other apps.",
-        groups: [{ keys: ["overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity"] }],
-    },
-    {
-        id: "menus", label: "Menus", intro: "Hide right-click menu items by their name, comma separated.",
-        groups: [{ keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] }],
-    },
-    {
-        id: "extras", label: "Extras", intro: "Auto-translate, performance, the settings shortcut, updates and troubleshooting.",
+        id: "tools", section: "Features", label: "Tools", icon: "M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6Z",
         groups: [
-            { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
-            { title: "Performance", keys: ["lite", "pauseUnfocused"] },
+            { title: "Search & friends", keys: ["searchTools", "blockedButton"] },
             { title: "Shortcuts", keys: ["openKeybind", "bulkMode", "homeDoubleClick"] },
+            { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
+        ],
+    },
+    { id: "plugins", section: "Features", label: "Plugins", icon: "M10 3h4v4h3a2 2 0 0 1 2 2v3h-4v4h4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h4v-4H3V9a2 2 0 0 1 2-2h5V3Z" },
+    { id: "profiles", section: "Terono", label: "Profiles & sharing", icon: "M6 3h9l4 4v14H6V3Zm8 1v4h4M9 12h7M9 16h7", groups: [{ keys: ["profiles"] }] },
+    {
+        id: "system", section: "Terono", label: "System", icon: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1-.7-.5-1.3 1-2-2.1-2.1-2 1-1.3-.5L12 3h-1l-.7 2.1-1.3.5-2-1L4.9 6.8l1 2-.5 1.3L3 11v2l2.1.7.5 1.3-1 2 2.1 2.1 2-1 1.3.5L11 21h2l.7-2.1 1.3-.5 2 1 2.1-2.1-1-2 .5-1.3L21 13v-1Z",
+        groups: [
+            { title: "Troubleshooting", keys: ["debugInfo"] },
+            { title: "Performance", keys: ["lite", "pauseUnfocused"] },
             { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
             { title: "Taskbar", keys: ["taskbarIcon"] },
             { title: "Privacy", keys: ["shareUsage", "usageCount"] },
-            { title: "Troubleshooting", keys: ["debugInfo"] },
         ],
-    },
-    { id: "badges", label: "Badges", intro: "Your Terono OG badge, up to 3 badges of your own and Discord's badges. Everyone who uses Terono sees them." },
-    { id: "profiles", label: "Profiles", intro: "Save your look, switch between saved looks, share them as files.", groups: [{ keys: ["profiles"] }] },
-    {
-        id: "plugins", label: "Plugins",
-        intro: "Every Vencord plugin, by category, switched on and set up in one place. Vencord keeps them up to date. Plugins that change Discord's code apply after a restart, which the Updates box above offers.",
     },
 ];
 
+const SECTIONS = [...new Set(TABS.map(t => t.section))];
+
 let lastTab = "presets";
 
-export const REPORT_URL = "https://teronastudios.com/discord";
+export const REPORT_URL = "https://darkzmaj.eu";
 
 // only this plugin's settings (a stable array: a new one every render would re-subscribe every render)
 const TERONO_PATHS = ["plugins.Terono.*"] as any[];
@@ -145,26 +139,40 @@ export function TeronoSettings() {
 
     return (
         <div className="dz-set">
-            <UpdatePanel />
-            <input
-                className="dz-set-search"
-                type="search"
-                placeholder="Search settings and plugins"
-                value={query}
-                onChange={e => setQuery(e.currentTarget.value)}
-            />
-            <nav className="dz-set-tabs" role="tablist">
-                {TABS.map(t => (
-                    <button key={t.id} role="tab" aria-selected={!query && t.id === current.id} className="dz-set-tab" onClick={() => pick(t.id)}>{t.label}</button>
-                ))}
-            </nav>
-            {query.trim()
-                ? <SearchResults query={query} open={pick} />
-                : (
-                    <div key={`${current.id}:${rev}`} className="dz-set-body">
-                        {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.id === "badges" ? <BadgesPanel /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
-                    </div>
-                )}
+            <div className="dz-set-top">
+                <input
+                    className="dz-set-search"
+                    type="search"
+                    placeholder="Search settings and plugins"
+                    value={query}
+                    onChange={e => setQuery(e.currentTarget.value)}
+                />
+                <span className="dz-set-ver" title="Updates are in System">Terono {VERSION}</span>
+            </div>
+            <div className="dz-set-main">
+                <nav className="dz-set-nav" role="tablist" aria-orientation="vertical">
+                    {SECTIONS.map(sec => (
+                        <div key={sec} className="dz-set-navsec">
+                            <div className="dz-set-navhead">{sec}</div>
+                            {TABS.filter(t => t.section === sec).map(t => (
+                                <button key={t.id} role="tab" aria-selected={!query && t.id === current.id} className="dz-set-tab" onClick={() => pick(t.id)}>
+                                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d={t.icon} /></svg>
+                                    <span>{t.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    ))}
+                </nav>
+                {query.trim()
+                    ? <SearchResults query={query} open={pick} />
+                    : (
+                        <div key={`${current.id}:${rev}`} className="dz-set-body">
+                            <h2 className="dz-set-title">{current.label}</h2>
+                            {(current.id === "system" || current.id === "plugins") && <UpdatePanel />}
+                            {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.id === "badges" ? <BadgesPanel /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
+                        </div>
+                    )}
+            </div>
         </div>
     );
 }
@@ -175,8 +183,8 @@ function placeReportLink() {
     if (!content) return;
     const p = document.createElement("p");
     p.className = "dz-set-report";
-    p.append("Found a bug? Report it on the Terona Studios Discord: ");
-    const a = Object.assign(document.createElement("a"), { href: REPORT_URL, target: "_blank", rel: "noreferrer", textContent: "teronastudios.com/discord" });
+    p.append("Need help or found a bug? ");
+    const a = Object.assign(document.createElement("a"), { href: REPORT_URL, target: "_blank", rel: "noreferrer", textContent: "darkzmaj.eu" });
     p.append(a);
     content.prepend(p);
     return () => p.remove();
@@ -308,7 +316,7 @@ function swatch(p: Preset) {
 function confirmApply(p: Preset) {
     const apply = (withLayout: boolean) => {
         applyPreset(p, withLayout);
-        showToast(`${p.name} applied${withLayout ? "" : " (your layout kept)"}. Change anything you like in the other tabs.`, Toasts.Type.SUCCESS);
+        toast(`${p.name} applied${withLayout ? "" : " (your layout kept)"}. Change anything you like in the other tabs.`, "success");
     };
     openModal(props => (
         <Modal
@@ -340,21 +348,33 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS;
+    css.textContent = CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS + COSMETICS_CSS + DEBUG_CSS + PROFILES_CSS + TOOLS_CSS;
     document.head.append(css);
 }
 
 const CSS = `
-.dz-set { display: flex; flex-direction: column; gap: 12px; }
-.dz-set-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 4px 0; background: none; }
-.dz-set-tab { padding: 7px 13px; border-radius: 999px; cursor: pointer; font: 600 13px var(--font-primary, "gg sans", sans-serif);
-    color: var(--text-muted, #aaa); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent);
-    border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); transition: background 140ms ease, color 140ms ease, transform 140ms ease; }
-.dz-set-tab:hover { color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 11%, transparent); }
-.dz-set-tab:active { transform: scale(.97); }
-.dz-set-tab[aria-selected="true"] { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--dz-accent, #429cff) 35%, transparent); }
-.dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 2px; }
+.dz-set { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
+.dz-set-top { display: flex; align-items: center; gap: 12px; }
+.dz-set-ver { flex-shrink: 0; font: 600 12px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
+.dz-set-main { display: grid; grid-template-columns: 178px minmax(0, 1fr); gap: 18px; align-items: start; }
+.dz-set-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 12px; }
+.dz-set-navsec { display: flex; flex-direction: column; gap: 2px; }
+.dz-set-navhead { padding: 0 10px 4px; font: 700 11px var(--font-primary, "gg sans", sans-serif); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted, #aaa); opacity: .8; }
+.dz-set-tab { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 10px; border-radius: 10px; cursor: pointer; text-align: left;
+    font: 600 13.5px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); background: none; border: 0; transition: background 120ms ease, color 120ms ease; }
+.dz-set-tab svg { flex-shrink: 0; opacity: .85; }
+.dz-set-tab:hover { color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
+.dz-set-tab[aria-selected="true"] { color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-accent, #429cff) 18%, transparent); box-shadow: inset 2px 0 0 var(--dz-accent, #429cff); }
+.dz-set-tab[aria-selected="true"] svg { color: var(--dz-accent, #429cff); opacity: 1; }
+.dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 1px; }
+.dz-set-title { margin: 2px 0 0; font: 700 20px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); }
+@container (max-width: 620px) {
+    .dz-set-main { grid-template-columns: 1fr; }
+    .dz-set-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .dz-set-navsec { flex-direction: row; flex-wrap: wrap; }
+    .dz-set-navhead { display: none; }
+    .dz-set-tab { width: auto; }
+}
 .dz-set-report { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--text-muted, #aaa); }
 .dz-set-report a { color: var(--dz-accent, #429cff); }
 .dz-set-search { width: 100%; box-sizing: border-box; height: 38px; padding: 0 14px; border-radius: 12px; font: 500 14px var(--font-primary, "gg sans", sans-serif);
