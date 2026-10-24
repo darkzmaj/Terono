@@ -9,6 +9,9 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Net;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 using TeronoTools;
@@ -19,6 +22,15 @@ internal static class Program
 {
     private const string VencordRepo = "https://github.com/Vendicated/Vencord";
     private const string TeronoRepo = "https://github.com/darkzmaj/Terono";
+
+    // Private copies of Git and Node.js for PCs without them (or with a Node older than Vencord needs). Checked
+    // against the SHA-256 Git for Windows and Node.js publish for these files.
+    private const string GitZip = "https://github.com/git-for-windows/git/releases/download/v2.47.1.windows.1/MinGit-2.47.1-64-bit.zip";
+    private const string GitSha = "50b04b55425b5c465d076cdb184f63a0cd0f86f6ec8bb4d5860114a713d2c29a";
+    private const string NodeZip = "https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip";
+    private const string NodeSha = "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541";
+    // the oldest Node.js Vencord's build tool (pnpm 11) runs on; an older one on the PC gets the private copy
+    private static readonly Version MinNode = new(22, 13);
 
     private static StreamWriter _log;
 
@@ -78,9 +90,10 @@ internal static class Program
         var vencord = Path.Combine(dir, "Vencord");
         var plugin = Path.Combine(vencord, "src", "userplugins", "terono");
 
-        EnsureTool("git", "Git.Git", "https://git-scm.com/download/win");
-        EnsureTool("node", "OpenJS.NodeJS.LTS", "https://nodejs.org");
         Directory.CreateDirectory(dir);
+        var tools = Path.Combine(dir, "tools");
+        EnsureTool("Git", Path.Combine(tools, "git"), "cmd", GitZip, GitSha, () => Exec("where", "git", null, quiet: true) == 0);
+        EnsureTool("Node.js", Path.Combine(tools, "node"), "", NodeZip, NodeSha, () => NodeVersion() >= MinNode);
 
         Step("Getting Vencord");
         Sync(VencordRepo, vencord);
@@ -182,23 +195,72 @@ internal static class Program
         Thread.Sleep(1500);
     }
 
-    private static void EnsureTool(string tool, string wingetId, string site)
+    // Git / Node.js: the PC's own when it has a good one, otherwise a private copy in Terono's folder (tools\git,
+    // tools\node), which needs no admin rights and no winget (missing or broken on many PCs, which made Setup stop
+    // with "git is needed"). The in-app updater uses the same copies.
+    private static void EnsureTool(string name, string folder, string binSub, string url, string sha, Func<bool> systemOk)
     {
-        if (Exec("where", tool, null, quiet: true) == 0) return;
+        var bin = Path.Combine(folder, binSub);
+        if (Directory.Exists(bin) && Directory.GetFiles(bin, "*.exe").Length > 0) { UsePath(bin); return; }
+        if (systemOk()) return;
 
-        if (Exec("where", "winget", null, quiet: true) != 0)
-            throw new SetupException($"{tool} is needed. Install it from {site}, then run Terono Setup again.");
+        Step($"Downloading {name} for Terono (needed once)");
+        var zip = Path.Combine(Path.GetTempPath(), $"terono-{Path.GetFileName(folder)}.zip");
+        var unpacked = folder + ".new";
+        try
+        {
+            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+            using (var web = new WebClient()) web.DownloadFile(url, zip);
+            string hash;
+            using (var f = File.OpenRead(zip)) using (var h = SHA256.Create()) hash = BitConverter.ToString(h.ComputeHash(f)).Replace("-", "").ToLowerInvariant();
+            if (hash != sha) throw new SetupException($"The {name} download was damaged. Run Terono Setup again.");
 
-        Step($"Installing {tool} (needed once)");
-        Exec("winget", $"install --id {wingetId} -e --silent --accept-source-agreements --accept-package-agreements", null);
+            if (Directory.Exists(unpacked)) DeleteFolder(unpacked);
+            ZipFile.ExtractToDirectory(zip, unpacked);
+            // Node.js comes inside one folder (node-v24...-win-x64): its contents become tools\node
+            var inner = Directory.GetDirectories(unpacked);
+            var top = Directory.GetFiles(unpacked).Length == 0 && inner.Length == 1 ? inner[0] : unpacked;
+            if (Directory.Exists(folder)) DeleteFolder(folder);
+            Directory.Move(top, folder);
+        }
+        catch (SetupException) { throw; }
+        catch (Exception e)
+        {
+            Log($"{name} download: {e}");
+            throw new SetupException($"Downloading {name} failed ({e.Message}). Check your internet connection and run Terono Setup again.");
+        }
+        finally
+        {
+            try { File.Delete(zip); } catch { /* temp file */ }
+            try { if (Directory.Exists(unpacked)) DeleteFolder(unpacked); } catch { /* temp folder */ }
+        }
+        if (!Directory.Exists(bin) || Directory.GetFiles(bin, "*.exe").Length == 0)
+            throw new SetupException($"{name} couldn't be set up. Run Terono Setup again.");
+        UsePath(bin);
+    }
 
-        // pick up the PATH the installer just changed
-        var machine = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.Machine);
-        var user = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User);
-        Environment.SetEnvironmentVariable("Path", machine + ";" + user);
+    // first on PATH for everything Setup starts (git, node, npx / pnpm and Vencord's scripts)
+    private static void UsePath(string dir)
+    {
+        var path = Environment.GetEnvironmentVariable("Path") ?? "";
+        if (!path.StartsWith(dir + ";", StringComparison.OrdinalIgnoreCase)) Environment.SetEnvironmentVariable("Path", dir + ";" + path);
+        Log($"using {dir}");
+    }
 
-        if (Exec("where", tool, null, quiet: true) != 0)
-            throw new SetupException($"{tool} was installed but Windows doesn't see it yet. Close this window and run Terono Setup again.");
+    // the version of the node on PATH, 0.0 when there is none
+    private static Version NodeVersion()
+    {
+        var psi = new ProcessStartInfo("node", "--version") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+        try
+        {
+            using var p = Process.Start(psi);
+            var v = p.StandardOutput.ReadToEnd().Trim();
+            p.WaitForExit();
+            Log($"node --version -> {v}");
+            var m = Regex.Match(v, @"^v(\d+)\.(\d+)");
+            return m.Success ? new Version(int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value)) : new Version(0, 0);
+        }
+        catch (Win32Exception) { return new Version(0, 0); }
     }
 
     /* ---------- helpers ---------- */

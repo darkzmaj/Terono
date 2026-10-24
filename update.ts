@@ -11,7 +11,7 @@
 import { execFile, spawn } from "child_process";
 import { createHash } from "crypto";
 import { existsSync, readFileSync } from "fs";
-import { join, resolve } from "path";
+import { delimiter, join, resolve } from "path";
 
 const REPO = "https://github.com/darkzmaj/Terono";
 const API = "https://api.github.com/repos/darkzmaj/Terono/releases/latest";
@@ -43,11 +43,21 @@ function log(line: string) {
     if (state.log.length > 400) state.log.splice(0, state.log.length - 400);
 }
 
+// Terono Setup puts its own Git / Node.js in <Terono folder>	ools on PCs without them (or with a too old Node):
+// they come first, like in Setup
+let { env } = process;
+function useTools(root: string) {
+    const tools = join(root, "..", "tools");
+    const dirs = [join(tools, "git", "cmd"), join(tools, "node")].filter(d => existsSync(d));
+    const key = Object.keys(process.env).find(k => k.toLowerCase() === "path") ?? "PATH";
+    env = dirs.length ? { ...process.env, [key]: [...dirs, process.env[key] ?? ""].join(delimiter) } : process.env;
+}
+
 function run(file: string, args: string[], cwd: string): Promise<{ code: number; out: string; }> {
     return new Promise(res => {
         log(`$ ${file} ${args.join(" ")}`);
         let out = "";
-        const child = spawn(file, args, { cwd, windowsHide: true });
+        const child = spawn(file, args, { cwd, env, windowsHide: true });
         child.stdout.on("data", d => { out += d; log(String(d)); });
         child.stderr.on("data", d => { log(String(d)); });
         child.on("error", e => { log(e.message); res({ code: -1, out }); });
@@ -63,7 +73,7 @@ const npx = (cwd: string, args: string) => process.platform === "win32"
     : run("npx", ["-y", ...args.split(" ")], cwd);
 
 function quiet(cwd: string, ...args: string[]): Promise<string | null> {
-    return new Promise(res => execFile("git", args, { cwd, windowsHide: true }, (err, stdout) => res(err ? null : stdout.trim())));
+    return new Promise(res => execFile("git", args, { cwd, env, windowsHide: true }, (err, stdout) => res(err ? null : stdout.trim())));
 }
 
 const same = (a: string, b: string) => resolve(a).toLowerCase() === resolve(b).toLowerCase();
@@ -74,6 +84,7 @@ const fileHash = (p: string) => existsSync(p) ? createHash("sha256").update(read
 // Installs made by Terono Setup / the install scripts are shallow clones in their own folder. Anything else
 // (a developer's full clone, local changes) is left alone: resetting it would throw work away.
 export async function canUpdate(root: string): Promise<{ ok: boolean; reason?: string; }> {
+    useTools(root);
     const plugin = join(root, "src", "userplugins", "terono");
     if (!existsSync(join(plugin, ".git"))) return { ok: false, reason: "This Terono wasn't installed with Terono Setup. Update it by running Terono Setup." };
 

@@ -33,7 +33,7 @@ Everything from installing to building your own look, step by step.
 
 1. Download **[Terono-Setup.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Setup.exe)**.
 2. Double-click it. The file isn't code-signed yet, so Windows may say *"Windows protected your PC"*: click **More info → Run anyway**.
-3. Wait for the green *Terono is installed* line. The first run takes a few minutes because it downloads Git and Node.js if you don't have them.
+3. Wait for the green *Terono is installed* line. The first run takes a few minutes. You don't need to install anything first: if your PC has no Git or Node.js (or an old Node.js), Setup downloads its own copy into the Terono folder, without admin rights.
 4. Discord closes and opens again with Terono on.
 
 To check the file: right-click it → **Properties → Details** shows *Terono Setup* by *darkzmaj*. If something goes wrong, the steps it took are in `%TEMP%\Terono-Setup.log`.
@@ -282,7 +282,7 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (System). It s
 ## 8. Updating
 
 - **Discord app, inside Discord:** open the Terono settings. **System** shows your version in the Updates box; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. By default Terono also updates itself when Discord starts and every few hours, and shows a notification with a restart button when it's ready. Turn that off with **Update automatically** (System).
-- **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
+- You never need to run Terono Setup again to update. Only if Terono says it can't update itself (a damaged folder), run **Terono-Setup.exe** once to repair it (macOS / Linux: the install command); it keeps your settings.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/darkzmaj/Terono/releases/latest).
   2. Replace the files in your folder.

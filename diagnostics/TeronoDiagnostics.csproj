@@ -21,9 +21,9 @@
     <AssemblyTitle>Terono Diagnostics</AssemblyTitle>
     <Description>Checks and repairs Discord and Terono, and writes a report for darkzmaj.</Description>
     <Copyright>Copyright © 2026 darkzmaj</Copyright>
-    <Version>1.1.5</Version>
-    <FileVersion>1.1.5.0</FileVersion>
-    <InformationalVersion>1.1.5</InformationalVersion>
+    <Version>1.1.6</Version>
+    <FileVersion>1.1.6.0</FileVersion>
+    <InformationalVersion>1.1.6</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

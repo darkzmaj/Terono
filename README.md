@@ -32,7 +32,7 @@ New to this? The **[step-by-step tutorial](docs/TUTORIAL.md)** walks through ins
 <details>
 <summary>What the installer does</summary>
 
-It installs Git and Node.js if they're missing (Windows via winget, macOS via Homebrew), builds Vencord with Terono in a `Terono` folder in your home folder, adds it to Discord and turns Terono on. Your Vencord settings, themes and plugins stay. Vencord only runs extra plugins from a copy built on your own PC; the installer does that for you. The Windows installer is open source ([installer/](installer/)) and logs to `%TEMP%\Terono-Setup.log`.
+It brings Git and Node.js if they're missing (Windows: its own copy in the Terono folder, no admin rights needed; macOS via Homebrew), builds Vencord with Terono in a `Terono` folder in your home folder, adds it to Discord and turns Terono on. Your Vencord settings, themes and plugins stay. Vencord only runs extra plugins from a copy built on your own PC; the installer does that for you. The Windows installer is open source ([installer/](installer/)) and logs to `%TEMP%\Terono-Setup.log`.
 </details>
 
 ## Updating
