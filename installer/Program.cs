@@ -18,7 +18,7 @@ namespace TeronoSetup;
 internal static class Program
 {
     private const string VencordRepo = "https://github.com/Vendicated/Vencord";
-    private const string TeronoRepo = "https://github.com/Terona-Studios/Terono";
+    private const string TeronoRepo = "https://github.com/darkzmaj/Terono";
 
     private static StreamWriter _log;
 

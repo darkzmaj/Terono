@@ -10,7 +10,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 
-const THEME_LINK = "https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css";
+const THEME_LINK = "https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/theme/Terono.theme.css";
 
 function settingsDir() {
     if (process.env.TERONO_SETTINGS_DIR) return process.env.TERONO_SETTINGS_DIR;
@@ -34,7 +34,7 @@ settings.plugins.Terono = { ...settings.plugins.Terono, enabled: true };
 
 settings.themeLinks ??= [];
 // any Terono link counts (the plugin pins it to its own release version when it starts)
-const TERONO_LINK = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
+const TERONO_LINK = /^https:\/\/cdn\.jsdelivr\.net\/gh\/(?:Terona-Studios|darkzmaj)\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
 if (!settings.themeLinks.some(l => TERONO_LINK.test(l))) settings.themeLinks.push(THEME_LINK);
 
 // the theme is included now; an old local copy would load it twice

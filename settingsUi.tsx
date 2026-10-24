@@ -81,7 +81,7 @@ const TABS: Tab[] = [
     { id: "badges", section: "You", label: "Badges", icon: "M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.3 7.2 16.9l.9-5.4-3.9-3.8 5.4-.8L12 2Z" },
     {
         id: "people", section: "You", label: "People & avatars", icon: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 19c0-2.8 3.1-5 7-5s7 2.2 7 5v1H2v-1Zm16 1v-1c0-1.5-.6-2.8-1.7-3.9 2.8.3 4.7 1.9 4.7 3.9v1h-3Z",
-        groups: [{ keys: ["people"] }, { title: "Profile pictures", keys: ["avatarShape"] }],
+        groups: [{ keys: ["people"] }, { title: "Names & profile pictures", keys: ["namesEverywhere", "avatarShape"] }],
     },
     {
         id: "calls", section: "Features", label: "Calls & overlay", icon: "M15 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2l5 3V5l-5 3Z",
@@ -273,7 +273,7 @@ function Option({ id }: { id: string; }) {
 /* ================= presets ================= */
 
 // screenshots of each preset, from the release this plugin is (jsDelivr is on Vencord's default allow-list)
-const thumb = (id: string) => `https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@v${VERSION}/assets/presets/${id}.jpg`;
+const thumb = (id: string) => `https://cdn.jsdelivr.net/gh/darkzmaj/Terono@v${VERSION}/assets/presets/${id}.jpg`;
 
 function PresetGallery() {
     const basedOn = (settings.store as Record<string, unknown>).presetId as string | undefined;

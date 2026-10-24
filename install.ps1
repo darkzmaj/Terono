@@ -1,5 +1,5 @@
 # Terono installer for Windows
-#   irm https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/darkzmaj/Terono/main/install.ps1 | iex
 # Builds Vencord with the Terono plugin, installs it into Discord and adds the Terono theme.
 # Run it again any time to update.
 
@@ -47,7 +47,7 @@ Sync "https://github.com/Vendicated/Vencord" $Vencord
 Check "Downloading Vencord"
 
 Step "Getting Terono"
-Sync "https://github.com/Terona-Studios/Terono" $Plugin
+Sync "https://github.com/darkzmaj/Terono" $Plugin
 Check "Downloading Terono"
 
 Push-Location $Vencord

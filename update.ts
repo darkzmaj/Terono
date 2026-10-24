@@ -13,8 +13,8 @@ import { createHash } from "crypto";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
-const REPO = "https://github.com/Terona-Studios/Terono";
-const API = "https://api.github.com/repos/Terona-Studios/Terono/releases/latest";
+const REPO = "https://github.com/darkzmaj/Terono";
+const API = "https://api.github.com/repos/darkzmaj/Terono/releases/latest";
 
 export interface ReleaseInfo {
     version?: string;

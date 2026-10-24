@@ -1,9 +1,9 @@
 /**
  * @name Terono
  * @author darkzmaj
- * @source https://github.com/Terona-Studios/Terono
- * @website https://github.com/Terona-Studios/Terono
- * @version 1.1.2
+ * @source https://github.com/darkzmaj/Terono
+ * @website https://github.com/darkzmaj/Terono
+ * @version 1.1.3
  * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -1826,8 +1826,8 @@ html:is([data-dz-guilds="top"], [data-dz-guilds="bottom"], [data-dz-guilds="righ
     --dz-bg-base: #000000;
     --dz-bg-1: #429cff;
     --dz-bg-2: #0b2a55;
-    --dz-home-logo: url("https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/assets/terono.png");
-    --dz-quick-icon: url("https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/assets/terono.png");
+    --dz-home-logo: url("https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/assets/terono.png");
+    --dz-quick-icon: url("https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/assets/terono.png");
     --dz-logo-size: 72%;
     --dz-h-name: 1;
     --dz-h-buttons: 1;
@@ -2738,7 +2738,7 @@ html:not([data-dz-plugin]) .container_a2f514 .content_a2f514::before {
     display: block;
     padding-top: 168px;
     margin-bottom: 28px;
-    background: url("https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/assets/terono.png") top center / 144px 144px no-repeat;
+    background: url("https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/assets/terono.png") top center / 144px 144px no-repeat;
     color: var(--dz-text);
     font: 800 28px/1.2 var(--font, "Figtree"), sans-serif;
     letter-spacing: 0.02em;

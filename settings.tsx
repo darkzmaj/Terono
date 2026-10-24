@@ -559,6 +559,12 @@ export const settings = definePluginSettings({
         default: "{}",
         hidden: true,
     },
+    namesEverywhere: {
+        type: OptionType.BOOLEAN,
+        description: "Show name fonts, colors and effects everywhere, all the time: Discord only shows them in DMs, and the color and effect only while you point at the name. (Servers: after a restart.)",
+        default: true,
+        onChange: () => applyAttrs(),
+    },
     avatarShape: {
         type: OptionType.SELECT,
         description: "Shape of everyone's profile pictures (only you see this).",
@@ -1127,7 +1133,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    taskbarIcon: "Terono icon on the taskbar", avatarShape: "Profile pictures", searchTools: "Search tools", blockedButton: "Blocked button on the friends page", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
+    taskbarIcon: "Terono icon on the taskbar", avatarShape: "Profile pictures", namesEverywhere: "Name styles everywhere", searchTools: "Search tools", blockedButton: "Blocked button on the friends page", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -1402,6 +1408,7 @@ export function applyAttrs() {
     d.dzGuilds = s.serverList;
     d.dzChannels = s.channelsSide;
     d.dzMembers = s.membersSide;
+    flag("dzNames", s.namesEverywhere);
     if (s.avatarShape && s.avatarShape !== "circle") d.dzAvatars = s.avatarShape;
     else delete d.dzAvatars;
     if (s.panels === "discord") d.dzPanels = "discord";

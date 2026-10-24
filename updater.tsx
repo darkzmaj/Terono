@@ -22,8 +22,8 @@ import { VERSION } from "./version";
 // only in the Discord app (the browser extension has no main process)
 const Native = VencordNative.pluginHelpers.Terono as PluginNative<typeof import("./native")> | undefined;
 
-const API = "https://api.github.com/repos/Terona-Studios/Terono/releases/latest";
-const RELEASES = "https://github.com/Terona-Studios/Terono/releases/latest";
+const API = "https://api.github.com/repos/darkzmaj/Terono/releases/latest";
+const RELEASES = "https://github.com/darkzmaj/Terono/releases/latest";
 const STEPS = ["Downloading Terono", "Updating Vencord", "Installing packages", "Building"];
 
 interface UpdateInfo {

@@ -179,6 +179,44 @@ export function bannerHook(displayProfile: any) {
     return b ? `${BADGE_API}/banner/${b}` : undefined;
 }
 
+/* ---------- name styles always on ----------
+   Discord draws a name's color and effect (gradient, neon, glow, …) only while the name has its "showEffect" class,
+   which chat and the member list only add on hover, so styled names looked plain (or, mid-effect, invisible) until
+   pointed at. Discord's own rules are copied without that condition, so every styled name shows its style all the
+   time, exactly as Discord draws it. The rules are read from Discord's stylesheets, so renamed classes still work. */
+
+let nameStyleSheet: HTMLStyleElement | null = null;
+let nameStyleTry = 0;
+
+// The rules come from the source text of Discord's CSS file (fetched from Discord, cached by the browser): the
+// browser's own copy of a rule can't give back a gradient written as a "background" shorthand with variables, and
+// a copy without it would leave gradient names invisible.
+async function alwaysShowNameStyles() {
+    clearTimeout(nameStyleTry);
+    const files = new Set<string>();
+    for (const sheet of document.styleSheets) {
+        let list: CSSRuleList;
+        try { list = sheet.cssRules; } catch { continue; }
+        if (sheet.href && [...list].some(r => r instanceof CSSStyleRule && /\.showEffect_[\w-]+\.container_/.test(r.selectorText))) files.add(sheet.href);
+    }
+    // Discord's CSS for this may load a bit later
+    if (!files.size) { nameStyleTry = window.setTimeout(alwaysShowNameStyles, 3000); return; }
+    const rules: string[] = [];
+    for (const href of files) {
+        let css: string;
+        try { css = await (await fetch(href)).text(); } catch { continue; }
+        for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+            const sel = m[1].trim();
+            const hit = sel.match(/\.(showEffect_[\w-]+)\.(container_[\w-]+)/);
+            if (!hit) continue;
+            rules.push(`${sel.split(",").map(p => `html[data-dz-names] ${p.trim().replaceAll(`.${hit[1]}.${hit[2]}`, `.${hit[2]}`)}`).join(",")}{${m[2]}}`);
+        }
+    }
+    if (!rules.length) return;
+    nameStyleSheet ??= document.head.appendChild(Object.assign(document.createElement("style"), { id: "terono-name-styles" }));
+    nameStyleSheet.textContent = rules.join("\n");
+}
+
 /* ---------- start / stop ---------- */
 
 let offList: (() => void) | null = null;
@@ -187,11 +225,15 @@ export function startCosmetics() {
     UserStore.addChangeListener(schedule);
     offList = onListChange(() => { profileCache = new WeakMap(); schedule(); });
     schedule();
+    void alwaysShowNameStyles();
 }
 
 export function stopCosmetics() {
     UserStore.removeChangeListener(schedule);
     offList?.();
+    clearTimeout(nameStyleTry);
+    nameStyleSheet?.remove();
+    nameStyleSheet = null;
     mine = null;
     const users = UserStore.getUsers() as any;
     for (const [id, real] of originals) if (users[id] && appliedKey.has(users[id])) users[id] = real;

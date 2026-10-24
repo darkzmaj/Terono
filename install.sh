@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Terono installer for macOS / Linux
-#   curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/darkzmaj/Terono/main/install.sh | bash
 # Builds Vencord with the Terono plugin, installs it into Discord and adds the Terono theme.
 # Run it again any time to update.
 set -euo pipefail
@@ -43,7 +43,7 @@ step "Getting Vencord"
 sync https://github.com/Vendicated/Vencord "$VENCORD"
 
 step "Getting Terono"
-sync https://github.com/Terona-Studios/Terono "$PLUGIN"
+sync https://github.com/darkzmaj/Terono "$PLUGIN"
 
 cd "$VENCORD"
 PNPM="$(node -p 'require("./package.json").packageManager')"

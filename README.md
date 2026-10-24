@@ -14,15 +14,15 @@
 
 | You use Discord… | Do this |
 | --- | --- |
-| **on Windows** | Download **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** and double-click it. If Windows says *"Windows protected your PC"*: **More info → Run anyway** (the file isn't code-signed yet). Discord restarts with Terono. |
+| **on Windows** | Download **[Terono-Setup.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Setup.exe)** and double-click it. If Windows says *"Windows protected your PC"*: **More info → Run anyway** (the file isn't code-signed yet). Discord restarts with Terono. |
 | **on macOS or Linux** | Open a terminal and run the command below. Discord restarts with Terono. |
-| **in a browser** (Chrome, Brave, Edge, Opera, Firefox) | Download **[Terono-Chromium.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Chromium.zip)** (Firefox: **[Terono-Firefox.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Firefox.zip)**), unzip it, open your extensions page, turn on **Developer mode**, click **Load unpacked** and pick the folder. Switch off the normal Vencord extension if you have it. |
+| **in a browser** (Chrome, Brave, Edge, Opera, Firefox) | Download **[Terono-Chromium.zip](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Chromium.zip)** (Firefox: **[Terono-Firefox.zip](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Firefox.zip)**), unzip it, open your extensions page, turn on **Developer mode**, click **Load unpacked** and pick the folder. Switch off the normal Vencord extension if you have it. |
 | **with just a theme** (Vencord, BetterDiscord) | See [Theme only](#theme-only) below. |
 
 macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/darkzmaj/Terono/main/install.sh | bash
 ```
 
 Then open the Terono settings: **Ctrl + 1**, the Terono icon next to the ← → arrows, or **Settings → Vencord → Plugins → Terono**.
@@ -104,13 +104,13 @@ Just the look, without the plugin's settings and tools:
 
 - **Vencord:** Settings → Vencord → Themes → **Online Themes**, paste this link and save:
   ```
-  https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
+  https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/theme/Terono.theme.css
   ```
-- **BetterDiscord:** put [Terono.theme.css](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono.theme.css) in your BetterDiscord `themes` folder.
+- **BetterDiscord:** put [Terono.theme.css](https://github.com/darkzmaj/Terono/releases/latest/download/Terono.theme.css) in your BetterDiscord `themes` folder.
 
 ## Discord won't open?
 
-Download **[Terono-Diagnostics.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Diagnostics.exe)** and double-click it. It tests that Discord really opens, repairs what is broken (damaged settings, missing Terono files, caches, a broken install) **without removing your account, messages or Terono settings**, and writes **Terono-Diagnostics-Report.txt** on your Desktop. If it couldn't fix everything, send that file to darkzmaj ([darkzmaj.eu](https://darkzmaj.eu)). Terono Setup also checks that Discord opens after installing and puts plain Discord back if it doesn't.
+Download **[Terono-Diagnostics.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Diagnostics.exe)** and double-click it. It tests that Discord really opens, repairs what is broken (damaged settings, missing Terono files, caches, a broken install) **without removing your account, messages or Terono settings**, and writes **Terono-Diagnostics-Report.txt** on your Desktop. If it couldn't fix everything, send that file to darkzmaj ([darkzmaj.eu](https://darkzmaj.eu)). Terono Setup also checks that Discord opens after installing and puts plain Discord back if it doesn't.
 
 ## Found a bug?
 
@@ -134,7 +134,7 @@ Your uploaded logos, fonts, backgrounds and icon pictures stay on your PC.
 ```bash
 git clone https://github.com/Vendicated/Vencord
 cd Vencord
-git clone https://github.com/Terona-Studios/Terono src/userplugins/terono
+git clone https://github.com/darkzmaj/Terono src/userplugins/terono
 npx pnpm install --frozen-lockfile
 npx pnpm build
 npx pnpm inject

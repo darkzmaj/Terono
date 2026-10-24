@@ -284,8 +284,8 @@ function onSettingsChange(value: unknown, path: string) {
 // to 12 hours, so theme fixes reached people late and the theme could be newer or older than the plugin.
 // The tag is v + VERSION (version.ts), bumped together with each release.
 const THEME_VERSION = `v${VERSION}`;
-const THEME_LINK = `https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@${THEME_VERSION}/theme/Terono.theme.css`;
-const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
+const THEME_LINK = `https://cdn.jsdelivr.net/gh/darkzmaj/Terono@${THEME_VERSION}/theme/Terono.theme.css`;
+const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/(?:Terona-Studios|darkzmaj)\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
@@ -433,6 +433,14 @@ export default definePlugin({
             },
         },
         {
+            // name styles (fonts, colors, effects) in servers too: Discord only draws the color and effect in DMs
+            find: '"data-username-has-gradient"',
+            replacement: {
+                match: /(\i)=(\i)\?\.isPrivate\(\)&&null!=(\i)(?=;\(0,\i\.\i\)\(\{shouldSubscribe)/,
+                replace: "$1=null!=$3&&($self.namesEverywhere()||$2?.isPrivate())",
+            },
+        },
+        {
             // profile looks: the banner (same place as Vencord's USRBG)
             find: ':"SHOULD_LOAD");',
             replacement: {
@@ -451,6 +459,7 @@ export default definePlugin({
     showActivities: () => settings.store.showActivities,
     profileHook,
     bannerHook,
+    namesEverywhere: () => settings.store.namesEverywhere,
     // for troubleshooting from the console: Vencord.Plugins.plugins.Terono.startupTimes()
     startupTimes,
     applyTimes,

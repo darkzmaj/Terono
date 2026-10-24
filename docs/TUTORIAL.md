@@ -31,7 +31,7 @@ Everything from installing to building your own look, step by step.
 
 ### Windows
 
-1. Download **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)**.
+1. Download **[Terono-Setup.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Setup.exe)**.
 2. Double-click it. The file isn't code-signed yet, so Windows may say *"Windows protected your PC"*: click **More info → Run anyway**.
 3. Wait for the green *Terono is installed* line. The first run takes a few minutes because it downloads Git and Node.js if you don't have them.
 4. Discord closes and opens again with Terono on.
@@ -43,7 +43,7 @@ To check the file: right-click it → **Properties → Details** shows *Terono S
 Open **Terminal** and paste:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/darkzmaj/Terono/main/install.sh | bash
 ```
 
 On macOS, [Homebrew](https://brew.sh) installs Git and Node.js if they're missing. On Linux, install `git` and `nodejs` with your package manager first (for example `sudo apt install git nodejs npm`).
@@ -58,7 +58,7 @@ Works on `discord.com/app`. Everything the app version has is included, except t
 
 ### Chrome, Brave, Edge, Opera, Vivaldi
 
-1. Download **[Terono-Chromium.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Chromium.zip)** and unzip it (right-click → **Extract All**). Put the folder somewhere you'll keep it, for example in Documents. The browser loads it from there.
+1. Download **[Terono-Chromium.zip](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Chromium.zip)** and unzip it (right-click → **Extract All**). Put the folder somewhere you'll keep it, for example in Documents. The browser loads it from there.
 2. Open the extensions page:
    - Chrome: `chrome://extensions`
    - Brave: `brave://extensions`
@@ -75,7 +75,7 @@ Terono turns itself on and adds its theme on the first start. There's nothing el
 
 Firefox only keeps extensions signed by Mozilla, so this one loads until you close Firefox:
 
-1. Download **[Terono-Firefox.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Firefox.zip)** (don't unzip it).
+1. Download **[Terono-Firefox.zip](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Firefox.zip)** (don't unzip it).
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Click **Load Temporary Add-on…** and pick the zip.
 4. Refresh [discord.com/app](https://discord.com/app).
@@ -90,12 +90,12 @@ If you already use Vencord (app or browser) and only want the look:
 2. Paste and save:
 
 ```
-https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
+https://cdn.jsdelivr.net/gh/darkzmaj/Terono@main/theme/Terono.theme.css
 ```
 
 The theme alone uses the default Terono look: blue, dark cards, top server list. All the options below need the plugin.
 
-**BetterDiscord:** put [Terono.theme.css](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono.theme.css) in your BetterDiscord `themes` folder.
+**BetterDiscord:** put [Terono.theme.css](https://github.com/darkzmaj/Terono/releases/latest/download/Terono.theme.css) in your BetterDiscord `themes` folder.
 
 ---
 
@@ -247,6 +247,7 @@ Your own name and avatar show the changes right away; **Save** shows them to eve
 
 - **People:** right-click anyone → **Name style…** to give their name a font and color. Only you see it. The list shows everyone you've styled.
 - **Profile pictures:** Circle (Discord), Rounded square or Square, for everyone (only you see it).
+- **Name styles everywhere** (on by default): Discord shows name fonts, colors and effects only in DMs, and the color and effect only while you point at a name. With this, they show everywhere, all the time.
 
 ### Your own icons
 
@@ -279,7 +280,7 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (System). It s
 - **Discord app, inside Discord:** open the Terono settings. **System** shows your version in the Updates box; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. By default Terono also updates itself when Discord starts and every few hours, and shows a notification with a restart button when it's ready. Turn that off with **Update automatically** (System).
 - **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
-  1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
+  1. Download the newest zip from [Releases](https://github.com/darkzmaj/Terono/releases/latest).
   2. Replace the files in your folder.
   3. Click **↻ reload** on the extension card and refresh Discord.
 - **Theme only:** updates by itself.
@@ -293,10 +294,10 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (System). It s
 **Still broken?** Click **Send report**: you get a short code (like `4FL5YEGT`, also copied). Give it to darkzmaj at **[darkzmaj.eu](https://darkzmaj.eu)**, who opens your report with it. It lists your Terono, Vencord and Discord versions, the checks and your Terono settings (no messages, names or account details). **Copy report** gives you the same text to paste yourself.
 
 **It works for my friend but not for me (or the other way round).**
-Check the version at the top of the Terono settings: you might be on an older Terono. Click **Check for updates**. If there's no update button, or it says the install can't update itself, download and run **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** once. It updates everything and keeps your settings. Browser versions don't update themselves: download the newest zip.
+Check the version at the top of the Terono settings: you might be on an older Terono. Click **Check for updates**. If there's no update button, or it says the install can't update itself, download and run **[Terono-Setup.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Setup.exe)** once. It updates everything and keeps your settings. Browser versions don't update themselves: download the newest zip.
 
 **My antivirus flagged `Install-Terono.cmd`.**
-That was the old installer. It downloaded and ran a PowerShell script in one go, which Windows Defender treats as suspicious (`Trojan:Win32/Commando.A!ml`), even though the script itself was harmless. Delete it and use **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** instead. It updates the same install, so your settings are kept.
+That was the old installer. It downloaded and ran a PowerShell script in one go, which Windows Defender treats as suspicious (`Trojan:Win32/Commando.A!ml`), even though the script itself was harmless. Delete it and use **[Terono-Setup.exe](https://github.com/darkzmaj/Terono/releases/latest/download/Terono-Setup.exe)** instead. It updates the same install, so your settings are kept.
 
 **Terono disappeared after a Discord update (app).**
 Discord's big updates sometimes remove Vencord. Run the installer again; your settings are kept.
@@ -313,7 +314,7 @@ You have both the normal Vencord extension and the Terono one turned on. Switch 
 Vencord only loads images from sites it allows, for example Discord's CDN, Imgur, GitHub and Tenor. Upload the file instead (**File** as the source), or use a link from one of those sites.
 
 **Something looks off after a Discord update.**
-Discord sometimes renames its internal parts. Update Terono (step 8); if it's still off, [open an issue](https://github.com/Terona-Studios/Terono/issues) with a screenshot.
+Discord sometimes renames its internal parts. Update Terono (step 8); if it's still off, [open an issue](https://github.com/darkzmaj/Terono/issues) with a screenshot.
 
 **Hiding header buttons or menu items by name doesn't work.**
 Those match Discord's English names. Set Discord to English, or type the names exactly as your language shows them.
