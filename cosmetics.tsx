@@ -7,7 +7,7 @@
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Button } from "@components/Button";
 import { findLazy, findStoreLazy } from "@webpack";
-import { Menu, Modal, openModal, RestAPI, useEffect, useMemo, UserStore, useState } from "@webpack/common";
+import { Menu, Modal, openModal, RestAPI, useEffect, useMemo, useRef, UserStore, useState } from "@webpack/common";
 
 import { BADGE_API, badgesReady } from "./badgeConfig";
 import { api, authorize, getAuth, looks, onListChange, refreshBadges } from "./badges";
@@ -368,7 +368,107 @@ async function toBase64(blob: Blob) {
 }
 
 // a banner: anything up to 20 MB in, a 900 KB max WEBP / GIF out (GIFs stay animated if they're small enough)
-async function bannerFile(file: File): Promise<{ type: string; image: string; }> {
+/* ---------- banner cropping ----------
+   Like Discord's own banner upload: the picture is shown in the banner's shape (5:2), drag it to move it and use
+   the slider (or the mouse wheel) to zoom; the part inside the frame becomes the banner. A GIF can instead be kept
+   whole so it stays animated (a cropped GIF would be a still picture). */
+
+const BANNER_W = 1200, BANNER_H = 480;
+interface CropState { img: HTMLImageElement | null; zoom: number; x: number; y: number; fw: number; fh: number; }
+
+function cropBanner(file: File): Promise<Blob | File | null> {
+    return new Promise(resolve => {
+        const url = URL.createObjectURL(file);
+        const state: CropState = { img: null, zoom: 1, x: 0, y: 0, fw: 1, fh: 1 };
+        let done = false;
+        const finish = (v: Blob | File | null) => { if (!done) { done = true; URL.revokeObjectURL(url); resolve(v); } };
+        const crop = async () => {
+            const { img, zoom, x, y, fw, fh } = state;
+            if (!img) return null;
+            const scale = coverScale(img, fw, fh) * zoom;
+            const c = new OffscreenCanvas(BANNER_W, BANNER_H);
+            c.getContext("2d")!.drawImage(img, -x / scale, -y / scale, fw / scale, fh / scale, 0, 0, BANNER_W, BANNER_H);
+            return c.convertToBlob({ type: "image/png" });
+        };
+        openModal(props => (
+            <Modal {...props} title="Crop your banner" size="md"
+                actions={[
+                    ...(file.type === "image/gif" ? [{ text: "Keep the GIF moving (no crop)", variant: "secondary" as const, onClick: () => { finish(file); props.onClose(); } }] : []),
+                    { text: "Cancel", variant: "secondary" as const, onClick: () => { finish(null); props.onClose(); } },
+                    { text: "Apply", variant: "primary" as const, onClick: async () => { finish(await crop()); props.onClose(); } },
+                ]}>
+                <BannerCropper src={url} state={state} />
+            </Modal>
+        ), { onCloseCallback: () => finish(null) });
+    });
+}
+
+const coverScale = (img: HTMLImageElement, fw: number, fh: number) => Math.max(fw / img.naturalWidth, fh / img.naturalHeight);
+
+function BannerCropper({ src, state }: { src: string; state: CropState; }) {
+    const frame = useRef<HTMLDivElement>(null);
+    const [, redraw] = useState(0);
+    const drag = useRef<{ px: number; py: number; x: number; y: number; } | null>(null);
+
+    // keeps the picture covering the whole frame
+    const clamp = () => {
+        const { img, zoom, fw, fh } = state;
+        if (!img) return;
+        const sc = coverScale(img, fw, fh) * zoom;
+        state.x = Math.min(0, Math.max(fw - img.naturalWidth * sc, state.x));
+        state.y = Math.min(0, Math.max(fh - img.naturalHeight * sc, state.y));
+    };
+    // zoom around a point of the frame (its center for the slider), so that point stays put
+    const setZoom = (z: number, cx = state.fw / 2, cy = state.fh / 2) => {
+        const { img, fw, fh } = state;
+        if (!img) return;
+        const before = coverScale(img, fw, fh) * state.zoom;
+        state.zoom = Math.min(4, Math.max(1, z));
+        const after = coverScale(img, fw, fh) * state.zoom;
+        state.x = cx - (cx - state.x) * after / before;
+        state.y = cy - (cy - state.y) * after / before;
+        clamp();
+        redraw(n => n + 1);
+    };
+    const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const r = frame.current!.getBoundingClientRect();
+        state.img = e.currentTarget;
+        state.fw = r.width;
+        state.fh = r.height;
+        // start centered
+        const sc = coverScale(state.img, state.fw, state.fh);
+        state.x = (state.fw - state.img.naturalWidth * sc) / 2;
+        state.y = (state.fh - state.img.naturalHeight * sc) / 2;
+        redraw(n => n + 1);
+    };
+
+    const sc = state.img ? coverScale(state.img, state.fw, state.fh) * state.zoom : 0;
+    return (
+        <div className="dz-crop">
+            <div ref={frame} className="dz-crop-frame"
+                onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { px: e.clientX, py: e.clientY, x: state.x, y: state.y }; }}
+                onPointerMove={e => {
+                    if (!drag.current) return;
+                    state.x = drag.current.x + e.clientX - drag.current.px;
+                    state.y = drag.current.y + e.clientY - drag.current.py;
+                    clamp();
+                    redraw(n => n + 1);
+                }}
+                onPointerUp={() => { drag.current = null; }}
+                onWheel={e => { const r = e.currentTarget.getBoundingClientRect(); setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX - r.left, e.clientY - r.top); }}>
+                <img src={src} alt="" draggable={false} onLoad={onLoad}
+                    style={state.img ? { width: state.img.naturalWidth * sc, height: state.img.naturalHeight * sc, transform: `translate(${state.x}px, ${state.y}px)` } : { opacity: 0 }} />
+            </div>
+            <label className="dz-crop-zoom">
+                <span>Zoom</span>
+                <input type="range" min={1} max={4} step={0.01} value={state.zoom} onChange={e => setZoom(Number(e.currentTarget.value))} />
+            </label>
+            <p className="dz-look-note">Drag the picture to move it; the part inside the frame becomes your banner.</p>
+        </div>
+    );
+}
+
+async function bannerFile(file: Blob): Promise<{ type: string; image: string; }> {
     if (file.type === "image/gif" && file.size <= 900 * 1024) return { type: "image/gif", image: await toBase64(file) };
     const bmp = await createImageBitmap(file);
     const k = Math.min(1, 1200 / bmp.width);
@@ -420,9 +520,11 @@ export function MyLookPanel() {
     async function uploadBanner(file?: File) {
         if (!file) return;
         if (!file.type.startsWith("image/") || file.size > 20 * 1024 * 1024) return toast("Pick an image up to 20 MB.", "failure");
+        const cropped = await cropBanner(file);
+        if (!cropped) return;
         setBusy(true);
         try {
-            const r = await api("/me/banner", "PUT", await bannerFile(file));
+            const r = await api("/me/banner", "PUT", await bannerFile(cropped));
             set({ ...look, b: r.hash });
             toast("Banner uploaded. Save to show it.", "success");
         } catch (e) {
@@ -598,7 +700,14 @@ select.dz-input option { background: var(--dz-card, #070708); }
 .dz-look-thumb { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
 .dz-look-thumb img { width: 100%; height: 100%; object-fit: contain; }
 .dz-look-thumb span { font-size: 22px; color: var(--text-muted, #aaa); }
-.dz-look-banner { height: 40px; width: 120px; object-fit: cover; border-radius: 8px; }
+.dz-look-banner { height: 40px; width: 100px; object-fit: cover; border-radius: 8px; }
+.dz-crop { display: flex; flex-direction: column; gap: 12px; padding-bottom: 12px; }
+.dz-crop-frame { position: relative; width: 100%; aspect-ratio: 5 / 2; overflow: hidden; border-radius: 12px; cursor: grab; touch-action: none;
+    background: #000; outline: 2px solid var(--dz-accent, #429cff); outline-offset: -2px; }
+.dz-crop-frame:active { cursor: grabbing; }
+.dz-crop-frame img { position: absolute; left: 0; top: 0; max-width: none; user-select: none; pointer-events: none; }
+.dz-crop-zoom { display: flex; align-items: center; gap: 12px; font: 600 13px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
+.dz-crop-zoom input { flex: 1; accent-color: var(--dz-accent, #429cff); }
 .dz-file-btn { position: relative; display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 8px; cursor: pointer; font: 600 13px var(--font-primary, "gg sans", sans-serif);
     color: #fff; background: var(--dz-accent, #429cff); }
 .dz-file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }

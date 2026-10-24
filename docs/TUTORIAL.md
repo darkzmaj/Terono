@@ -163,7 +163,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Background:** **Animated gradient** (default), **Static gradient**, **Solid color**, or **Image / GIF / Video**.
 - **Picture, GIF or video:** choose **URL** and paste a direct `https://` link, or **File** and upload one (up to 100 MB). **Darken** keeps text readable. GIFs and videos use the most power; see [Performance](#performance).
 - **Colors:** **Base color** (the whole background when Solid) and **Glow color 1 / 2** for the gradients.
-- **Bouncing logo:** a logo bouncing around behind the panels like an old DVD player, or **your own picture** instead. About half of its bounces go for a corner. Set its **Size** and **Speed**. It moves smoothly at 60 fps, stops while Discord is hidden or a stream plays, and in Performance or Ultimate performance mode also while Discord isn't in front.
+- **Bouncing logo:** a logo bouncing around behind the panels like an old DVD player, or **your own picture** instead. About half of its bounces go for a corner. Set its **Size** and **Speed**. It moves smoothly at 60 fps, keeps moving during calls and streams, stops while Discord is hidden or a stream is fullscreen, and in Performance or Ultimate performance mode also while Discord isn't in front.
 
 ### Layout
 
@@ -241,7 +241,7 @@ In **Your profile** (connect with Discord once, like for badges):
 
 - **Your name:** one of Discord's name fonts, an **effect** (Solid, Gradient, Neon, Toon, Pop, Glow, Prism, Gummy) and one or two **colors**.
 - **Avatar decoration**, **Nameplate**, **Profile effect**, **Profile frame:** pick any of them from Discord's whole shop (search by name or collection).
-- **Profile card:** two colors, and a **banner** picture or GIF.
+- **Profile card:** two colors (your card's gradient everywhere: profiles, popouts and your own account popout), and a **banner** picture or GIF. Pictures open in a crop window like Discord's: drag to move, zoom with the slider or mouse wheel. A GIF can be kept whole so it stays animated.
 
 Your own name and avatar show the changes right away; **Save** shows them to everyone with Terono, in chat, the member list, profiles and calls. People without Terono see your normal profile.
 

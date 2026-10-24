@@ -30,7 +30,7 @@ let lastFrame = 0;
 let x = 40, y = 40, vx = 1, vy = 1;
 let color = 0;
 let videoCheck = 0;
-let watchingVideo = false;
+let covered = false;
 
 function bounds() {
     const w = el!.offsetWidth || 1, h = el!.offsetHeight || 1;
@@ -67,7 +67,7 @@ function frame(now: number) {
     // a long gap (paused, a hiccup) continues from where it was instead of jumping
     const dt = Math.min(now - last, 50) / 1000;
     last = now;
-    if (watchingVideo) return;
+    if (covered) return;
     const { mx, my } = bounds();
     const step = opts!.speed * dt;
     x += vx * step;
@@ -112,9 +112,10 @@ export function startDvd(o: DvdOptions) {
         window.addEventListener("focus", sync);
         window.addEventListener("blur", sync);
         document.addEventListener("visibilitychange", sync);
-        // while a stream or camera plays, the GPU is the video's (checked now and then, not every frame)
+        // a fullscreen stream covers it anyway (checked now and then, not every frame); in calls it keeps moving:
+        // moving one small layer costs a stream nothing
         videoCheck = window.setInterval(() => {
-            watchingVideo = !!document.querySelector("[data-selenium-video-tile] video, .pictureInPictureWindow__6341f video");
+            covered = !!document.fullscreenElement;
             place();
         }, 1000);
     }

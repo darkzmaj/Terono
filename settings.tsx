@@ -675,7 +675,7 @@ export const settings = definePluginSettings({
     },
     dvd: {
         type: OptionType.BOOLEAN,
-        description: "A logo bouncing around behind the panels, like an old DVD player. About half of its bounces go for a corner. Smooth 60 fps; it stops while Discord is hidden, and in Performance or Ultimate performance mode also while Discord isn't in front.",
+        description: "A logo bouncing around behind the panels, like an old DVD player. About half of its bounces go for a corner. Smooth 60 fps, also during calls and streams; it stops while Discord is hidden, and in Performance or Ultimate performance mode also while Discord isn't in front.",
         default: false,
         onChange: () => applyDvd(),
     },

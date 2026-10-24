@@ -3,7 +3,7 @@
  * @author darkzmaj
  * @source https://github.com/darkzmaj/Terono
  * @website https://github.com/darkzmaj/Terono
- * @version 1.1.4
+ * @version 1.1.5
  * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -1992,7 +1992,7 @@ html:root :is(body, .theme-dark, .theme-light) {
 /* glass mode: popouts match the glass panels but stay readable (mostly opaque).
    Only small menus blur what's behind them: a blur behind a big window is redone on every frame of its
    open / close animation, which is what made them stutter. */
-html[data-dz-glass] :is(.messagesPopoutWrap__432f4, .menu_c1e9c4, .container__55c99, .autocomplete__6b0e0, .autocomplete__13533, .container__8a031, .outer_c0bea0.user-profile-popout) {
+html[data-dz-glass] :is(.messagesPopoutWrap__432f4, .menu_c1e9c4, .container__55c99, .autocomplete__6b0e0, .autocomplete__13533, .container__8a031, .outer_c0bea0.user-profile-popout:not(.custom-theme-background)) {
     background-color: color-mix(in srgb, var(--dz-card) max(var(--dz-float-alpha, 82%), 90%), transparent) !important;
     background-image: linear-gradient(var(--dz-card-angle),
         color-mix(in srgb, var(--dz-card) max(var(--dz-float-alpha, 82%), 90%), transparent),
@@ -2039,6 +2039,19 @@ html[data-dz-glass]:not([data-dz-lite]) :is(.menu_c1e9c4, .autocomplete__6b0e0, 
     --profile-body-border-color: var(--border) !important;
     --profile-avatar-border-color: var(--dz-card) !important;
     background: linear-gradient(var(--dz-card-angle), var(--dz-card), var(--dz-card-2)) !important;
+}
+
+/* ...and inside those, the sections (status bubble, activity, menu) are see-through over the gradient, like in Discord */
+.outer_c0bea0.custom-theme-background:is(.theme-dark, .theme-darker, .theme-midnight) {
+    --user-profile-overlay-background: rgb(0 0 0 / 28%) !important;
+    --user-profile-overlay-background-hover: rgb(255 255 255 / 8%) !important;
+    --custom-status-bubble-background-color: rgb(0 0 0 / 32%) !important;
+    --user-profile-note-background-focus: rgb(0 0 0 / 36%) !important;
+}
+.outer_c0bea0.custom-theme-background.theme-light {
+    --user-profile-overlay-background: rgb(255 255 255 / 30%) !important;
+    --user-profile-overlay-background-hover: rgb(255 255 255 / 45%) !important;
+    --custom-status-bubble-background-color: rgb(255 255 255 / 40%) !important;
 }
 
 /* connection logos: no circle, just the logo (the plugin picks dark-theme logos / domain favicons) */

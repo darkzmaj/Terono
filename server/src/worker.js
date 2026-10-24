@@ -276,31 +276,35 @@ async function putOfficial(req, env, user) {
 const SKU = /^\d{17,20}$/;
 const COLOR = v => Number.isInteger(v) && v >= 0 && v <= 0xffffff;
 
+// Returns the cleaned look, or { bad: "<part>" } naming what was wrong (shown to the user).
 function cleanLook(b) {
-    if (!b || typeof b !== "object" || Array.isArray(b)) return null;
+    if (!b || typeof b !== "object" || Array.isArray(b)) return { bad: "look" };
     const l = {};
-    if (b.f != null) { if (!Number.isInteger(b.f) || b.f < 1 || b.f > 64) return null; l.f = b.f; }
-    if (b.x != null) { if (!Number.isInteger(b.x) || b.x < 1 || b.x > 64) return null; l.x = b.x; }
-    if (b.c != null) { if (!Array.isArray(b.c) || b.c.length > 5 || !b.c.every(COLOR)) return null; if (b.c.length) l.c = b.c; }
+    if (b.f != null) { if (!Number.isInteger(b.f) || b.f < 1 || b.f > 64) return { bad: "name font" }; l.f = b.f; }
+    if (b.x != null) { if (!Number.isInteger(b.x) || b.x < 1 || b.x > 64) return { bad: "name effect" }; l.x = b.x; }
+    if (b.c != null) { if (!Array.isArray(b.c) || b.c.length > 5 || !b.c.every(COLOR)) return { bad: "name colors" }; if (b.c.length) l.c = b.c; }
     if (b.d != null) {
-        if (typeof b.d.a !== "string" || !/^(a_)?[0-9a-f]{32}$/.test(b.d.a) || !SKU.test(b.d.s)) return null;
+        if (typeof b.d.a !== "string" || !/^(a_)?[0-9a-f]{32}$/.test(b.d.a) || !SKU.test(b.d.s)) return { bad: "avatar decoration" };
         l.d = { a: b.d.a, s: b.d.s };
     }
     if (b.n != null) {
-        if (typeof b.n.a !== "string" || !/^nameplates\/[\w/-]{1,120}\/$/.test(b.n.a) || b.n.a.includes("//") || !SKU.test(b.n.s)) return null;
+        // Discord's own nameplate paths use the item's name, apostrophes and commas included ("nameplates/gardener's_friend/<id>/");
+        // it only ever goes into a cdn.discordapp.com path, so anything that could leave that path is refused
+        if (typeof b.n.a !== "string" || !/^nameplates\/[^\s"<>`\\?#%]{1,160}\/$/.test(b.n.a) || b.n.a.split("/").slice(0, -1).some(p => !p || p === "." || p === "..") || !SKU.test(b.n.s))
+            return { bad: "nameplate" };
         l.n = { a: b.n.a, s: b.n.s, p: typeof b.n.p === "string" && /^[a-z_]{1,24}$/.test(b.n.p) ? b.n.p : "none", t: String(b.n.t ?? "").slice(0, 160) };
     }
-    if (b.e != null) { if (!SKU.test(b.e)) return null; l.e = b.e; }
-    if (b.r != null) { if (!SKU.test(b.r)) return null; l.r = b.r; }
-    if (b.t != null) { if (!Array.isArray(b.t) || b.t.length !== 2 || !b.t.every(COLOR)) return null; l.t = b.t; }
-    if (b.b != null) { if (!/^[0-9a-f]{20}$/.test(b.b)) return null; l.b = b.b; }
+    if (b.e != null) { if (!SKU.test(b.e)) return { bad: "profile effect" }; l.e = b.e; }
+    if (b.r != null) { if (!SKU.test(b.r)) return { bad: "profile frame" }; l.r = b.r; }
+    if (b.t != null) { if (!Array.isArray(b.t) || b.t.length !== 2 || !b.t.every(COLOR)) return { bad: "profile colors" }; l.t = b.t; }
+    if (b.b != null) { if (!/^[0-9a-f]{20}$/.test(b.b)) return { bad: "banner" }; l.b = b.b; }
     return l;
 }
 
 async function putLook(req, env, user) {
     const body = await req.json().catch(() => null);
     const look = cleanLook(body?.look);
-    if (!look) return json({ error: "Bad look" }, 400);
+    if (look.bad) return json({ error: `The ${look.bad} couldn't be saved. Pick it again and save.` }, 400);
     if (!Object.keys(look).length) return delLook(env, user);
     await env.DB.prepare("INSERT INTO looks (user_id, json, updated) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET json = excluded.json, updated = excluded.updated")
         .bind(user, JSON.stringify(look), Date.now()).run();
