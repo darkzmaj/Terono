@@ -32,6 +32,9 @@ const OFFICIAL = new Set([
     "active_developer", "nitro", "booster_1", "booster_2", "booster_3", "booster_4", "booster_5", "booster_6", "booster_7",
     "booster_8", "booster_9", "legacy_username", "quest", "supports_commands", "automod",
     "tenure_1", "tenure_3", "tenure_6", "tenure_12", "tenure_24", "tenure_36", "tenure_60", "tenure_72", "gifting", "level67",
+    "age_seed", "age_sprout", "age_sapling", "age_bud", "age_blossom", "age_redwood", "age_sequoia", "age_bristlecone",
+    "age_stromatolite", "age_primordial", "gift_patron", "gift_luminary", "gift_icon", "gift_hero", "gift_legend",
+    "orbs", "last_meadow",
 ]);
 const EFFECTS = new Set(["none", "glow", "outline"]);
 const SNOWFLAKE = /^\d{17,20}$/;

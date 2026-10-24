@@ -77,7 +77,7 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 - **Terono Setup** checks that Discord opens after installing and puts plain Discord back if it doesn't; Discord also starts without Terono if Terono's files go missing. **Terono Diagnostics** repairs the rest ([see below](#discord-wont-open)).
 
 **Light on your PC**
-- Moving effects take a new position twice a second and the GPU glides in between, stop completely while Discord is in the background, and hold still while you watch a stream. **Performance mode** for slower PCs.
+- Moving effects take a new position twice a second and the GPU glides in between, stop completely while Discord is in the background, and hold still while you watch a stream. **Performance mode** for slower PCs, and **Ultimate performance mode** (requested by BLOODHOUND CIGGA): the same look, lighter.
 
 ## Presets
 

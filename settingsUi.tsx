@@ -40,6 +40,7 @@ const TABS: Tab[] = [
         groups: [
             { title: "Primary color", keys: ["accentPreset", "accent"] },
             { title: "Text", keys: ["customText", "textColor"] },
+            { title: "Selected text", keys: ["customSelection", "selectionColor"] },
             { title: "Icons", keys: ["customIcons", "iconColor"] },
             { title: "Status & window buttons", keys: ["voice", "close", "minimize", "maximize"] },
             { title: "App border", keys: ["appBorder", "borderColor", "borderColor2", "appBorderFile", "appBorderWidth"] },
@@ -53,6 +54,7 @@ const TABS: Tab[] = [
             { title: "Picture or video in the panels", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
             { title: "Embeds (link previews)", keys: ["embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity"] },
             { title: "Background", keys: ["background", "bgMediaSource", "bgMediaUrl", "bgMediaFile", "bgMediaDim", "bgBase", "bgColor1", "bgColor2"] },
+            { title: "Bouncing logo", keys: ["dvd", "dvdFile", "dvdSize", "dvdSpeed"] },
         ],
     },
     {
@@ -104,7 +106,7 @@ const TABS: Tab[] = [
         id: "system", section: "Terono", label: "System", icon: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1-.7-.5-1.3 1-2-2.1-2.1-2 1-1.3-.5L12 3h-1l-.7 2.1-1.3.5-2-1L4.9 6.8l1 2-.5 1.3L3 11v2l2.1.7.5 1.3-1 2 2.1 2.1 2-1 1.3.5L11 21h2l.7-2.1 1.3-.5 2 1 2.1-2.1-1-2 .5-1.3L21 13v-1Z",
         groups: [
             { title: "Troubleshooting", keys: ["debugInfo"] },
-            { title: "Performance", keys: ["lite", "pauseUnfocused"] },
+            { title: "Performance", keys: ["lite", "ultra", "pauseUnfocused"] },
             { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
             { title: "Taskbar", keys: ["taskbarIcon"] },
             { title: "Privacy", keys: ["shareUsage", "usageCount"] },
@@ -368,12 +370,27 @@ const CSS = `
 .dz-set-tab[aria-selected="true"] svg { color: var(--dz-accent, #429cff); opacity: 1; }
 .dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 1px; }
 .dz-set-title { margin: 2px 0 0; font: 700 20px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); }
+.dz-set-nav { max-height: calc(100vh - 140px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--dz-text, #f1f2f4) 18%, transparent) transparent; }
+/* narrow: the tabs become one row that scrolls sideways and stays at the top */
 @container (max-width: 620px) {
-    .dz-set-main { grid-template-columns: 1fr; }
-    .dz-set-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; }
-    .dz-set-navsec { flex-direction: row; flex-wrap: wrap; }
+    .dz-set-main { grid-template-columns: 1fr; gap: 12px; }
+    .dz-set-nav { z-index: 2; flex-direction: row; gap: 4px; max-height: none; overflow-x: auto; overflow-y: hidden; padding: 6px 0;
+        background: var(--modal-background, var(--background-base-low, #111214)); scrollbar-width: none; }
+    .dz-set-navsec { flex-direction: row; flex-shrink: 0; }
     .dz-set-navhead { display: none; }
-    .dz-set-tab { width: auto; }
+    .dz-set-tab { width: auto; white-space: nowrap; }
+    .dz-set-group { padding: 4px 12px 8px; }
+    .dz-presets { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+}
+/* Discord's modal body is a sideways scroll box, which keeps the tab list from staying put; clip doesn't */
+.bodyInner__8a031:has(.dz-set) { overflow: clip !important; }
+.dz-set-top { flex-wrap: wrap; }
+.dz-set-top > .dz-set-search { flex: 1 1 220px; width: auto; }
+/* short windows: the room goes to the settings, not to Vencord's plugin description and author list */
+@media (max-height: 820px) {
+    .container__8a031:has(.dz-set) .headerSubtitleWrapper__8a031,
+    .vc-settings-modal-content:has(.dz-set) > section:not(:has(.dz-set)),
+    .vc-settings-modal-content section:has(> .vc-plugins-settings > .dz-set) > :not(.vc-plugins-settings) { display: none; }
 }
 .dz-set-report { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--text-muted, #aaa); }
 .dz-set-report a { color: var(--dz-accent, #429cff); }

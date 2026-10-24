@@ -17,6 +17,7 @@ import { IconSwaps } from "./branding";
 import { applyAmbient } from "./call";
 import { MyLookPanel, PeoplePanel } from "./cosmetics";
 import { DebugInfo } from "./diagnostics";
+import { DVD_CSS, startDvd, stopDvd } from "./dvd";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { addTicker, isAway, MOTION_STEP_MS, removeTicker, setPauseWhenUnfocused } from "./motion";
@@ -55,7 +56,7 @@ const RADII: Record<string, [number, number, number, number, number]> = {
 
 export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
     | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2" | "embedColor" | "embedColor2"
-    | "borderColor" | "borderColor2";
+    | "borderColor" | "borderColor2" | "selectionColor";
 
 const COLOR_DEFAULTS: Record<ColorKey, string> = {
     accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
@@ -63,6 +64,7 @@ const COLOR_DEFAULTS: Record<ColorKey, string> = {
     bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
     embedColor: "#16181d", embedColor2: "#0b2a55",
     borderColor: "#429cff", borderColor2: "#9b6dff",
+    selectionColor: "#2f6fb3",
 };
 
 /* ================= live color preview =================
@@ -232,6 +234,7 @@ export const MEDIA_KEY = "Terono_bgMedia";
 export const CARD_MEDIA_KEY = "Terono_cardMedia";
 export const FONT_KEY = "Terono_customFont";
 export const BORDER_KEY = "Terono_appBorder";
+export const DVD_KEY = "Terono_dvdImage";
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
 const FONT_MAX_BYTES = 10 * 1024 * 1024;
@@ -243,6 +246,7 @@ let mediaUrl: string | null = null;
 let cardBlob: Blob | null = null;
 let customFont: FontFace | null = null;
 let borderUrl: string | null = null;
+let dvdUrl: string | null = null;
 
 export async function loadStoredFiles() {
     const media = await DataStore.get<Blob>(MEDIA_KEY);
@@ -251,12 +255,49 @@ export async function loadStoredFiles() {
     cardBlob = card instanceof Blob && MEDIA_TYPES.includes(card.type) ? card : null;
     const border = await DataStore.get<Blob>(BORDER_KEY);
     setBorderBlob(border instanceof Blob && IMAGE_TYPES.includes(border.type) ? border : null);
+    const dvd = await DataStore.get<Blob>(DVD_KEY);
+    setDvdBlob(dvd instanceof Blob && IMAGE_TYPES.includes(dvd.type) ? dvd : null);
     const font = await DataStore.get<ArrayBuffer>(FONT_KEY);
     if (font instanceof ArrayBuffer) await registerFont(font);
     applyMedia();
     applyCardMedia();
     applyFont();
     applyBorder();
+    applyDvd();
+}
+
+function setDvdBlob(b: Blob | null) {
+    if (dvdUrl) URL.revokeObjectURL(dvdUrl);
+    dvdUrl = b ? URL.createObjectURL(b) : null;
+}
+
+async function onDvdFile(file: File) {
+    if (!IMAGE_TYPES.includes(file.type)) return toast("Use PNG, JPG, GIF or WEBP.", "failure");
+    if (file.size > 20 * 1024 * 1024) return toast("The picture must be 20 MB or smaller.", "failure");
+    setDvdBlob(file);
+    await DataStore.set(DVD_KEY, file);
+    settings.store.dvd = true;
+    applyDvd();
+    toast("Bouncing picture updated.", "success");
+}
+
+async function clearDvdFile() {
+    setDvdBlob(null);
+    await DataStore.del(DVD_KEY);
+    applyDvd();
+    toast("Back to the DVD logo.", "success");
+}
+
+export function applyDvd() {
+    const s = settings.store;
+    sheet("dvd", s.dvd ? DVD_CSS : "");
+    if (!s.dvd) return stopDvd();
+    startDvd({
+        size: Math.max(40, Math.min(400, Number(s.dvdSize) || 150)),
+        speed: Math.max(20, Math.min(300, Number(s.dvdSpeed) || 90)),
+        image: dvdUrl,
+        strictPause: !!(s.lite || s.ultra),
+    });
 }
 
 function setBorderBlob(b: Blob | null) {
@@ -632,6 +673,40 @@ export const settings = definePluginSettings({
         hidden: () => settings.store.appBorder !== "image",
         component: () => <FileRow title="Frame picture" note="PNG, JPG, GIF or WEBP up to 20 MB, stretched around the window. Stored only on this PC." accept={IMAGE_TYPES.join(",")} onFile={onBorderFile} />,
     },
+    dvd: {
+        type: OptionType.BOOLEAN,
+        description: "A logo bouncing around behind the panels, like an old DVD player. About half of its bounces go for a corner. Smooth 60 fps; it stops while Discord is hidden, and in Performance or Ultimate performance mode also while Discord isn't in front.",
+        default: false,
+        onChange: () => applyDvd(),
+    },
+    dvdFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => !settings.store.dvd,
+        component: () => (
+            <div>
+                <FileRow title="Your own picture" note="PNG, JPG, GIF or WEBP up to 20 MB instead of the DVD logo. Stored only on this PC." accept={IMAGE_TYPES.join(",")} onFile={onDvdFile} />
+                {dvdUrl && <button className="dz-file-btn" style={{ marginTop: 8 }} onClick={clearDvdFile}>Use the DVD logo again</button>}
+            </div>
+        ),
+    },
+    dvdSize: {
+        type: OptionType.SLIDER,
+        description: "Size (px wide).",
+        markers: [60, 100, 150, 200, 260, 320],
+        default: 150,
+        stickToMarkers: false,
+        hidden: () => !settings.store.dvd,
+        onChange: () => applyDvd(),
+    },
+    dvdSpeed: {
+        type: OptionType.SLIDER,
+        description: "Speed (px per second).",
+        markers: [40, 60, 90, 120, 160, 220],
+        default: 90,
+        stickToMarkers: false,
+        hidden: () => !settings.store.dvd,
+        onChange: () => applyDvd(),
+    },
     appBorderWidth: {
         type: OptionType.SLIDER,
         description: "Frame width (px).",
@@ -682,6 +757,13 @@ export const settings = definePluginSettings({
         onChange: () => applyVars(),
     },
     textColor: color("textColor", "Text color", "Main text; muted shades are derived from it.", () => !settings.store.customText),
+    customSelection: {
+        type: OptionType.BOOLEAN,
+        description: "Use your own color for selected (highlighted) text instead of the primary color.",
+        default: false,
+        onChange: () => applyVars(),
+    },
+    selectionColor: color("selectionColor", "Selection color", "Behind selected text; the text on it turns dark or light, whichever reads better.", () => !settings.store.customSelection),
     cardShape: {
         type: OptionType.SELECT,
         description: "Corners of panels, popouts and buttons.",
@@ -1065,13 +1147,19 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Performance mode: no background animation, blur, pulsing badges or hover animations. Best for weak PCs and laptops on battery.",
         default: false,
-        onChange: () => applyAttrs(),
+        onChange: () => { applyAttrs(); applyDvd(); },
+    },
+    ultra: {
+        type: OptionType.BOOLEAN,
+        description: "Ultimate performance mode: everything from Performance mode, plus instant hover and menu changes, no blur anywhere, and every animation in Discord (spinners, badges, the bouncing logo) stops while Discord isn't in front. Discord looks the same, just lighter. Requested by BLOODHOUND CIGGA.",
+        default: false,
+        onChange: () => { applyAttrs(); applyLiquid(); applyDvd(); setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra); },
     },
     pauseUnfocused: {
         type: OptionType.BOOLEAN,
         description: "Pause the moving background, liquid glass and pulsing badges while Discord isn't the active window (e.g. while you play), so they take nothing from your game.",
         default: true,
-        onChange: () => setPauseWhenUnfocused(settings.store.pauseUnfocused),
+        onChange: () => setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra),
     },
 
     /* --- chat bar & activities --- */
@@ -1153,7 +1241,8 @@ const NAMES: Record<string, string> = {
     showActivities: "Show activities", chatSides: "Message sides",
     appBorder: "App border", borderColor: "Border color", borderColor2: "Gradient end", appBorderFile: "Frame picture", appBorderWidth: "Width",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
-    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", pauseUnfocused: "Pause when Discord isn't in front",
+    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", ultra: "Ultimate performance mode", pauseUnfocused: "Pause when Discord isn't in front",
+    customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
 };
 
 // Only the screen shows in Vencord's own list; each option's "show only when…" rule moves to dzHidden, which the
@@ -1190,7 +1279,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border" | "ultra" | "dvd", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null, ultra: null, dvd: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -1246,7 +1335,13 @@ export function applyVars() {
     --dz-embed-2: ${s.embedStyle === "gradient" ? pick("embedColor2") : pick("embedColor")};
     --dz-embed-angle: ${Number(s.embedAngle) || 0}deg;
     --dz-embed-alpha: ${Number(s.embedOpacity) || 40}%;
-}${embedText(s)}${s.customIcons ? iconVars(pick("iconColor")) : ""}`);
+}${embedText(s)}${s.customIcons ? iconVars(pick("iconColor")) : ""}${s.customSelection ? selectionCss(pick("selectionColor")) : ""}`);
+}
+
+function selectionCss(c: string) {
+    const text = luminance(c) > 0.4 ? "#111214" : "#ffffff";
+    return `
+html:root::selection, html:root .highlight { background: ${c} !important; color: ${text} !important; }`;
 }
 
 // Solid / gradient embeds: text dark or light, whichever reads better on the chosen colors
@@ -1429,7 +1524,9 @@ export function applyAttrs() {
     sheet("motion", MOTION_CSS);
     applyDrift();
     flag("dzActivities", s.showActivities);
-    flag("dzLite", s.lite);
+    flag("dzLite", s.lite || s.ultra);
+    flag("dzUltra", s.ultra);
+    sheet("ultra", s.ultra ? ULTRA_CSS : "");
     flag("dzQuick", s.quickIcon);
 
     // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
@@ -1711,6 +1808,20 @@ export function applyBorder() {
 }`);
 }
 
+/* ---------- ultimate performance mode ----------
+   On top of Performance mode: changes on hover and in menus happen at once instead of animating (a 1 ms
+   transition, so code waiting for a transition to end still gets told), nothing is blurred behind (blur is redone
+   on every change underneath), and while Discord isn't in front every CSS animation in it holds still. */
+const ULTRA_CSS = `
+html[data-dz-ultra] *, html[data-dz-ultra] *::before, html[data-dz-ultra] *::after {
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+    backdrop-filter: none !important;
+}
+html[data-dz-ultra][data-dz-away] *, html[data-dz-ultra][data-dz-away] *::before, html[data-dz-ultra][data-dz-away] *::after {
+    animation-play-state: paused !important;
+}`;
+
 /* ---------- embeds ---------- */
 
 const EMBED = ":is(.embedFull__623de, article[class*=embedFull_])";
@@ -1813,7 +1924,7 @@ ${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.
     // measuring the panels forces a layout: wait for the next frame instead of doing it while Discord starts
     requestAnimationFrame(updateLiquidClip);
     // Performance mode or "Still": the light stays where it is
-    if (s.lite || s.liquidSpeed === "still") {
+    if (s.lite || s.ultra || s.liquidSpeed === "still") {
         removeTicker(liquidTick);
         liquidTick(12);
     } else addTicker(liquidTick);
@@ -1838,7 +1949,7 @@ function driftTick(t: number) {
 function applyDrift() {
     const s = settings.store;
     const glassBlur = (s.cardStyle === "glass" || s.cardStyle === "liquid") && s.glassBlur;
-    if (s.background === "animated" && !s.lite && !glassBlur) addTicker(driftTick);
+    if (s.background === "animated" && !s.lite && !s.ultra && !glassBlur) addTicker(driftTick);
     else removeTicker(driftTick);
 }
 
@@ -1997,7 +2108,7 @@ export const applyTimes: Record<string, number> = {};
 export function applyAll() {
     const steps: [string, () => void][] = [
         ["attrs", applyAttrs], ["vars", applyVars], ["logo", applyLogo], ["chat", applyChat], ["header", applyHeader], ["font", applyFont],
-        ["media", applyMedia], ["cardMedia", applyCardMedia], ["liquid", applyLiquid], ["loading", applyLoading], ["overlay", applyOverlay],
+        ["media", applyMedia], ["cardMedia", applyCardMedia], ["liquid", applyLiquid], ["loading", applyLoading], ["overlay", applyOverlay], ["dvd", applyDvd],
     ];
     for (const [name, fn] of steps) {
         const t = performance.now();
@@ -2007,6 +2118,7 @@ export function applyAll() {
 }
 
 export function removeAll() {
+    stopDvd();
     removeCardLayer();
     removeLiquid();
     removeTicker(driftTick);
@@ -2027,5 +2139,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed", "dzChat"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzUltra", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed", "dzChat"]) delete d[k];
 }

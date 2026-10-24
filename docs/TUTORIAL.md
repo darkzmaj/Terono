@@ -141,6 +141,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 
 - **Color preset:** Blue, Red, Purple, Green, Pink or Orange, or use the **Primary color** picker under it for any color. It's used for buttons, links, mentions, selection and glow.
 - **Text:** turn on **Custom text color** and pick any **Text color**. Muted text (descriptions, timestamps) is made from it automatically.
+- **Selected text:** turn on **Custom selection color** and pick the color behind text you select; the selected text turns dark or light, whichever reads better.
 - **Icons:** turn on **Custom icon color** and pick an **Icon color** for every icon: back/forward arrows, the header buttons (call, pins, add friend, search), channel icons, the server list buttons, the chat bar, the buttons next to your name and settings. Icons on colored buttons stay white, and server folders keep their own color. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
 - **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
 - **App border:** a frame around the whole window: **None**, **Color**, **Gradient** (two colors) or **Picture (file)**: pick any image from your PC; with its **Width**.
@@ -162,6 +163,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Background:** **Animated gradient** (default), **Static gradient**, **Solid color**, or **Image / GIF / Video**.
 - **Picture, GIF or video:** choose **URL** and paste a direct `https://` link, or **File** and upload one (up to 100 MB). **Darken** keeps text readable. GIFs and videos use the most power; see [Performance](#performance).
 - **Colors:** **Base color** (the whole background when Solid) and **Glow color 1 / 2** for the gradients.
+- **Bouncing logo:** a logo bouncing around behind the panels like an old DVD player, or **your own picture** instead. About half of its bounces go for a corner. Set its **Size** and **Speed**. It moves smoothly at 60 fps, stops while Discord is hidden or a stream plays, and in Performance or Ultimate performance mode also while Discord isn't in front.
 
 ### Layout
 
@@ -260,9 +262,9 @@ In the **Badges** tab:
 - **Terono OG:** everyone who uses Terono between 1.0.0 and 1.1.5 gets this badge automatically, and keeps it.
 - **Connect with Discord** once: Discord asks you to **Authorize**. Terono only gets your user ID. This makes sure only you can change your badges.
 - **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
-- **Discord badges:** click the ones you want to wear (Nitro and its tenure tiers from Bronze to Opal, Server Booster, HypeSquad, Early Supporter, Gifting Champion and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
+- **Discord badges:** click the ones you want to wear (Nitro and its tenure tiers from Bronze to Opal, Server Booster, HypeSquad, Early Supporter, Gifting tiers from Patron to Legend, every Account Age tier from Seed to Primordial, Orbs Apprentice and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
 
-Everyone who uses Terono sees your changes right away (open profiles update the next time they're opened). People without Terono don't see them at all.
+Everyone who uses Terono sees your changes right away, on the profile and in Discord's **See all badges** window. People without Terono don't see them at all.
 
 ### Performance
 
@@ -272,6 +274,8 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (System). It s
 
 - **Background** set to **Static gradient** or **Solid color**, instead of Animated or a GIF/video.
 - **Material** set to **Solid**, or Glass with **Glass blur** off.
+
+**Ultimate performance mode** (System) goes further and keeps your look: everything Performance mode does, plus hovers and menus change instantly instead of animating, nothing is blurred, and every animation in Discord holds still while Discord isn't in front. It was requested by BLOODHOUND CIGGA.
 
 ---
 

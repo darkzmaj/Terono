@@ -6,7 +6,7 @@
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Button } from "@components/Button";
-import { findLazy } from "@webpack";
+import { findLazy, findStoreLazy } from "@webpack";
 import { Menu, Modal, openModal, RestAPI, useEffect, useMemo, UserStore, useState } from "@webpack/common";
 
 import { BADGE_API, badgesReady } from "./badgeConfig";
@@ -70,6 +70,7 @@ export function setPerson(id: string, look: Look | null) {
     if (look && Object.keys(look).length) all[id] = look; else delete all[id];
     settings.store.peopleLooks = JSON.stringify(all);
     sync();
+    refreshProfiles();
 }
 
 export const personLook = (id: string) => people()[id] ?? null;
@@ -146,13 +147,24 @@ const schedule = () => { if (!queued) { queued = true; queueMicrotask(sync); } }
 /** Your look while editing: shown on your own name / avatar right away. */
 export function previewMine(look: Look | null) {
     mine = look;
-    profileCache = new WeakMap();
+    refreshProfiles();
     schedule();
 }
 
 /* ---------- profiles (patched in index.tsx) ---------- */
 
 let profileCache = new WeakMap<object, any>();
+const ProfileStore = findStoreLazy("UserProfileStore");
+const CollectiblesStore = findStoreLazy("CollectiblesCategoryStore");
+let refreshQueued = false;
+
+/** Open profiles (popouts, the profile page) draw a changed look right away, not after being reopened. */
+function refreshProfiles() {
+    profileCache = new WeakMap();
+    if (refreshQueued) return;
+    refreshQueued = true;
+    queueMicrotask(() => { refreshQueued = false; try { ProfileStore.emitChange(); } catch { /* not loaded yet */ } });
+}
 
 /** UserProfileStore.getUserProfile: card colors, profile effect and frame. */
 export function profileHook(profile: any) {
@@ -223,7 +235,7 @@ let offList: (() => void) | null = null;
 
 export function startCosmetics() {
     UserStore.addChangeListener(schedule);
-    offList = onListChange(() => { profileCache = new WeakMap(); schedule(); });
+    offList = onListChange(() => { refreshProfiles(); schedule(); });
     schedule();
     void alwaysShowNameStyles();
 }
@@ -256,7 +268,11 @@ export function loadCatalog() {
             if (p.type === 0 && it.asset) out.push({ kind: "deco", sku: it.sku_id, name: p.name, asset: it.asset, category: c.name, img: `https://cdn.discordapp.com/avatar-decoration-presets/${it.asset}.png?size=96&passthrough=false` });
             else if (p.type === 2 && it.asset) out.push({ kind: "plate", sku: it.sku_id, name: p.name, asset: it.asset, palette: it.palette ?? "none", label: it.label ?? p.name, category: c.name, img: `https://cdn.discordapp.com/assets/collectibles/${it.asset}static.png` });
             else if (p.type === 1) out.push({ kind: "effect", sku: it.sku_id, name: it.title ?? p.name, category: c.name, img: it.thumbnailPreviewSrc ?? it.staticFrameSrc });
-            else if (p.type === 3) out.push({ kind: "frame", sku: it.sku_id, name: p.name, category: c.name, label: it.label });
+            else if (p.type === 3) {
+                // a frame has no preview picture of its own: its top piece shows what it looks like
+                const layer = it.layers?.find((l: any) => l.type === "staple" && l.anchor === "top") ?? it.layers?.[0];
+                out.push({ kind: "frame", sku: it.sku_id, name: p.name, category: c.name, label: it.label, img: layer && `https://cdn.discordapp.com/media/v1/collectibles-shop/${it.sku_id}/${layer.id}/static` });
+            }
         }
         return out;
     }).catch(e => { catalog = null; throw e; });
@@ -374,7 +390,19 @@ export function MyLookPanel() {
     const [busy, setBusy] = useState(false);
     const [dirty, setDirty] = useState(false);
 
-    useEffect(() => { getAuth().then(a => setAuth(!!a)); loadCatalog().catch(() => { }); }, []);
+    const [shop, setShop] = useState<Item[]>([]);
+    useEffect(() => { getAuth().then(a => setAuth(!!a)); loadCatalog().then(setShop, () => { }); }, []);
+    const shopItem = (sku?: string) => sku ? shop.find(i => i.sku === sku) : undefined;
+    // items no longer in the shop: Discord still knows them (it draws them on profiles)
+    const known = (sku?: string) => { try { return sku ? CollectiblesStore.getProduct(sku) : null; } catch { return null; } };
+    const shopImg = (sku?: string) => {
+        if (!sku) return undefined;
+        const it = known(sku)?.items?.[0];
+        const layer = it?.layers?.find((l: any) => l.type === "staple" && l.anchor === "top") ?? it?.layers?.[0];
+        return shopItem(sku)?.img ?? it?.thumbnailPreviewSrc ?? it?.staticFrameSrc
+            ?? (layer && `https://cdn.discordapp.com/media/v1/collectibles-shop/${sku}/${layer.id}/static`);
+    };
+    const chosen = (sku?: string) => sku ? shopItem(sku)?.name ?? known(sku)?.name ?? "Chosen" : "None";
     useEffect(() => () => previewMine(null), []);
 
     const set = (l: Look) => { setLookState(l); setDirty(true); previewMine(l); };
@@ -438,10 +466,10 @@ export function MyLookPanel() {
             <section className="dz-set-group">
                 <h3 className="dz-set-group-title">Avatar, nameplate, effect and frame</h3>
                 <div className="dz-look-items">
-                    <LookItem label="Avatar decoration" value={look.d ? "Chosen" : "None"} img={look.d && `https://cdn.discordapp.com/avatar-decoration-presets/${look.d.a}.png?size=96&passthrough=false`} onPick={() => choose("deco", "Avatar decoration")} />
-                    <LookItem label="Nameplate" value={look.n?.t ? "Chosen" : "None"} img={look.n && `https://cdn.discordapp.com/assets/collectibles/${look.n.a}static.png`} onPick={() => choose("plate", "Nameplate")} />
-                    <LookItem label="Profile effect" value={look.e ? "Chosen" : "None"} onPick={() => choose("effect", "Profile effect")} />
-                    <LookItem label="Profile frame" value={look.r ? "Chosen" : "None"} onPick={() => choose("frame", "Profile frame")} />
+                    <LookItem label="Avatar decoration" value={chosen(look.d?.s)} img={look.d && `https://cdn.discordapp.com/avatar-decoration-presets/${look.d.a}.png?size=96&passthrough=false`} onPick={() => choose("deco", "Avatar decoration")} />
+                    <LookItem label="Nameplate" value={chosen(look.n?.s)} img={look.n && `https://cdn.discordapp.com/assets/collectibles/${look.n.a}static.png`} onPick={() => choose("plate", "Nameplate")} />
+                    <LookItem label="Profile effect" value={chosen(look.e)} img={shopImg(look.e)} onPick={() => choose("effect", "Profile effect")} />
+                    <LookItem label="Profile frame" value={chosen(look.r)} img={shopImg(look.r)} onPick={() => choose("frame", "Profile frame")} />
                 </div>
             </section>
 
@@ -583,6 +611,7 @@ select.dz-input option { background: var(--dz-card, #070708); }
 .dz-cat-item img { width: 100%; aspect-ratio: 1; object-fit: contain; }
 .dz-cat-plate .dz-cat-item img { aspect-ratio: 4 / 1; object-fit: cover; border-radius: 8px; }
 .dz-cat-effect .dz-cat-item img { aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; }
+.dz-cat-frame .dz-cat-item img { aspect-ratio: 2 / 1; object-fit: contain; }
 .dz-cat-noimg { display: grid; place-items: center; min-height: 64px; padding: 6px; font-size: 11px; color: var(--text-muted, #aaa); text-align: center; }
 .dz-cat-name { font-size: 12px; text-align: center; line-height: 1.25; }
 .dz-person { display: flex; align-items: center; gap: 10px; padding: 6px 0; color: var(--text-default, #fff); }

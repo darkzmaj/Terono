@@ -486,7 +486,7 @@ export default definePlugin({
         try { await migrate(); } catch (e) { recordError("migrate", e); }
         try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
         safely("motion", () => {
-            setPauseWhenUnfocused(settings.store.pauseUnfocused);
+            setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra);
             startMotion();
         });
         safely("apply", applyAll);

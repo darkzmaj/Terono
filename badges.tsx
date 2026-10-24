@@ -62,9 +62,30 @@ export const OFFICIAL: [key: string, name: string, icon: string][] = [
     ["tenure_72", "Nitro Opal (6+ years)", "5b154df19c53dce2af92c9b61e6be5e2"],
     ["gifting", "Gifting Champion", "8b7792c4f65953d3ff564f23429cb79e"],
     ["level67", "Level 67 Reached (April Fools 2026)", "ca105ad9cfc8580c765101d17bbb2323"],
+    // Discord's badge directory (2026): account age and gifting tiers, Orbs and Last Meadow
+    ["age_seed", "Account Age: Seed", "465f6cc202c60d0e250f986fa035ed461e275adddbf875106089527a2c16ef2c"],
+    ["age_sprout", "Account Age: Sprout", "2f2f1d83c3abedbbd2346212343e3f45bd215ddd3d97fdf2272f3c3b4ea52dae"],
+    ["age_sapling", "Account Age: Sapling", "b9f15d9592f7a4fab4f7295e59bbc9cf45cc4787505eafc17e1586e499d4b64a"],
+    ["age_bud", "Account Age: Bud", "5a8088ae64ce072f086049e862b9c6fb94a34be8c1de85870cebd4a7db0596ff"],
+    ["age_blossom", "Account Age: Blossom", "6b236652251f52ab8d0183934bbcd2f3246ac531cecb8d86569d24cbdc8eb1f4"],
+    ["age_redwood", "Account Age: Redwood", "018ba2a1ebd7321265af6496af5f131d59002c4f90eadcf93d0da023dea486fa"],
+    ["age_sequoia", "Account Age: Sequoia", "2a598969188c36a8292855ca82a6acd953b7adab398721a65bfd360f55eed26a"],
+    ["age_bristlecone", "Account Age: Bristlecone", "5dc6789b3102d1d63b3a4e257bc0067555702116f392d54cd3f83c0c137e6e11"],
+    ["age_stromatolite", "Account Age: Stromatolite", "3251cbd59d4b048fc5ea83890cfb78fe2e092865ebbf8eff61dcd861af4b5fc7"],
+    ["age_primordial", "Account Age: Primordial", "895ded0aa669176a4c45b41f18f992ea1a762a57d99edab380377162d54851e5"],
+    ["gift_patron", "Gifting: Patron", "5a2c578f82445956549c6454a2d65f8ba35b53f59120a4aa55855098ce5a653d"],
+    ["gift_luminary", "Gifting: Luminary", "35885be90179a2b4cc4e29aaf1285fe561c837f037aa805df40e921fd8db4867"],
+    ["gift_icon", "Gifting: Icon", "70b46c1ea400bc57e2d5ac937c70b7ef25599feb1c62d7817c257f19051f1460"],
+    ["gift_hero", "Gifting: Hero", "779d517e251fd2f6c4d64b4bf5839ea20cc5e061a2f971c7811ab2486ccf4553"],
+    ["gift_legend", "Gifting: Legend", "eb5ce89c01c7884a614b5be0ebadb0d86215b61b55c04a01d27cffb131b4a070"],
+    ["orbs", "Orbs Apprentice", "d899474b7635326e96b66f7c923558af6e21e41c13e18e6c1d402efb434a4098"],
+    ["last_meadow", "Last Meadow", "8027918b79231a73168d3763fe73bf585e38fcba2b0167c1695194719768e7c3"],
 ];
 const OFFICIAL_BY_KEY = new Map(OFFICIAL.map(o => [o[0], o]));
-export const officialIcon = (hash: string) => `https://cdn.discordapp.com/badge-icons/${hash}.png`;
+// the badge directory's icons are "content" assets (64 characters), the classic badges are badge-icons
+export const officialIcon = (hash: string) => hash.length === 64
+    ? `https://cdn.discordapp.com/assets/content/${hash}.png`
+    : `https://cdn.discordapp.com/badge-icons/${hash}.png`;
 
 export interface CustomBadge { s: number; n: string; e: "none" | "glow" | "outline"; k: string; h: string; }
 // l: the profile look (name style, decoration, nameplate, profile effect / frame / colors, banner), see cosmetics.tsx
@@ -118,6 +139,38 @@ const officialBadges: ProfileBadge = {
         });
     },
 };
+
+/* "See all badges" (Discord's badge directory) lists only what Discord's server sends: Terono badges are added to
+   that list as it arrives, so they show there too, first, like on the profile. */
+function directoryBadges(userId: string, have: Set<string>) {
+    const e = list[userId];
+    if (!e) return [];
+    const out: Record<string, any>[] = [];
+    const add = (name: string, description: string, icon: string) => {
+        if (have.has(name.toLowerCase())) return;
+        out.push({
+            badge_id: 900000 + out.length, name, description, info_label: "Terono badge", rarity: 1,
+            simple_icon_url: icon, simple_icon_raster_url: icon, is_earnable: false, owned: true, hidden: false,
+        });
+    };
+    if (e.o) add("OG", "Used Terono 1.0.0 - 1.1.5.", OG_BADGE);
+    for (const c of e.c ?? []) add(c.n, "A Terono badge.", customImage(c.h));
+    for (const key of e.b ?? []) {
+        const o = OFFICIAL_BY_KEY.get(key);
+        if (o) add(o[1], "Shown with Terono.", officialIcon(o[2]));
+    }
+    return out;
+}
+
+function directoryInterceptor(action: any) {
+    if (action?.type === "BADGE_DIRECTORY_FETCH_SUCCESS" && Array.isArray(action.badges)) {
+        try {
+            const extra = directoryBadges(action.userId, new Set(action.badges.map((b: any) => String(b.name).toLowerCase())));
+            if (extra.length) action.badges = [...extra, ...action.badges];
+        } catch { /* leave Discord's list as it is */ }
+    }
+    return false;
+}
 
 // fresh = right after your own change (skips the 5 minute browser cache)
 async function refresh(fresh = false) {
@@ -228,6 +281,7 @@ export function startBadges() {
     running = true;
     addProfileBadge(frontBadges);
     addProfileBadge(officialBadges);
+    (FluxDispatcher as any).addInterceptor?.(directoryInterceptor);
     // last list first (instant), then the current one, then live changes
     DataStore.get(CACHE_KEY).then(saved => { if (saved && !Object.keys(list).length) { list = saved; listChanged(); } });
     refresh(true).then(hello);
@@ -242,6 +296,8 @@ export function stopBadges() {
     running = false;
     removeProfileBadge(frontBadges);
     removeProfileBadge(officialBadges);
+    const icpt = (FluxDispatcher as any)._interceptors as unknown[] | undefined;
+    if (icpt?.includes(directoryInterceptor)) icpt.splice(icpt.indexOf(directoryInterceptor), 1);
     clearInterval(timer);
     clearTimeout(retryTimer);
     clearInterval(pingTimer);
