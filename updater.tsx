@@ -7,7 +7,6 @@
 import { showNotification } from "@api/Notifications";
 import { useSettings } from "@api/Settings";
 import { Button } from "@components/Button";
-import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { PluginNative } from "@utils/types";
 import { createRoot, useEffect, useState } from "@webpack/common";
@@ -98,7 +97,7 @@ export function UpdatePanel() {
             <div className="dz-upd-row">
                 <img src={TERONO_LOGO} alt="" className="dz-upd-panel-logo" />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <HeadingTertiary>Terono {VERSION}</HeadingTertiary>
+                    <h3 className="dz-h3">Terono {VERSION}</h3>
                     <Paragraph className={newer ? "dz-upd-new" : undefined}>{status}</Paragraph>
                 </div>
                 {newer && Native && info!.canUpdate && <Button size="small" onClick={() => openUpdateScreen(newer)}>Update to {newer}</Button>}
@@ -239,12 +238,22 @@ function UpdateScreen({ version, onClose }: { version: string; onClose(): void; 
         : i === step ? (phase === "error" ? "error" : "active")
             : "pending";
 
+    const RING = 2 * Math.PI * 52;
     return (
         <div className={`dz-upd${leaving ? " dz-upd-leave" : ""}`} data-phase={phase}>
-            <div className="dz-upd-glow" />
             <div className="dz-upd-card" role="dialog" aria-modal="true" aria-label="Terono update">
                 <div className="dz-upd-logo">
+                    <svg className="dz-upd-ring" viewBox="0 0 120 120" aria-hidden="true">
+                        <circle className="dz-upd-track" cx="60" cy="60" r="52" />
+                        <circle className="dz-upd-fill" cx="60" cy="60" r="52" style={{ strokeDasharray: RING, strokeDashoffset: RING * (1 - progress / 100) }} />
+                    </svg>
+                    {phase === "running" && <span className="dz-upd-orbit" aria-hidden="true" />}
                     <img src={TERONO_LOGO} alt="" />
+                    {phase === "done" && (
+                        <span className="dz-upd-check" aria-hidden="true">
+                            <svg viewBox="0 0 12 12"><path d="M2.5 6.3l2.3 2.3 4.7-5" /></svg>
+                        </span>
+                    )}
                     {phase === "done" && (
                         <div className="dz-upd-burst">
                             {Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
@@ -258,32 +267,31 @@ function UpdateScreen({ version, onClose }: { version: string; onClose(): void; 
                 <p key={`s-${phase}`} className="dz-upd-sub">
                     {phase === "done" ? `Terono ${version} is installed. Restart Discord to use it.`
                         : phase === "error" ? state!.error
-                            : <>{VERSION} <span className="dz-upd-arrow">→</span> {version}</>}
+                            : <><span className="dz-upd-ver">{VERSION}</span><span className="dz-upd-arrow">→</span><span className="dz-upd-ver dz-upd-ver-new">{version}</span></>}
                 </p>
-
-                <div className="dz-upd-bar"><div style={{ width: `${progress}%` }} /></div>
 
                 <ol className="dz-upd-steps">
                     {steps.map((s, i) => (
-                        <li key={s} data-state={stepState(i)}>
+                        <li key={s} data-state={stepState(i)} style={{ "--i": i } as CSSProperties}>
                             <span className="dz-upd-dot">
                                 <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.3l2.3 2.3 4.7-5" /></svg>
                             </span>
-                            {s}
+                            <span className="dz-upd-step">{s}</span>
                         </li>
                     ))}
                 </ol>
+                {phase === "running" && <p className="dz-upd-count">Step {Math.min(step + 1, steps.length)} of {steps.length}</p>}
 
                 {phase === "error" && !!state?.log.length && <pre className="dz-upd-log">{state.log.slice(-6).join("\n")}</pre>}
 
                 <div className="dz-upd-actions">
                     {phase === "done" && <>
-                        <button className="dz-upd-btn dz-upd-primary" onClick={() => Native!.restartDiscord()}>Restart Discord</button>
                         <button className="dz-upd-btn" onClick={close}>Later</button>
+                        <button className="dz-upd-btn dz-upd-primary" onClick={() => Native!.restartDiscord()}>Restart Discord</button>
                     </>}
                     {phase === "error" && <>
-                        <button className="dz-upd-btn dz-upd-primary" onClick={() => { setState(null); setAttempt(a => a + 1); }}>Try again</button>
                         <button className="dz-upd-btn" onClick={close}>Close</button>
+                        <button className="dz-upd-btn dz-upd-primary" onClick={() => { setState(null); setAttempt(a => a + 1); }}>Try again</button>
                     </>}
                     {phase === "running" && <button className="dz-upd-btn" onClick={close}>Hide</button>}
                 </div>
@@ -318,61 +326,81 @@ const CSS = `
 .dz-upd-notes { margin: 0; padding: 10px 12px; max-height: 150px; overflow: auto; border-radius: 10px; background: rgb(0 0 0 / 22%);
     font: 12px/1.5 var(--font-primary, "gg sans", sans-serif); white-space: pre-wrap; color: color-mix(in srgb, var(--dz-text, #f1f2f4) 75%, transparent); }
 
-.dz-upd { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center; overflow: hidden;
-    background: rgb(0 0 0 / 55%); backdrop-filter: blur(10px); animation: dz-upd-in 260ms ease both;
-    font-family: var(--font-primary, "gg sans", sans-serif); color: var(--dz-text, #f1f2f4); }
-.dz-upd-leave { animation: dz-upd-out 200ms ease both; }
-.dz-upd-glow { position: absolute; width: 680px; height: 680px; border-radius: 50%; pointer-events: none;
-    background: radial-gradient(circle, color-mix(in srgb, var(--dz-accent, #429cff) 30%, transparent), transparent 62%);
-    animation: dz-upd-breathe 3.4s ease-in-out infinite; }
-.dz-upd[data-phase="error"] .dz-upd-glow { background: radial-gradient(circle, rgb(237 66 69 / 22%), transparent 62%); }
+/* the update screen: a Terono card over a dimmed Discord. The logo sits in a ring that fills as the update goes,
+   with a soft arc running round it; done, the logo springs and a check pops in. No blur behind the whole window
+   (redoing it on every frame of the open animation is what made it stutter). */
+.dz-upd { position: fixed; inset: 0; z-index: 100000; display: grid; place-items: center; overflow: hidden; padding: 16px;
+    background: radial-gradient(ellipse at center, color-mix(in srgb, var(--dz-accent, #429cff) 14%, rgb(0 0 0 / 62%)), rgb(0 0 0 / 74%) 70%);
+    animation: dz-upd-in 240ms ease both; font-family: var(--font-primary, "gg sans", sans-serif); color: var(--dz-text, #f1f2f4); }
+.dz-upd-leave { animation: dz-upd-out 180ms ease both; }
 
-.dz-upd-card { position: relative; width: min(440px, calc(100vw - 32px)); padding: 32px 32px 22px; border-radius: 24px; text-align: center;
-    background: color-mix(in srgb, var(--dz-card, #070708) 94%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #fff) 9%, transparent);
-    box-shadow: 0 30px 90px rgb(0 0 0 / 60%), inset 0 1px 0 rgb(255 255 255 / 5%); animation: dz-upd-card 460ms cubic-bezier(.2, .9, .25, 1.15) both; }
-.dz-upd-leave .dz-upd-card { animation: dz-upd-card-out 200ms ease both; }
+.dz-upd-card { position: relative; width: min(420px, 100%); box-sizing: border-box; padding: 30px 28px 22px; border-radius: var(--radius-xl, 24px); text-align: center;
+    background: linear-gradient(var(--dz-card-angle, 160deg), var(--dz-card, #070708), var(--dz-card-2, #0b1a33));
+    border: 1px solid color-mix(in srgb, var(--dz-text, #fff) 9%, transparent);
+    box-shadow: 0 28px 80px rgb(0 0 0 / 55%), inset 0 1px 0 rgb(255 255 255 / 6%);
+    animation: dz-upd-card 520ms cubic-bezier(.34, 1.45, .5, 1) both; }
+.dz-upd-card::before { content: ""; position: absolute; inset: 0 22% auto; height: 1px; border-radius: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--dz-accent, #429cff), transparent); opacity: .8; }
+.dz-upd-leave .dz-upd-card { animation: dz-upd-card-out 180ms ease both; }
+.dz-upd[data-phase="error"] .dz-upd-card { animation: dz-upd-card 520ms cubic-bezier(.34, 1.45, .5, 1) both, dz-upd-shake 420ms 80ms ease both; }
 
-.dz-upd-logo { position: relative; width: 108px; height: 108px; margin: 0 auto 18px; display: grid; place-items: center; }
-.dz-upd-logo img { position: relative; width: 72px; height: 72px; }
-.dz-upd[data-phase="done"] .dz-upd[data-phase="done"] .dz-upd-logo img { animation: dz-upd-pop 650ms cubic-bezier(.2, .9, .25, 1.45) both; }
-.dz-upd[data-phase="error"] 
-.dz-upd-burst i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; opacity: 0;
+.dz-upd-logo { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; display: grid; place-items: center; }
+.dz-upd-logo img { position: relative; width: 62px; height: 62px; transition: scale 400ms cubic-bezier(.34, 1.6, .5, 1); }
+.dz-upd[data-phase="done"] .dz-upd-logo img { animation: dz-upd-pop 620ms cubic-bezier(.34, 1.6, .5, 1) both; }
+.dz-upd-ring { position: absolute; inset: 0; rotate: -90deg; overflow: visible; }
+.dz-upd-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+.dz-upd-track { stroke: color-mix(in srgb, var(--dz-text, #f1f2f4) 9%, transparent); }
+.dz-upd-fill { stroke: var(--dz-accent, #429cff); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--dz-accent, #429cff) 60%, transparent));
+    transition: stroke-dashoffset 700ms cubic-bezier(.34, 1.25, .5, 1), stroke 250ms ease; }
+.dz-upd[data-phase="error"] .dz-upd-fill { stroke: #ed4245; filter: none; }
+.dz-upd-orbit { position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+    background: conic-gradient(from 0deg, transparent 0 70%, color-mix(in srgb, var(--dz-accent, #429cff) 70%, white) 92%, transparent);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+    animation: dz-upd-spin 1.15s cubic-bezier(.55, .1, .45, .9) infinite; }
+.dz-upd-check { position: absolute; right: 14px; bottom: 14px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--dz-accent, #429cff); box-shadow: 0 0 0 4px var(--dz-card, #070708), 0 6px 16px color-mix(in srgb, var(--dz-accent, #429cff) 50%, transparent);
+    animation: dz-upd-pop 520ms 160ms cubic-bezier(.34, 1.8, .5, 1) both; }
+.dz-upd-check svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.dz-upd-check path { stroke-dasharray: 12; stroke-dashoffset: 12; animation: dz-upd-draw 300ms 420ms ease forwards; }
+.dz-upd-burst i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; opacity: 0;
     background: var(--dz-accent, #429cff); box-shadow: 0 0 10px var(--dz-accent, #429cff);
-    animation: dz-upd-burst 950ms cubic-bezier(.15, .8, .3, 1) calc(var(--i) * 12ms) both; }
+    animation: dz-upd-burst 900ms cubic-bezier(.15, .8, .3, 1) calc(var(--i) * 14ms) both; }
 
-.dz-upd-title { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: .01em; animation: dz-upd-fade 320ms ease both; }
-.dz-upd-sub { margin: 0 0 20px; font-size: 14px; line-height: 1.45; color: color-mix(in srgb, var(--dz-text, #f1f2f4) 68%, transparent); animation: dz-upd-fade 320ms 60ms ease both; }
-.dz-upd-arrow { color: var(--dz-accent, #429cff); margin: 0 4px; }
+.dz-upd-title { margin: 0 0 6px; font-size: 21px; font-weight: 800; letter-spacing: .01em; animation: dz-upd-fade 320ms ease both; }
+.dz-upd-sub { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; font-size: 14px; line-height: 1.45;
+    color: color-mix(in srgb, var(--dz-text, #f1f2f4) 68%, transparent); animation: dz-upd-fade 320ms 60ms ease both; }
+.dz-upd-ver { padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 13px; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 7%, transparent); }
+.dz-upd-ver-new { color: #fff; background: var(--dz-accent, #429cff); }
+.dz-upd-arrow { color: var(--dz-accent, #429cff); font-weight: 700; }
 
-.dz-upd-bar { height: 6px; margin-bottom: 20px; border-radius: 99px; overflow: hidden; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
-.dz-upd-bar > div { height: 100%; border-radius: inherit; background-size: 200% 100%; transition: width 650ms cubic-bezier(.2, .8, .2, 1);
-    background-image: linear-gradient(90deg, var(--dz-accent, #429cff), color-mix(in srgb, var(--dz-accent, #429cff) 50%, white), var(--dz-accent, #429cff));
-    animation: dz-upd-shimmer 1.4s linear infinite; }
-.dz-upd[data-phase="done"] .dz-upd-bar > div { animation: none; background: var(--dz-accent, #429cff); }
-.dz-upd[data-phase="error"] .dz-upd-bar > div { animation: none; background: rgb(237 66 69); }
-
-.dz-upd-steps { display: grid; gap: 11px; margin: 0 0 22px; padding: 0 6px; list-style: none; text-align: left; }
-.dz-upd-steps li { display: flex; align-items: center; gap: 12px; font-size: 14px; transition: color 250ms ease;
-    color: color-mix(in srgb, var(--dz-text, #f1f2f4) 42%, transparent); }
-.dz-upd-steps li:is([data-state="active"], [data-state="done"], [data-state="error"]) { color: var(--dz-text, #f1f2f4); }
+.dz-upd-steps { display: grid; gap: 4px; margin: 0 0 6px; padding: 0; list-style: none; text-align: left; }
+.dz-upd-steps li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 12px; font-size: 14px;
+    color: color-mix(in srgb, var(--dz-text, #f1f2f4) 40%, transparent); transition: color 250ms ease, background 250ms ease;
+    animation: dz-upd-fade 360ms calc(120ms + var(--i) * 50ms) ease both; }
+.dz-upd-steps li[data-state="active"] { color: var(--dz-text, #f1f2f4); background: color-mix(in srgb, var(--dz-accent, #429cff) 10%, transparent); }
+.dz-upd-steps li:is([data-state="done"], [data-state="error"]) { color: var(--dz-text, #f1f2f4); }
+li[data-state="active"] .dz-upd-step { background: linear-gradient(90deg, var(--dz-text, #f1f2f4) 40%, var(--dz-accent, #429cff) 50%, var(--dz-text, #f1f2f4) 60%);
+    background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: dz-upd-shimmer 1.6s linear infinite; }
 .dz-upd-dot { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box;
     border: 2px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 16%, transparent); transition: background 250ms ease, border-color 250ms ease; }
 li[data-state="active"] .dz-upd-dot { border-color: color-mix(in srgb, var(--dz-accent, #429cff) 22%, transparent); border-top-color: var(--dz-accent, #429cff);
-    animation: dz-upd-spin 800ms linear infinite; }
-li[data-state="done"] .dz-upd-dot { background: var(--dz-accent, #429cff); border-color: var(--dz-accent, #429cff); animation: dz-upd-pop 380ms cubic-bezier(.2, .9, .25, 1.5) both; }
-li[data-state="error"] .dz-upd-dot { background: rgb(237 66 69); border-color: rgb(237 66 69); }
+    animation: dz-upd-spin 750ms linear infinite; }
+li[data-state="done"] .dz-upd-dot { background: var(--dz-accent, #429cff); border-color: var(--dz-accent, #429cff); animation: dz-upd-pop 420ms cubic-bezier(.34, 1.8, .5, 1) both; }
+li[data-state="error"] .dz-upd-dot { background: #ed4245; border-color: #ed4245; }
 .dz-upd-dot svg { width: 12px; height: 12px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
 li[data-state="done"] .dz-upd-dot svg { opacity: 1; }
-li[data-state="done"] .dz-upd-dot path { stroke-dasharray: 12; stroke-dashoffset: 12; animation: dz-upd-draw 320ms 120ms ease forwards; }
+li[data-state="done"] .dz-upd-dot path { stroke-dasharray: 12; stroke-dashoffset: 12; animation: dz-upd-draw 300ms 120ms ease forwards; }
+.dz-upd-count { margin: 0 0 16px; font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--dz-text, #f1f2f4) 45%, transparent); }
 
-.dz-upd-log { max-height: 110px; overflow: auto; margin: 0 0 18px; padding: 10px 12px; border-radius: 12px; text-align: left; white-space: pre-wrap;
+.dz-upd-log { max-height: 110px; overflow: auto; margin: 10px 0 18px; padding: 10px 12px; border-radius: 12px; text-align: left; white-space: pre-wrap;
     background: rgb(0 0 0 / 35%); font: 11px/1.5 var(--font-code, Consolas, monospace); color: color-mix(in srgb, var(--dz-text, #f1f2f4) 70%, transparent); }
-.dz-upd-actions { display: flex; justify-content: center; gap: 10px; }
-.dz-upd-btn { min-width: 112px; padding: 10px 18px; border-radius: 12px; cursor: pointer; font: 600 14px var(--font-primary, "gg sans", sans-serif); color: var(--dz-text, #f1f2f4);
+.dz-upd-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.dz-upd-btn { min-width: 120px; padding: 10px 18px; border-radius: 12px; cursor: pointer; font: 600 14px var(--font-primary, "gg sans", sans-serif); color: var(--dz-text, #f1f2f4);
     border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 12%, transparent); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent);
-    transition: transform 120ms ease, background 150ms ease, box-shadow 150ms ease; }
-.dz-upd-btn:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 11%, transparent); }
-.dz-upd-btn:active { transform: scale(.97); }
+    transition: scale 220ms cubic-bezier(.34, 1.56, .64, 1), background 150ms ease, box-shadow 150ms ease; }
+.dz-upd-btn:hover { scale: 1.03; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 11%, transparent); }
+.dz-upd-btn:active { scale: .96; transition-duration: 90ms; }
 .dz-upd-btn:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 2px; }
 .dz-upd-primary { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff);
     box-shadow: 0 8px 24px color-mix(in srgb, var(--dz-accent, #429cff) 40%, transparent); }
@@ -381,17 +409,16 @@ li[data-state="done"] .dz-upd-dot path { stroke-dasharray: 12; stroke-dashoffset
 
 @keyframes dz-upd-in { from { opacity: 0; } }
 @keyframes dz-upd-out { to { opacity: 0; } }
-@keyframes dz-upd-card { from { opacity: 0; transform: translateY(18px) scale(.94); } }
-@keyframes dz-upd-card-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+@keyframes dz-upd-card { from { opacity: 0; transform: translateY(22px) scale(.92); } }
+@keyframes dz-upd-card-out { to { opacity: 0; transform: translateY(8px) scale(.96); } }
 @keyframes dz-upd-spin { to { transform: rotate(1turn); } }
-@keyframes dz-upd-breathe { 50% { transform: scale(1.08); opacity: .75; } }
-@keyframes dz-upd-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
-@keyframes dz-upd-shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+@keyframes dz-upd-pop { 0% { scale: .6; } 55% { scale: 1.16; } 100% { scale: 1; } }
+@keyframes dz-upd-shake { 20%, 60% { translate: -6px 0; } 40%, 80% { translate: 6px 0; } }
 @keyframes dz-upd-burst {
-    0% { opacity: 1; transform: rotate(calc(var(--i) * 30deg)) translateY(0) scale(1); }
-    100% { opacity: 0; transform: rotate(calc(var(--i) * 30deg)) translateY(-84px) scale(.35); } }
-@keyframes dz-upd-fade { from { opacity: 0; transform: translateY(5px); } }
-@keyframes dz-upd-shimmer { to { background-position: -200% 0; } }
+    0% { opacity: 1; transform: rotate(calc(var(--i) * 30deg)) translateY(-40px) scale(1); }
+    100% { opacity: 0; transform: rotate(calc(var(--i) * 30deg)) translateY(-92px) scale(.3); } }
+@keyframes dz-upd-fade { from { opacity: 0; transform: translateY(6px); } }
+@keyframes dz-upd-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
 @keyframes dz-upd-draw { to { stroke-dashoffset: 0; } }
 
 @media (prefers-reduced-motion: reduce) {

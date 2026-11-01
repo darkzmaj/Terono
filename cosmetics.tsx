@@ -356,6 +356,11 @@ export function NameStyleEditor({ look, onChange, sample }: { look: Look; onChan
                 ))}
                 {colors.length > 0 && <Button size="small" variant="secondary" onClick={() => setColors([])}>No color</Button>}
             </div>
+            {(look.f != null || look.x != null || colors.length > 0) && (
+                <div className="dz-look-row">
+                    <Button size="small" variant="secondary" onClick={() => { const { f, x, c, ...rest } = look; onChange(rest); }}>Remove name style</Button>
+                </div>
+            )}
         </div>
     );
 }
@@ -568,10 +573,10 @@ export function MyLookPanel() {
             <section className="dz-set-group">
                 <h3 className="dz-set-group-title">Avatar, nameplate, effect and frame</h3>
                 <div className="dz-look-items">
-                    <LookItem label="Avatar decoration" value={chosen(look.d?.s)} img={look.d && `https://cdn.discordapp.com/avatar-decoration-presets/${look.d.a}.png?size=96&passthrough=false`} onPick={() => choose("deco", "Avatar decoration")} />
-                    <LookItem label="Nameplate" value={chosen(look.n?.s)} img={look.n && `https://cdn.discordapp.com/assets/collectibles/${look.n.a}static.png`} onPick={() => choose("plate", "Nameplate")} />
-                    <LookItem label="Profile effect" value={chosen(look.e)} img={shopImg(look.e)} onPick={() => choose("effect", "Profile effect")} />
-                    <LookItem label="Profile frame" value={chosen(look.r)} img={shopImg(look.r)} onPick={() => choose("frame", "Profile frame")} />
+                    <LookItem label="Avatar decoration" value={chosen(look.d?.s)} img={look.d && `https://cdn.discordapp.com/avatar-decoration-presets/${look.d.a}.png?size=96&passthrough=false`} onPick={() => choose("deco", "Avatar decoration")} onRemove={look.d ? () => clear("d") : undefined} />
+                    <LookItem label="Nameplate" value={chosen(look.n?.s)} img={look.n && `https://cdn.discordapp.com/assets/collectibles/${look.n.a}static.png`} onPick={() => choose("plate", "Nameplate")} onRemove={look.n ? () => clear("n") : undefined} />
+                    <LookItem label="Profile effect" value={chosen(look.e)} img={shopImg(look.e)} onPick={() => choose("effect", "Profile effect")} onRemove={look.e ? () => clear("e") : undefined} />
+                    <LookItem label="Profile frame" value={chosen(look.r)} img={shopImg(look.r)} onPick={() => choose("frame", "Profile frame")} onRemove={look.r ? () => clear("r") : undefined} />
                 </div>
             </section>
 
@@ -593,19 +598,26 @@ export function MyLookPanel() {
             </section>
 
             <div className="dz-look-actions">
-                <Button variant="secondary" disabled={busy} onClick={() => set({})}>Reset all</Button>
+                <Button variant="secondary" disabled={busy || !Object.keys(look).length} onClick={() => set({})}>Remove everything</Button>
                 <Button disabled={busy || !dirty} onClick={save}>{busy ? "Saving…" : "Save"}</Button>
             </div>
         </div>
     );
 }
 
-function LookItem({ label, value, img, onPick }: { label: string; value: string; img?: string | false; onPick(): void; }) {
+function LookItem({ label, value, img, onPick, onRemove }: { label: string; value: string; img?: string | false; onPick(): void; onRemove?(): void; }) {
     return (
-        <button className="dz-look-item" onClick={onPick}>
-            <span className="dz-look-thumb">{img ? <img src={img} alt="" /> : <span>+</span>}</span>
-            <span><b>{label}</b><small>{value}</small></span>
-        </button>
+        <div className="dz-look-slot">
+            <button className="dz-look-item" onClick={onPick}>
+                <span className="dz-look-thumb">{img ? <img src={img} alt="" /> : <span>+</span>}</span>
+                <span><b>{label}</b><small>{value}</small></span>
+            </button>
+            {onRemove && (
+                <button className="dz-look-remove" title={`Remove ${label.toLowerCase()}`} aria-label={`Remove ${label.toLowerCase()}`} onClick={onRemove}>
+                    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
+                </button>
+            )}
+        </div>
     );
 }
 
@@ -696,6 +708,12 @@ select.dz-input option { background: var(--dz-card, #070708); }
 .dz-look-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; cursor: pointer; text-align: left; color: var(--text-default, #fff);
     background: color-mix(in srgb, var(--dz-text, #f1f2f4) 4%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
 .dz-look-item:hover { border-color: var(--dz-accent, #429cff); }
+.dz-look-slot { position: relative; display: grid; }
+.dz-look-slot > .dz-look-item { padding-right: 40px; }
+.dz-look-remove { position: absolute; top: 50%; right: 8px; translate: 0 -50%; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 8px; cursor: pointer;
+    color: var(--text-muted, #aaa); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); transition: color 120ms ease, background 120ms ease; }
+.dz-look-remove:hover { color: #fff; background: var(--dz-close, #d94a5d); }
+.dz-look-remove:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 1px; }
 .dz-look-item small { display: block; color: var(--text-muted, #aaa); font-size: 12px; }
 .dz-look-thumb { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
 .dz-look-thumb img { width: 100%; height: 100%; object-fit: contain; }

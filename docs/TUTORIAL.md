@@ -144,6 +144,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Selected text:** turn on **Custom selection color** and pick the color behind text you select; the selected text turns dark or light, whichever reads better.
 - **Icons:** turn on **Custom icon color** and pick an **Icon color** for every icon: back/forward arrows, the header buttons (call, pins, add friend, search), channel icons, the server list buttons, the chat bar, the buttons next to your name and settings. Icons on colored buttons stay white, and server folders keep their own color. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
 - **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
+- **Unread servers:** a server with new messages (no mention) gets a line running around its icon instead of Discord's small dot. Pick its color with **Unread line color** (white by default) or turn it off. Mentions keep their badge.
 - **App border:** a frame around the whole window: **None**, **Color**, **Gradient** (two colors) or **Picture (file)**: pick any image from your PC; with its **Width**.
 
 ### Cards (the panels)
@@ -243,7 +244,7 @@ In **Your profile** (connect with Discord once, like for badges):
 - **Avatar decoration**, **Nameplate**, **Profile effect**, **Profile frame:** pick any of them from Discord's whole shop (search by name or collection).
 - **Profile card:** two colors (your card's gradient everywhere: profiles, popouts and your own account popout), and a **banner** picture or GIF. Pictures open in a crop window like Discord's: drag to move, zoom with the slider or mouse wheel. A GIF can be kept whole so it stays animated.
 
-Your own name and avatar show the changes right away; **Save** shows them to everyone with Terono, in chat, the member list, profiles and calls. People without Terono see your normal profile.
+Each chosen item has a **✕** to remove it, **Remove name style** clears your name's font, effect and colors, and **Remove everything** starts over. Your own name and avatar show the changes right away; **Save** shows them to everyone with Terono, in chat, the member list, profiles and calls. People without Terono see your normal profile.
 
 ### People & avatars
 

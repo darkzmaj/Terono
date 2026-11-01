@@ -6,7 +6,6 @@
 
 import * as DataStore from "@api/DataStore";
 import { definePluginSettings, useSettings } from "@api/Settings";
-import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { localStorage } from "@utils/localStorage";
 import { OptionType, PluginNative } from "@utils/types";
@@ -56,7 +55,7 @@ const RADII: Record<string, [number, number, number, number, number]> = {
 
 export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
     | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2" | "embedColor" | "embedColor2"
-    | "borderColor" | "borderColor2" | "selectionColor";
+    | "borderColor" | "borderColor2" | "selectionColor" | "unreadColor";
 
 const COLOR_DEFAULTS: Record<ColorKey, string> = {
     accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
@@ -65,6 +64,7 @@ const COLOR_DEFAULTS: Record<ColorKey, string> = {
     embedColor: "#16181d", embedColor2: "#0b2a55",
     borderColor: "#429cff", borderColor2: "#9b6dff",
     selectionColor: "#2f6fb3",
+    unreadColor: "#ffffff",
 };
 
 /* ================= live color preview =================
@@ -121,7 +121,7 @@ function ColorRow({ id, label, note }: { id: ColorKey; label: string; note: stri
                 style={{ width: 44, height: 30, border: "none", padding: 0, background: "none", cursor: "pointer", flexShrink: 0 }}
             />
             <div>
-                <HeadingTertiary>{label}</HeadingTertiary>
+                <h3 className="dz-h3">{label}</h3>
                 <Paragraph>{note}</Paragraph>
             </div>
         </div>
@@ -182,7 +182,7 @@ function LogoUpload() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {preview && <img src={preview} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />}
             <div>
-                <HeadingTertiary>Home logo file</HeadingTertiary>
+                <h3 className="dz-h3">Home logo file</h3>
                 <Paragraph>PNG, JPG, GIF, WEBP or SVG up to 5 MB. Stored only on this PC.</Paragraph>
                 <input type="file" accept={LOGO_TYPES.join(",")} onChange={e => onFile(e.currentTarget.files?.[0])} style={{ marginTop: 6, color: "var(--text-default)" }} />
             </div>
@@ -331,7 +331,7 @@ async function registerFont(buf: ArrayBuffer) {
 function FileRow({ title, note, accept, onFile }: { title: string; note: string; accept: string; onFile(f: File): void; }) {
     return (
         <div>
-            <HeadingTertiary>{title}</HeadingTertiary>
+            <h3 className="dz-h3">{title}</h3>
             <Paragraph>{note}</Paragraph>
             <input type="file" accept={accept} onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); }} style={{ marginTop: 6, color: "var(--text-default)" }} />
         </div>
@@ -757,6 +757,13 @@ export const settings = definePluginSettings({
         onChange: () => applyVars(),
     },
     textColor: color("textColor", "Text color", "Main text; muted shades are derived from it.", () => !settings.store.customText),
+    unreadRing: {
+        type: OptionType.BOOLEAN,
+        description: "Servers with new messages (no mention) get a line running around their icon instead of Discord's small dot. Mentions keep their badge.",
+        default: true,
+        onChange: () => applyAttrs(),
+    },
+    unreadColor: color("unreadColor", "Unread line color", "The line running around servers with new messages.", () => !settings.store.unreadRing),
     customSelection: {
         type: OptionType.BOOLEAN,
         description: "Use your own color for selected (highlighted) text instead of the primary color.",
@@ -1242,7 +1249,7 @@ const NAMES: Record<string, string> = {
     appBorder: "App border", borderColor: "Border color", borderColor2: "Gradient end", appBorderFile: "Frame picture", appBorderWidth: "Width",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
     autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", ultra: "Ultimate performance mode", pauseUnfocused: "Pause when Discord isn't in front",
-    customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
+    unreadRing: "Unread line around servers", customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
 };
 
 // Only the screen shows in Vencord's own list; each option's "show only when…" rule moves to dzHidden, which the
@@ -1279,7 +1286,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border" | "ultra" | "dvd", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null, ultra: null, dvd: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border" | "ultra" | "dvd" | "unread", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null, ultra: null, dvd: null, unread: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -1335,6 +1342,7 @@ export function applyVars() {
     --dz-embed-2: ${s.embedStyle === "gradient" ? pick("embedColor2") : pick("embedColor")};
     --dz-embed-angle: ${Number(s.embedAngle) || 0}deg;
     --dz-embed-alpha: ${Number(s.embedOpacity) || 40}%;
+    --dz-unread: ${pick("unreadColor")};
 }${embedText(s)}${s.customIcons ? iconVars(pick("iconColor")) : ""}${s.customSelection ? selectionCss(pick("selectionColor")) : ""}`);
 }
 
@@ -1526,6 +1534,8 @@ export function applyAttrs() {
     flag("dzActivities", s.showActivities);
     flag("dzLite", s.lite || s.ultra);
     flag("dzUltra", s.ultra);
+    flag("dzUnreadRing", s.unreadRing);
+    sheet("unread", UNREAD_CSS);
     sheet("ultra", s.ultra ? ULTRA_CSS : "");
     flag("dzQuick", s.quickIcon);
 
@@ -1807,6 +1817,50 @@ export function applyBorder() {
     mask-composite: exclude;
 }`);
 }
+
+/* ---------- unread servers ----------
+   A server with new messages (marked by shapes.ts) gets a line running around its icon: a bright stretch that chases
+   around a faint track, growing and shrinking as it goes (the gummy part), and pops in with a little spring. It
+   uses the mention glow's spot (::after, which only mentioned servers use otherwise). Performance mode, and
+   Discord out of focus, keep it still as a full ring. */
+const UNREAD_CSS = `
+@property --dz-ring-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@property --dz-ring-len { syntax: "<angle>"; inherits: false; initial-value: 90deg; }
+html[data-dz-unread-ring] .guilds__5e434 .listItem__650eb[data-dz-unread] .wrapper__58105 { display: none !important; }
+html[data-dz-plugin][data-dz-unread-ring] .guilds__5e434 .listItem__650eb[data-dz-unread]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: calc(var(--guildbar-avatar-size, 40px) + 8px);
+    height: calc(var(--guildbar-avatar-size, 40px) + 8px);
+    box-sizing: border-box;
+    padding: 2px;
+    border-radius: 34%;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: none;
+    background:
+        conic-gradient(from var(--dz-ring-a), var(--dz-unread) 0deg, var(--dz-unread) var(--dz-ring-len), transparent calc(var(--dz-ring-len) + 40deg), transparent 360deg),
+        color-mix(in srgb, var(--dz-unread) 22%, transparent);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: dz-ring-in 460ms cubic-bezier(.34, 1.7, .5, 1) both, dz-ring-spin 1.1s linear infinite, dz-ring-len 1.1s ease-in-out infinite alternate !important;
+    animation-iteration-count: 1, infinite, infinite !important;
+    will-change: auto;
+}
+html[data-dz-unread-ring] .guilds__5e434 .listItem__650eb[data-dz-unread][data-dz-shape="round"]::after,
+html[data-dz-unread-ring] .guilds__5e434 .listItem__650eb[data-dz-unread]:has([data-list-item-id^="guildsnav___"] img[src*="/avatars/"])::after {
+    border-radius: 50% !important;
+}
+html[data-dz-unread-ring]:is([data-dz-lite], [data-dz-away]) .guilds__5e434 .listItem__650eb[data-dz-unread]::after {
+    background: var(--dz-unread);
+    animation: none !important;
+}
+@keyframes dz-ring-spin { to { --dz-ring-a: 360deg; } }
+@keyframes dz-ring-len { from { --dz-ring-len: 50deg; } to { --dz-ring-len: 170deg; } }
+@keyframes dz-ring-in { from { scale: .7; opacity: 0; } to { scale: 1; opacity: 1; } }`;
 
 /* ---------- ultimate performance mode ----------
    On top of Performance mode: changes on hover and in menus happen at once instead of animating (a 1 ms
@@ -2139,5 +2193,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzUltra", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed", "dzChat"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzUltra", "dzUnreadRing", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed", "dzChat"]) delete d[k];
 }

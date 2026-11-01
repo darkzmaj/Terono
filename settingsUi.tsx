@@ -43,6 +43,7 @@ const TABS: Tab[] = [
             { title: "Selected text", keys: ["customSelection", "selectionColor"] },
             { title: "Icons", keys: ["customIcons", "iconColor"] },
             { title: "Status & window buttons", keys: ["voice", "close", "minimize", "maximize"] },
+            { title: "Unread servers", keys: ["unreadRing", "unreadColor"] },
             { title: "App border", keys: ["appBorder", "borderColor", "borderColor2", "appBorderFile", "appBorderWidth"] },
         ],
     },
@@ -355,6 +356,8 @@ function ensureCss() {
 }
 
 const CSS = `
+/* headings inside settings rows (our own, so Vencord renaming its heading components can't break the build) */
+.dz-h3 { margin: 0 0 4px; font: 600 16px/1.25 var(--font-display, var(--font-primary, "gg sans", sans-serif)); color: var(--header-primary, var(--text-default, #fff)); }
 .dz-set { display: flex; flex-direction: column; gap: 12px; container-type: inline-size; }
 .dz-set-top { display: flex; align-items: center; gap: 12px; }
 .dz-set-ver { flex-shrink: 0; font: 600 12px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
