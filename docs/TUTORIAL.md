@@ -192,7 +192,7 @@ You can combine them freely. For example, Server list **Right** + Channel list s
 
 ### Font & Logo
 
-- **Font:** 70 fonts, each shown in its own style. Search them or pick a group (Clean, Rounded, Geometric, Serif, Display, Handwritten, Mono); **Your own file** uses a `.ttf`, `.otf`, `.woff` or `.woff2` file.
+- **Font:** a dropdown with 70 fonts, each shown in its own style, in groups (Clean, Rounded, Geometric, Serif, Display, Handwritten, Mono); type to search. **Your own font file** uses a `.ttf`, `.otf`, `.woff` or `.woff2` file.
 - **Home logo:** the Terono logo sits on the Home button by default. Set **Logo source** to **URL** and paste a **Logo link**, or to **File** and upload an image. **Logo size** makes it bigger or smaller; an empty link brings the Terono logo back.
 - **Quick settings icon:** the Terono icon next to the arrows that opens these settings.
 - **Terono loading screens:** the Terono logo and "Terono Discord" instead of Discord's logo while Discord starts, updates and connects, in your colors. The small update window ("Checking for updates…") changes from the next start.
@@ -220,8 +220,8 @@ In **Profiles & sharing**:
 - **System → Taskbar:** **Terono icon on the taskbar** (on by default, Windows): Discord's icon on the taskbar, Start menu and desktop shortcuts becomes the Terono logo. Turn it off to get Discord's own icon back.
 - **System → Privacy:** **Count me as a Terono user** (on by default) lets Terono be counted anonymously (see Privacy in the README). Turn it off and nothing is sent.
 - **Tools → Search & friends:**
-  - **Search tools:** a button next to the chat's search bar shows every **picture and video** of the chat as a grid, every **link**, or every **file** (this channel or the whole server). In links, a word finds it *inside* the address: "kori" finds coolify.kori.my. Click anything to jump to its message.
-  - **Blocked button on the friends page:** next to **Add Friend**, everyone you've blocked or ignored, with **Unblock**.
+  - **Search tools:** every **picture** (GIFs included) or every **video** of the chat as a grid (kept apart), every **link**, or every **file** (this channel or the whole server). Open it with the button next to the chat's search bar, or click Discord's own search bar: under its filters there's a **Terono** group with Pictures, Videos, Links and Files. In links, a word finds it *inside* the address: "kori" finds coolify.kori.my. Click anything to jump to its message.
+  - **Blocked button on the friends page:** right after **Pending**, before **Add Friend**: everyone you've blocked or ignored, with **Unblock**.
 - **Tools → Shortcuts:**
   - **Bulk select with Ctrl:** hold **Ctrl** and click servers, DMs or friends to select several (they get a colored outline). Then **right-click any of them**: it's Discord's normal menu with *For all N servers* on top, and whatever you pick (mark as read, mute for a time, notification settings, hide muted channels, leave, close DM, remove friend, block, …) is done to all of them. Leaving, removing and blocking ask once for all. **Esc** clears the selection.
   - **Double-click Home: read all** marks every server and DM as read.
@@ -240,11 +240,11 @@ In **Calls & overlay**:
 
 In **Your profile** (connect with Discord once, like for badges):
 
-- **Your name:** one of Discord's name fonts, an **effect** (Solid, Gradient, Neon, Toon, Pop, Glow, Prism, Gummy) and one or two **colors**.
-- **Avatar decoration**, **Nameplate**, **Profile effect**, **Profile frame:** pick any of them from Discord's whole shop (search by name or collection).
+- **Your name:** a **font** (each shown with your name in it), an **effect** (Solid, Gradient, Neon, Toon, Pop, Glow, Prism, Gummy) and one or two **colors**.
+- **Decoration**, **Nameplate**, **Effect**, **Frame:** a dropdown each with Discord's whole shop, with pictures; type to search by name or collection. **None** removes it.
 - **Profile card:** two colors (your card's gradient everywhere: profiles, popouts and your own account popout), and a **banner** picture or GIF. Pictures open in a crop window like Discord's: drag to move, zoom with the slider or mouse wheel. A GIF can be kept whole so it stays animated.
 
-Each chosen item has a **✕** to remove it, **Remove name style** clears your name's font, effect and colors, and **Remove everything** starts over. Your own name and avatar show the changes right away; **Save** shows them to everyone with Terono, in chat, the member list, profiles and calls. People without Terono see your normal profile.
+Everything applies the moment you change it: on your own name, avatar and profile at once, and for everyone with Terono (in chat, the member list, profiles and calls) a second later. There's no Save button; the line at the bottom says **All changes saved**. **Remove name style** clears your name's font, effect and colors, and **Remove everything** starts over. People without Terono see your normal profile.
 
 ### People & avatars
 
@@ -271,6 +271,10 @@ Everyone who uses Terono sees your changes right away, on the profile and in Dis
 
 Terono's moving effects (animated background, liquid glass) take a new position twice a second and your graphics card glides smoothly in between, so Discord itself stays free for clicks, scrolling and streams. While Discord isn't the active window, e.g. while you play, they stop completely (**System → Pause when Discord isn't in front**, on by default), and they hold still while a stream or camera plays. Liquid glass can also be **Still** (Flow speed).
 
+**Terono off, Discord as it is:** **System → Turn Terono's features off** removes everything Terono changes (look, badges, profile looks, tools, shortcuts) at once, while Terono stays installed, keeps updating, and its settings and plugin hub keep working. The other way round, **Plugins → Turn all other plugins off** keeps Terono and parks every other plugin; **Turn them back on** brings exactly those back.
+
+**Screenshares:** without Nitro, Discord sends your screenshare at up to 720p and 30 fps. Higher settings (FakeNitro's quality bypass makes them selectable) can come out choppy or delayed for the people watching; Troubleshooting tells you and sets 720p 30 fps with one click.
+
 On a slow PC or a laptop on battery, turn on **Performance mode** (System). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
 
 - **Background** set to **Static gradient** or **Solid color**, instead of Animated or a GIF/video.
@@ -294,7 +298,7 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (System). It s
 
 ## 9. Troubleshooting
 
-**Start here:** **System → Troubleshooting** checks the usual causes one by one (theme loaded, other themes or QuickCSS in the way, start-up errors, Discord changes, the Terono server, updates, start-up time) and has a fix button next to everything Terono can fix itself (**Fix all** does them at once). **Clear Terono caches** and **Restart Discord** are there too.
+**Start here:** **System → Troubleshooting** checks the usual causes one by one (theme loaded, other themes or QuickCSS in the way, start-up errors, Discord changes, the Terono server, updates, start-up time, and screenshare settings your account can't carry) and has a fix button next to everything Terono can fix itself (**Fix all** does them at once). **Clear Terono caches** and **Restart Discord** are there too.
 
 **Still broken?** Click **Send report**: you get a short code (like `4FL5YEGT`, also copied). Give it to darkzmaj at **[darkzmaj.eu](https://darkzmaj.eu)**, who opens your report with it. It lists your Terono, Vencord and Discord versions, the checks and your Terono settings (no messages, names or account details). **Copy report** gives you the same text to paste yourself.
 

@@ -23,7 +23,7 @@ import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
 import { BULK_CSS, startBulk, stopBulk } from "./bulk";
 import { CALL_CSS, startCall, stopCall } from "./call";
-import { AVATAR_CSS, bannerHook, personMenu, profileHook, startCosmetics, stopCosmetics } from "./cosmetics";
+import { AVATAR_CSS, bannerHook, COSMETICS_CSS, personMenu, profileHook, startCosmetics, stopCosmetics } from "./cosmetics";
 import { recordError, safely, startupTimes } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
@@ -33,7 +33,7 @@ import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview"
 import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
 import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
 import themeStyle from "./theme/Terono.theme.css?managed";
-import { startTools, stopTools } from "./tools";
+import { startTools, stopTools, TOOLS_CSS } from "./tools";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
 import { applyUsage, startUsage, stopUsage } from "./usage";
 import { VERSION } from "./version";
@@ -207,7 +207,9 @@ const ROLE_COUNT: Record<string, (n: string) => string> = {
 const ROLE_COUNT_PATHS = ["plugins.Terono.roleCount", "plugins.Terono.roleCountCustom"] as any[];
 
 function RoleCount({ count }: { count: string; }) {
-    useSettings(ROLE_COUNT_PATHS);
+    useSettings([...ROLE_COUNT_PATHS, "plugins.Terono.teronoOff"]);
+    // Terono's features off: Discord's own "— 12"
+    if (!featuresOn) return <span>{"\xa0\u2014 "}{count}</span>;
     const { roleCount, roleCountCustom } = settings.store;
     const text = roleCount === "custom"
         ? (roleCountCustom.includes("%users%") ? roleCountCustom.replaceAll("%users%", count) : "")
@@ -267,15 +269,77 @@ function setTaskbarIcon(on: boolean) {
    Every apply step skips work when its output is unchanged, so this stays cheap. */
 
 let pendingApply = 0;
-function onSettingsChange(value: unknown, path: string) {
-    if (path === "plugins.Terono.accentPreset" && typeof value === "string" && ACCENTS[value]) settings.store.accent = ACCENTS[value];
+function onSettingsChange(_root: unknown, path: string) {
+    // (the first argument is the whole settings object, not the changed value)
+    if (path === "plugins.Terono.teronoOff") {
+        if (settings.store.teronoOff) stopFeatures(); else void startFeatures();
+        return;
+    }
+    if (path === "plugins.Terono.accentPreset" && ACCENTS[settings.store.accentPreset]) settings.store.accent = ACCENTS[settings.store.accentPreset];
     if (path === "plugins.Terono.shareUsage") applyUsage();
-    if (path === "plugins.Terono.taskbarIcon") setTaskbarIcon(value !== false);
-    if (!path.startsWith("plugins.Terono.") || pendingApply) return;
+    if (path === "plugins.Terono.taskbarIcon") setTaskbarIcon(settings.store.taskbarIcon !== false);
+    if (!featuresOn || !path.startsWith("plugins.Terono.") || pendingApply) return;
     pendingApply = requestAnimationFrame(() => {
         pendingApply = 0;
         safely("apply", applyAll);
     });
+}
+
+/* ================= Terono's features: on or off =================
+   Everything Terono changes in Discord (the theme, colors and layout, badges, profile looks, tools, shortcuts,
+   menus, the overlay). Off, Discord looks and works like Discord, while the Terono settings, the plugin hub and
+   updates keep working. Turning them on or off takes effect at once. */
+
+let featuresOn = false;
+
+async function startFeatures() {
+    if (featuresOn) return;
+    featuresOn = true;
+    safely("theme", useBuiltInTheme); // first, so the look is there on the first frame
+    try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
+    safely("motion", () => {
+        setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra);
+        startMotion();
+    });
+    safely("apply", applyAll);
+    safely("darkerPalette", applyDarkerPalette);
+    safely("logo", loadUploadedLogo);
+    safely("files", loadStoredFiles);
+    safely("branding", startBranding);
+    safely("shapes", startShapes);
+    safely("bulk", startBulk);
+    safely("calls", startCall);
+    safely("cosmetics", startCosmetics);
+    safely("tools", startTools);
+    safely("badges", startBadges); // before the creator badge, which then shows first
+    safely("creatorBadges", () => {
+        addProfileBadge(creatorBadge);
+        addProfileBadge(vrocaBadge);
+    });
+    // the search window, the Blocked list and the person editor can open before the settings screen ever did
+    badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS });
+    document.head.append(badgeStyle);
+    safely("menus", () => addGlobalContextMenuPatch(menuPatch));
+    safely("personMenu", () => addContextMenuPatch("user-context", personMenu));
+    document.addEventListener("click", onDocClick, true);
+    safely("channelKind", () => syncChannelKind(SelectedChannelStore.getChannelId()));
+}
+
+function stopFeatures() {
+    if (!featuresOn) return;
+    featuresOn = false;
+    const quietly = (name: string, f: () => void) => { try { f(); } catch (e) { recordError(`stop ${name}`, e); } };
+    quietly("menus", () => removeGlobalContextMenuPatch(menuPatch));
+    quietly("personMenu", () => removeContextMenuPatch("user-context", personMenu));
+    quietly("creatorBadges", () => { removeProfileBadge(creatorBadge); removeProfileBadge(vrocaBadge); });
+    quietly("badges", stopBadges);
+    badgeStyle?.remove();
+    badgeStyle = null;
+    document.removeEventListener("click", onDocClick, true);
+    for (const [name, f] of [["header", detachHeader], ["preview", cancelPreview], ["motion", stopMotion], ["branding", stopBranding], ["shapes", stopShapes],
+        ["bulk", stopBulk], ["calls", stopCall], ["cosmetics", stopCosmetics], ["tools", stopTools], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
+        ["apply", removeAll]] as [string, () => void][]) quietly(name, f);
+    disableStyle(themeStyle);
 }
 
 /* ================= migration from earlier versions ================= */
@@ -456,20 +520,21 @@ export default definePlugin({
         },
     },
 
-    showActivities: () => settings.store.showActivities,
-    profileHook,
-    bannerHook,
-    namesEverywhere: () => settings.store.namesEverywhere,
+    // the patches stay in Discord's code; with Terono's features off they hand back what Discord had
+    showActivities: () => !featuresOn || settings.store.showActivities,
+    profileHook: (p: any) => featuresOn ? profileHook(p) : p,
+    bannerHook: (d: any) => featuresOn ? bannerHook(d) : undefined,
+    namesEverywhere: () => featuresOn && settings.store.namesEverywhere,
     // for troubleshooting from the console: Vencord.Plugins.plugins.Terono.startupTimes()
     startupTimes,
     applyTimes,
     overlayAction,
-    connectionIcon,
+    connectionIcon: (platform: any, account: any) => featuresOn ? connectionIcon(platform, account) : platform?.icon?.lightPNG,
     connectionIconLoaded,
     RoleCount,
 
     // auto-translate is off by default: then no per-message hook at all (thousands of messages on big servers)
-    renderMessageAccessory: props => settings.store.autoTranslate ? <AutoTranslate message={props.message} /> : null,
+    renderMessageAccessory: props => featuresOn && settings.store.autoTranslate ? <AutoTranslate message={props.message} /> : null,
 
     // theme presets, also reachable from the console: Vencord.Plugins.plugins.Terono.applyPresetById("crimson")
     presets: PRESETS,
@@ -482,70 +547,26 @@ export default definePlugin({
     // every step on its own: one that fails (a Discord update, an unusual setup) is recorded for the debug info
     // and the rest still starts, instead of the whole look silently not applying
     async start() {
-        safely("theme", useBuiltInTheme); // first, so the look is there on the first frame
         try { await migrate(); } catch (e) { recordError("migrate", e); }
-        try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
-        safely("motion", () => {
-            setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra);
-            startMotion();
-        });
-        safely("apply", applyAll);
-        safely("darkerPalette", applyDarkerPalette);
-        safely("logo", loadUploadedLogo);
-        safely("files", loadStoredFiles);
-        safely("branding", startBranding);
-        safely("shapes", startShapes);
-        safely("bulk", startBulk);
-        safely("calls", startCall);
-        safely("cosmetics", startCosmetics);
-        safely("tools", startTools);
+        // the core: settings, updates, the plugin hub, the user count; everything else is Terono's features, which
+        // can be turned off on their own (System -> Terono) and come back without a restart
         SettingsStore.addGlobalChangeListener(onSettingsChange);
-        safely("badges", startBadges); // before the creator badge, which then shows first
+        document.addEventListener("keydown", onKeyDown, true); // Ctrl + 1: the settings, also with the features off
+        if (!settings.store.teronoOff) await startFeatures();
+        else disableStyle(themeStyle);
         safely("usage", () => startUsage(() => settings.store.shareUsage));
         safely("taskbarIcon", () => setTaskbarIcon(settings.store.taskbarIcon));
-        safely("creatorBadges", () => {
-            addProfileBadge(creatorBadge);
-            addProfileBadge(vrocaBadge);
-        });
-        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS });
-        document.head.append(badgeStyle);
-        safely("menus", () => addGlobalContextMenuPatch(menuPatch));
-        safely("personMenu", () => addContextMenuPatch("user-context", personMenu));
-        document.addEventListener("click", onDocClick, true);
-        document.addEventListener("keydown", onKeyDown, true);
-        safely("channelKind", () => syncChannelKind(SelectedChannelStore.getChannelId()));
-
         safely("updated", () => announceUpdated(settings.store.lastVersion));
         settings.store.lastVersion = VERSION;
         safely("updates", () => startAutoCheck(() => settings.store.autoUpdateCheck, () => settings.store.autoUpdate));
     },
 
     stop() {
-        removeGlobalContextMenuPatch(menuPatch);
-        removeContextMenuPatch("user-context", personMenu);
+        stopFeatures();
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
-        removeProfileBadge(creatorBadge);
-        removeProfileBadge(vrocaBadge);
-        stopUsage();
-        stopBadges();
-        setTaskbarIcon(false);
-        badgeStyle?.remove();
-        badgeStyle = null;
-        document.removeEventListener("click", onDocClick, true);
         document.removeEventListener("keydown", onKeyDown, true);
-        detachHeader();
+        stopUsage();
+        setTaskbarIcon(false);
         stopAutoCheck();
-        cancelPreview();
-        stopMotion();
-        stopBranding();
-        stopShapes();
-        stopBulk();
-        stopCall();
-        stopCosmetics();
-        stopTools();
-        stopOverlay();
-        forgetOverlay();
-        removeAll();
-        safely("theme", leaveThemeLink);
-    },
+        safely("theme", leaveThemeLink); },
 });

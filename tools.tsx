@@ -25,7 +25,8 @@ const RelationshipActions = findByPropsLazy("unblockUser", "removeFriend");
 
 /* ================= search tools ================= */
 
-type Mode = "media" | "links" | "files";
+type Mode = "pictures" | "videos" | "links" | "files";
+const MODES: [Mode, string][] = [["pictures", "Pictures"], ["videos", "Videos"], ["links", "Links"], ["files", "Files"]];
 interface Hit { key: string; msg: string; channel: string; guild?: string; author: string; time: string; url: string; thumb?: string; video?: boolean; name?: string; size?: number; host?: string; }
 
 const PAGE = 25;
@@ -56,15 +57,21 @@ async function searchPage(url: string, query: Record<string, unknown>, offset: n
 function hitsOf(m: any, mode: Mode, guild?: string): Hit[] {
     const base = { msg: m.id, channel: m.channel_id, guild, author: m.author?.global_name || m.author?.username || "", time: m.timestamp };
     const out: Hit[] = [];
-    if (mode === "media") {
+    // pictures (GIFs included) and videos are kept apart: each tab shows only its own kind
+    if (mode === "pictures") {
         for (const a of m.attachments ?? []) {
-            const ct = a.content_type ?? "";
-            if (ct.startsWith("image/") || ct.startsWith("video/")) out.push({ ...base, key: a.id, url: a.url, thumb: ct.startsWith("video/") ? a.proxy_url : `${a.proxy_url}${a.proxy_url.includes("?") ? "&" : "?"}width=240&height=240`, video: ct.startsWith("video/"), name: a.filename });
+            if ((a.content_type ?? "").startsWith("image/")) out.push({ ...base, key: a.id, url: a.url, thumb: `${a.proxy_url}${a.proxy_url.includes("?") ? "&" : "?"}width=240&height=240`, name: a.filename });
         }
         for (const [i, e] of (m.embeds ?? []).entries()) {
             const img = e.image ?? e.thumbnail;
-            if (e.video?.proxy_url || (e.type === "gifv" && e.video)) out.push({ ...base, key: `${m.id}-e${i}`, url: e.url ?? e.video.url, thumb: img?.proxy_url, video: !img, name: e.title ?? "" });
-            else if (img?.proxy_url && (e.type === "image" || e.type === "gifv")) out.push({ ...base, key: `${m.id}-e${i}`, url: e.url ?? img.url, thumb: img.proxy_url, name: e.title ?? "" });
+            if (img?.proxy_url && (e.type === "image" || e.type === "gifv")) out.push({ ...base, key: `${m.id}-e${i}`, url: e.url ?? img.url, thumb: img.proxy_url, name: e.title ?? "" });
+        }
+    } else if (mode === "videos") {
+        for (const a of m.attachments ?? []) {
+            if ((a.content_type ?? "").startsWith("video/")) out.push({ ...base, key: a.id, url: a.url, thumb: a.proxy_url, video: true, name: a.filename });
+        }
+        for (const [i, e] of (m.embeds ?? []).entries()) {
+            if (e.type !== "gifv" && (e.type === "video" || e.video?.url)) out.push({ ...base, key: `${m.id}-e${i}`, url: e.url ?? e.video.url, thumb: e.thumbnail?.proxy_url ?? e.video?.proxy_url, video: true, name: e.title ?? "" });
         }
     } else if (mode === "files") {
         for (const a of m.attachments ?? []) if (!/^(image|video)\//.test(a.content_type ?? "")) out.push({ ...base, key: a.id, url: a.url, name: a.filename, size: a.size });
@@ -79,7 +86,7 @@ function hitsOf(m: any, mode: Mode, guild?: string): Hit[] {
     return out;
 }
 
-const HAS: Record<Mode, string[]> = { media: ["image", "video"], links: ["link"], files: ["file"] };
+const HAS: Record<Mode, string[]> = { pictures: ["image"], videos: ["video"], links: ["link"], files: ["file"] };
 
 function SearchTools({ channelId, initial, close }: { channelId: string; initial: Mode; close(): void; }) {
     const c = ChannelStore.getChannel(channelId);
@@ -101,7 +108,9 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
         let found = 0;
         try {
             // without a keyword one page at a time ("Load more"); with one, keep reading until something is found or it ends
-            for (let pages = 0; pages < (w ? 40 : 2); pages++) {
+            // Discord's has:file also matches pictures and videos, which the Files tab leaves out: keep reading like for a keyword
+            const deep = !!w || mode === "files";
+            for (let pages = 0; pages < (deep ? 40 : 2); pages++) {
                 const { total, messages } = await searchPage(url, { ...query, has: HAS[mode] }, offset);
                 if (id !== run.current) return;
                 offset += messages.length;
@@ -110,7 +119,7 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
                 setHits(h => { const keys = new Set(h.map(x => x.key)); return [...h, ...add.filter(x => !keys.has(x.key))]; });
                 const done = !messages.length || offset >= total || offset >= 9975;
                 setState(s => ({ ...s, seen: offset, total, done }));
-                if (done || (!w && pages >= 0 && found >= PAGE) || (w && found >= 60)) break;
+                if (done || (!deep && found >= PAGE) || (deep && found >= (w ? 60 : PAGE))) break;
                 await sleep(400);
             }
         } catch (e: any) {
@@ -127,8 +136,8 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
     return (
         <div className="dz-st">
             <div className="dz-st-bar">
-                {(["media", "links", "files"] as Mode[]).map(m => (
-                    <button key={m} className={`dz-chip ${mode === m ? "dz-on" : ""}`} onClick={() => setMode(m)}>{m === "media" ? "Pictures & videos" : m === "links" ? "Links" : "Files"}</button>
+                {MODES.map(([m, label]) => (
+                    <button key={m} className={`dz-chip ${mode === m ? "dz-on" : ""}`} onClick={() => setMode(m)}>{label}</button>
                 ))}
                 <span className="dz-grow" />
                 {c?.guild_id && (
@@ -139,15 +148,15 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
                 )}
             </div>
             <div className="dz-st-bar">
-                <input className="dz-input dz-grow" placeholder={mode === "links" ? "Search inside links, e.g. kori (finds coolify.kori.my)" : mode === "files" ? "Search file names" : "Search file names or links"}
+                <input className="dz-input dz-grow" placeholder={mode === "links" ? "Search inside links, e.g. kori (finds coolify.kori.my)" : mode === "files" ? "Search file names" : `Search ${mode === "videos" ? "video" : "picture"} names or links`}
                     value={q} onChange={e => setQ(e.currentTarget.value)} onKeyDown={e => { if (e.key === "Enter") load(true); }} />
                 <Button size="small" onClick={() => load(true)}>Search</Button>
             </div>
 
-            {mode === "media"
+            {mode === "pictures" || mode === "videos"
                 ? <div className="dz-st-grid">{hits.map(h => (
                     <button key={h.key} className="dz-st-media" title={`${h.author} · ${when(h.time)}${h.name ? ` · ${h.name}` : ""}`} onClick={() => jump(h)}>
-                        {h.video && !h.thumb?.match(/\.(png|jpe?g|webp|gif)/i) ? <video src={h.thumb ?? h.url} muted preload="metadata" /> : <img src={h.thumb} alt="" loading="lazy" />}
+                        {h.video && !h.thumb?.match(/\.(png|jpe?g|webp|gif)(\?|$)/i) ? <video src={h.thumb ?? h.url} muted preload="metadata" /> : <img src={h.thumb} alt="" loading="lazy" />}
                         {h.video && <span className="dz-st-play">▶</span>}
                     </button>
                 ))}</div>
@@ -171,7 +180,7 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
     );
 }
 
-export function openSearchTools(mode: Mode = "media") {
+export function openSearchTools(mode: Mode = "pictures") {
     const channelId = SelectedChannelStore.getChannelId();
     if (!channelId) return toast("Open a chat first.", "message");
     openModal(props => (
@@ -246,9 +255,10 @@ function ensureButtons() {
         search.before(b);
     } else if (!search) have?.remove();
 
-    // friends page: after "Add Friend"
+    // friends page: right after the last tab (Pending), before "Add Friend"
     const add = s.blockedButton ? document.querySelector<HTMLElement>(".tabBar__133bf .addFriend__133bf") : null;
     const blocked = document.querySelector(".dz-blocked-btn");
+    if (add && blocked && blocked.nextElementSibling !== add) add.before(blocked);
     if (add && !blocked) {
         const sample = add.parentElement?.querySelector<HTMLElement>(".item__133bf:not(.addFriend__133bf)");
         const b = document.createElement("div");
@@ -257,22 +267,107 @@ function ensureButtons() {
         b.tabIndex = 0;
         b.textContent = "Blocked";
         b.onclick = openBlocked;
-        add.after(b);
+        b.onkeydown = e => { if (e.key === "Enter") openBlocked(); };
+        add.before(b);
     } else if (!add) blocked?.remove();
 }
+
+/* ---------- inside Discord's own search ----------
+   Clicking Discord's search box opens its filter list (from:, has:, mentions:, …). A "Terono" group is added under
+   it with Pictures, Videos, Links and Files, which open the search above on that tab. It copies the classes of
+   Discord's own rows, so it looks like part of the list. */
+
+const MODE_ICONS: Record<Mode, string> = {
+    pictures: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0",
+    videos: "M3 6h13v12H3zM16 10l5-3v10l-5-3",
+    links: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+    files: "M6 3h8l4 4v14H6zM14 3v4h4",
+};
+
+const MODE_NOTES: Record<Mode, string> = {
+    pictures: "every picture and GIF in this chat",
+    videos: "every video in this chat",
+    links: "every link, and search inside them",
+    files: "every other file in this chat",
+};
+
+function injectSearchGroup() {
+    if (!settings.store.searchTools) return false;
+    const list = [...document.querySelectorAll<HTMLElement>('[class*="layer_"] ul[class*="groupWrapper_"]')].find(u => u.querySelector('[class*="item_"]'));
+    if (!list) return false;
+    const container = list.parentElement!;
+    if (container.querySelector(".dz-sx")) return true;
+    const header = list.querySelector<HTMLElement>('[class*="groupHeader_"]');
+    const itemWrap = list.querySelector<HTMLElement>('[class*="itemContainer_"]');
+    const item = itemWrap?.querySelector<HTMLElement>('[class*="item_"]');
+    const group = document.createElement("ul");
+    group.className = `${list.className} dz-sx`;
+    group.setAttribute("aria-label", "Terono");
+    const h = document.createElement("div");
+    h.className = `${header?.className ?? ""} dz-sx-head`;
+    h.textContent = "Terono";
+    group.append(h);
+    for (const [mode, label] of MODES) {
+        const wrap = document.createElement("div");
+        wrap.className = itemWrap?.className ?? "";
+        const row = document.createElement("div");
+        row.className = `${item?.className ?? ""} dz-sx-item`;
+        row.setAttribute("role", "button");
+        row.tabIndex = -1;
+        row.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${MODE_ICONS[mode]}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="dz-sx-label">${label}</div><div class="dz-sx-sub">${MODE_NOTES[mode]}</div></div>`;
+        // mousedown: before the search box loses focus and Discord closes the list
+        row.addEventListener("mousedown", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            (document.activeElement as HTMLElement | null)?.blur?.();
+            openSearchTools(mode);
+        });
+        wrap.append(row);
+        group.append(wrap);
+    }
+    list.after(group);
+    return true;
+}
+
+// the list appears a moment after the box is clicked and is rebuilt while typing: look for it briefly then
+let sxTries = 0;
+let sxTimer = 0;
+function watchSearchList() {
+    clearTimeout(sxTimer);
+    sxTries = 0;
+    const tick = () => { injectSearchGroup(); if (++sxTries < 20) sxTimer = window.setTimeout(tick, 100); };
+    tick();
+}
+const isSearchBox = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('[class*="toolbar_"] [class*="search_"]');
+const onSearchFocus = (e: Event) => { if (isSearchBox(e.target)) watchSearchList(); };
 
 let timer = 0;
 
 export function startTools() {
     timer = window.setInterval(ensureButtons, 1000);
+    document.addEventListener("focusin", onSearchFocus, true);
+    document.addEventListener("input", onSearchFocus, true);
+    document.addEventListener("mouseup", onSearchFocus, true);
 }
 
 export function stopTools() {
+    document.removeEventListener("focusin", onSearchFocus, true);
+    document.removeEventListener("input", onSearchFocus, true);
+    document.removeEventListener("mouseup", onSearchFocus, true);
+    clearTimeout(sxTimer);
+    document.querySelectorAll(".dz-sx").forEach(e => e.remove());
     clearInterval(timer);
     document.querySelectorAll(".dz-st-btn, .dz-blocked-btn").forEach(e => e.remove());
 }
 
 export const TOOLS_CSS = `
+.dz-sx { border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); margin-top: 4px; padding-top: 4px; }
+.dz-sx-head { font: 600 12px/16px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
+.dz-sx-item { cursor: pointer; display: flex; align-items: center; gap: 12px; }
+.dz-sx-item:hover { background: var(--background-modifier-hover, rgb(255 255 255 / 6%)); }
+.dz-sx-item svg { flex: none; color: var(--interactive-normal, var(--text-muted, #aaa)); }
+.dz-sx-label { font: 500 14px/18px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, var(--text-normal, #fff)); }
+.dz-sx-sub { font: 500 14px/18px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
 .dz-st { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; }
 .dz-st-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .dz-st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; max-height: 58vh; overflow-y: auto; }

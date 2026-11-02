@@ -66,7 +66,9 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 **Tools**
 - **Search** every setting and plugin from one box.
 - **Pictures, links and files** of a chat in one click (next to the search bar). Search *inside* links: "kori" finds coolify.kori.my.
-- **Blocked** button on the friends page, with everyone you've blocked or ignored.
+- **Blocked** button on the friends page (after Pending), with everyone you've blocked or ignored.
+- Search a chat's **pictures**, **videos**, **links** or **files**, from a button or right inside Discord's search.
+- **Turn Terono's features off** and use Discord as it is (plugins and updates keep working), or keep Terono and park every other plugin.
 - **Plugins:** every Vencord plugin by category, switched on and off instantly.
 - **Bulk mode:** hold Ctrl and click servers, DMs or friends, then right-click one: everything in Discord's menu is done to all of them. Double-click Home to read everything.
 - **Profiles:** save everything or only parts (look, layout, features, or pick sections), switch between them, and **share them as a code** (`a//$//K//…`) anyone can paste.

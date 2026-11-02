@@ -16,6 +16,7 @@ import { IconSwaps } from "./branding";
 import { applyAmbient } from "./call";
 import { MyLookPanel, PeoplePanel } from "./cosmetics";
 import { DebugInfo } from "./diagnostics";
+import { DdOption, Dropdown } from "./dropdown";
 import { DVD_CSS, startDvd, stopDvd } from "./dvd";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
@@ -196,34 +197,15 @@ function LogoUpload() {
 const FONT_PATH = ["plugins.Terono.font"] as any[];
 
 function FontPicker() {
-    const groups = ["All", ...new Set(FONT_LIST.map(f => f[2]))];
     useSettings(FONT_PATH);
-    const current = settings.store.font;
-    const [q, setQ] = useState("");
-    const [group, setGroup] = useState("All");
     useEffect(loadFontPreviews, []);
-    const w = q.trim().toLowerCase();
-    const shown = FONT_LIST.filter(([k, f, g]) => (group === "All" || g === group) && (!w || `${f} ${FONT_LABELS[k] ?? ""} ${g}`.toLowerCase().includes(w)));
-    const pick = (v: string) => { settings.store.font = v; applyFont(); };
-
+    const options: DdOption[] = [
+        { value: "custom", label: "Your own font file", sub: "upload it below", group: "Yours" },
+        ...FONT_LIST.map(([value, family, group]) => ({ value, label: FONT_LABELS[value] ?? family, sub: "The quick brown fox 123", style: { fontFamily: fontStack(value) }, group })),
+    ];
     return (
         <div className="dz-fontpick">
-            <div className="dz-fontpick-bar">
-                <input className="dz-input dz-grow" placeholder={`Search ${FONT_LIST.length} fonts`} value={q} onChange={e => setQ(e.currentTarget.value)} />
-                <button className={`dz-chip ${current === "custom" ? "dz-on" : ""}`} onClick={() => pick("custom")}>Your own file</button>
-            </div>
-            <div className="dz-prof-chips">
-                {groups.map(g => <button key={g} className={`dz-chip ${group === g ? "dz-on" : ""}`} onClick={() => setGroup(g)}>{g}</button>)}
-            </div>
-            <div className="dz-fonts" role="radiogroup" aria-label="Font">
-                {shown.map(([value, family]) => (
-                    <button key={value} role="radio" aria-checked={current === value} className="dz-font" style={{ fontFamily: fontStack(value) }} onClick={() => pick(value)}>
-                        <span className="dz-font-name">{FONT_LABELS[value] ?? family}</span>
-                        <span className="dz-font-sample">The quick brown fox 123</span>
-                    </button>
-                ))}
-                {shown.length === 0 && <p className="dz-look-note">No font matches.</p>}
-            </div>
+            <Dropdown ariaLabel="Font" value={settings.store.font} options={options} onChange={v => { settings.store.font = v; applyFont(); }} />
         </div>
     );
 }
@@ -1149,6 +1131,13 @@ export const settings = definePluginSettings({
         onChange: () => applyHeader(),
     },
 
+    /* --- Terono on / off --- */
+    teronoOff: {
+        type: OptionType.BOOLEAN,
+        description: "Turn off everything Terono changes in Discord (its look, badges, profile looks, tools and shortcuts) and use Discord as it is, with your Vencord plugins. Terono stays installed, keeps updating, and its settings and plugin hub stay here. Turn it back on any time: it applies at once.",
+        default: false,
+    },
+
     /* --- performance --- */
     lite: {
         type: OptionType.BOOLEAN,
@@ -1248,7 +1237,7 @@ const NAMES: Record<string, string> = {
     showActivities: "Show activities", chatSides: "Message sides",
     appBorder: "App border", borderColor: "Border color", borderColor2: "Gradient end", appBorderFile: "Frame picture", appBorderWidth: "Width",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
-    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", ultra: "Ultimate performance mode", pauseUnfocused: "Pause when Discord isn't in front",
+    teronoOff: "Turn Terono's features off", autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", ultra: "Ultimate performance mode", pauseUnfocused: "Pause when Discord isn't in front",
     unreadRing: "Unread line around servers", customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
 };
 

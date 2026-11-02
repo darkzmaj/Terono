@@ -106,6 +106,7 @@ const TABS: Tab[] = [
     {
         id: "system", section: "Terono", label: "System", icon: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1-.7-.5-1.3 1-2-2.1-2.1-2 1-1.3-.5L12 3h-1l-.7 2.1-1.3.5-2-1L4.9 6.8l1 2-.5 1.3L3 11v2l2.1.7.5 1.3-1 2 2.1 2.1 2-1 1.3.5L11 21h2l.7-2.1 1.3-.5 2 1 2.1-2.1-1-2 .5-1.3L21 13v-1Z",
         groups: [
+            { title: "Terono", keys: ["teronoOff"] },
             { title: "Troubleshooting", keys: ["debugInfo"] },
             { title: "Performance", keys: ["lite", "ultra", "pauseUnfocused"] },
             { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
@@ -152,6 +153,12 @@ export function TeronoSettings() {
                 />
                 <span className="dz-set-ver" title="Updates are in System">Terono {VERSION}</span>
             </div>
+            {settings.store.teronoOff && (
+                <div className="dz-set-off" role="status">
+                    <span><b>Terono's features are off.</b> Discord looks and works like Discord; your plugins, updates and these settings still work.</span>
+                    <Button size="small" onClick={() => { settings.store.teronoOff = false; }}>Turn on</Button>
+                </div>
+            )}
             <div className="dz-set-main">
                 <nav className="dz-set-nav" role="tablist" aria-orientation="vertical">
                     {SECTIONS.map(sec => (
@@ -388,6 +395,9 @@ const CSS = `
 /* Discord's modal body is a sideways scroll box, which keeps the tab list from staying put; clip doesn't */
 .bodyInner__8a031:has(.dz-set) { overflow: clip !important; }
 .dz-set-top { flex-wrap: wrap; }
+.dz-set-off { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4;
+    color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-accent, #429cff) 12%, transparent); border: 1px solid color-mix(in srgb, var(--dz-accent, #429cff) 35%, transparent); }
+.dz-set-off > span { flex: 1 1 260px; }
 .dz-set-top > .dz-set-search { flex: 1 1 220px; width: auto; }
 /* short windows: the room goes to the settings, not to Vencord's plugin description and author list */
 @media (max-height: 820px) {
@@ -451,6 +461,9 @@ const CSS = `
 .dz-debug p { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted, #aaa); }
 
 .dz-hub-bar { display: flex; flex-direction: column; gap: 10px; }
+.dz-hub-bulk { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4;
+    color: var(--text-muted, #aaa); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
+.dz-hub-bulk > span { flex: 1 1 240px; }
 .dz-hub-search { width: 100%; box-sizing: border-box; height: 40px; padding: 0 14px; border-radius: 12px; font: 500 15px var(--font-primary, "gg sans", sans-serif);
     color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);
     border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 10%, transparent); outline: none; transition: border-color 140ms ease; }

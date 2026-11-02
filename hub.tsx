@@ -6,6 +6,7 @@
 
 import { hasAnyVisibleSettings, isPluginEnabled, pluginRequiresRestart, plugins, startDependenciesRecursive, startPlugin, stopPlugin } from "@api/PluginManager";
 import { Settings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { Switch } from "@components/Switch";
 import { Plugin } from "@utils/types";
@@ -148,8 +149,31 @@ const FILTERS = ["All", "Recommended", "On", ...CATEGORIES.map(([c]) => c), OTHE
 let allCache: Plugin[] | null = null;
 export const listedPlugins = () => allCache ??= Object.values(plugins).filter(listed).sort((a, b) => a.name.localeCompare(b.name));
 
+/* ================= all other plugins off / back on =================
+   Terono without any other plugin: the ones that were on are remembered (in Terono's settings) so one click brings
+   exactly those back. Plugins that patch Discord's code change after a restart, like when switched one by one. */
+
+const PARKED_KEY = "parkedPlugins";
+const parked = (): string[] => { try { return JSON.parse((Settings.plugins.Terono as any)[PARKED_KEY] || "[]"); } catch { return []; } };
+
+function parkAll() {
+    const on = listedPlugins().filter(p => isPluginEnabled(p.name));
+    if (!on.length) return toast("No other plugins are on.", "message");
+    (Settings.plugins.Terono as any)[PARKED_KEY] = JSON.stringify(on.map(p => p.name));
+    for (const p of on) toggle(p);
+    toast(`${on.length} plugins turned off. ${pluginsWaitingForRestart().length ? "Some change after a restart (System -> Updates)." : ""}`, "success");
+}
+
+function unparkAll() {
+    const names = parked();
+    for (const name of names) { const p = plugins[name]; if (p && !isPluginEnabled(name)) toggle(p); }
+    (Settings.plugins.Terono as any)[PARKED_KEY] = "[]";
+    toast(`${names.length} plugins turned back on. ${pluginsWaitingForRestart().length ? "Some change after a restart (System -> Updates)." : ""}`, "success");
+}
+
 export function PluginHub() {
     const [filter, setFilter] = useState("All");
+    const [rev, setRev] = useState(0);
     const all = listedPlugins();
     const query = "";
     const filters = useMemo(() => FILTERS.filter(f => f === "All" || f === "Recommended" || f === "On" || all.some(p => (CATEGORY_OF.get(p.name) ?? OTHER) === f)), [all]);
@@ -170,6 +194,12 @@ export function PluginHub() {
 
     return (
         <div className="dz-hub">
+            <div className="dz-hub-bulk">
+                <span>{parked().length ? `${parked().length} plugins are parked (turned off together).` : "Use Terono without any other plugin, or bring them all back later."}</span>
+                {parked().length
+                    ? <Button size="small" onClick={() => { unparkAll(); setRev(r => r + 1); }}>Turn them back on</Button>
+                    : <Button size="small" variant="secondary" onClick={() => { parkAll(); setRev(r => r + 1); }}>Turn all other plugins off</Button>}
+            </div>
             <div className="dz-hub-bar">
                 <div className="dz-hub-filters" role="tablist">
                     {filters.map(f => (
@@ -181,7 +211,7 @@ export function PluginHub() {
                 <section key={cat} className="dz-set-group">
                     <h3 className="dz-set-group-title">{cat} <span className="dz-hub-count">{list.length}</span></h3>
                     <div className="dz-hub-list">
-                        {list.map(p => <Row key={p.name} plugin={p} />)}
+                        {list.map(p => <Row key={`${p.name}-${rev}`} plugin={p} />)}
                     </div>
                 </section>
             ))}

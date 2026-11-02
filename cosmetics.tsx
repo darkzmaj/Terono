@@ -11,6 +11,7 @@ import { Menu, Modal, openModal, RestAPI, useEffect, useMemo, useRef, UserStore,
 
 import { BADGE_API, badgesReady } from "./badgeConfig";
 import { api, authorize, getAuth, looks, onListChange, refreshBadges } from "./badges";
+import { DD_CSS, DdOption, Dropdown } from "./dropdown";
 import { settings } from "./settings";
 import { toast } from "./toast";
 
@@ -279,49 +280,6 @@ export function loadCatalog() {
     return catalog;
 }
 
-function pickItem(kind: Item["kind"], heading: string): Promise<Item | null | undefined> {
-    return new Promise(resolve => {
-        let done = false;
-        const finish = (v: Item | null | undefined) => { if (!done) { done = true; resolve(v); } };
-        openModal(props => (
-            <Modal {...props} title={heading} size="lg"
-                actions={[
-                    { text: "None", variant: "secondary", onClick: () => { finish(null); props.onClose(); } },
-                    { text: "Cancel", variant: "secondary", onClick: () => { finish(undefined); props.onClose(); } },
-                ]}>
-                <Catalog kind={kind} onPick={it => { finish(it); props.onClose(); }} />
-            </Modal>
-        ), { onCloseCallback: () => finish(undefined) });
-    });
-}
-
-function Catalog({ kind, onPick }: { kind: Item["kind"]; onPick(it: Item): void; }) {
-    const [items, setItems] = useState<Item[] | null>(null);
-    const [error, setError] = useState("");
-    const [q, setQ] = useState("");
-    useEffect(() => { loadCatalog().then(all => setItems(all.filter(i => i.kind === kind))).catch(e => setError(String(e?.message ?? e))); }, []);
-    const shown = useMemo(() => {
-        const w = q.trim().toLowerCase();
-        return (items ?? []).filter(i => !w || `${i.name} ${i.category}`.toLowerCase().includes(w)).slice(0, 240);
-    }, [items, q]);
-    if (error) return <p className="dz-look-note">Couldn't load Discord's shop: {error}</p>;
-    if (!items) return <p className="dz-look-note">Loading Discord's shop…</p>;
-    return (
-        <div className="dz-cat">
-            <input className="dz-input" autoFocus placeholder={`Search ${items.length} items or collections`} value={q} onChange={e => setQ(e.currentTarget.value)} />
-            <div className={`dz-cat-grid dz-cat-${kind}`}>
-                {shown.map(i => (
-                    <button key={i.sku} className="dz-cat-item" title={`${i.name} · ${i.category}`} onClick={() => onPick(i)}>
-                        {i.img ? <img src={i.img} alt="" loading="lazy" /> : <span className="dz-cat-noimg">{i.label ?? i.name}</span>}
-                        <span className="dz-cat-name">{i.name}</span>
-                    </button>
-                ))}
-            </div>
-            {shown.length === 240 && <p className="dz-look-note">Showing the first 240: search to narrow it down.</p>}
-        </div>
-    );
-}
-
 /* ================= editors ================= */
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
@@ -336,19 +294,17 @@ export function NameStyleEditor({ look, onChange, sample }: { look: Look; onChan
     const setColors = (c: number[]) => onChange({ ...look, c });
     return (
         <div className="dz-name-ed">
-            <div className="dz-font-grid">
-                {fonts.map(([id, name, cls]) => (
-                    <button key={id} className={`dz-font-tile ${(look.f ?? 11) === id ? "dz-on" : ""}`} onClick={() => onChange({ ...look, f: id })}>
-                        <span className={cls}>{sample}</span>
-                        <small>{name}</small>
-                    </button>
-                ))}
+            <div className="dz-look-row">
+                <label>Font</label>
+                <Dropdown ariaLabel="Name font" value={String(look.f ?? 11)} onChange={v => onChange({ ...look, f: Number(v) })}
+                    options={fonts.map(([id, name, cls]): DdOption => ({ value: String(id), label: sample, sub: name, className: cls }))} />
             </div>
             <div className="dz-look-row">
                 <label>Effect</label>
-                <select className="dz-input" value={effect} onChange={e => onChange({ ...look, x: Number(e.currentTarget.value) })}>
-                    {NAME_EFFECTS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
-                </select>
+                <Dropdown ariaLabel="Name effect" value={String(effect)} onChange={v => onChange({ ...look, x: Number(v) })}
+                    options={NAME_EFFECTS.map(([v, n]): DdOption => ({ value: String(v), label: n }))} />
+            </div>
+            <div className="dz-look-row">
                 <label>Colors</label>
                 {(multi ? [0, 1] : [0]).map(i => (
                     <input key={i} type="color" className="dz-color" value={hex(colors[i] ?? (i ? 0x9b6dff : 0x429cff))}
@@ -493,7 +449,6 @@ export function MyLookPanel() {
     const [auth, setAuth] = useState<boolean | undefined>(undefined);
     const [look, setLookState] = useState<Look>(() => (looks()[me?.id]?.l as Look) ?? {});
     const [busy, setBusy] = useState(false);
-    const [dirty, setDirty] = useState(false);
 
     const [shop, setShop] = useState<Item[]>([]);
     useEffect(() => { getAuth().then(a => setAuth(!!a)); loadCatalog().then(setShop, () => { }); }, []);
@@ -507,20 +462,66 @@ export function MyLookPanel() {
         return shopItem(sku)?.img ?? it?.thumbnailPreviewSrc ?? it?.staticFrameSrc
             ?? (layer && `https://cdn.discordapp.com/media/v1/collectibles-shop/${sku}/${layer.id}/static`);
     };
-    const chosen = (sku?: string) => sku ? shopItem(sku)?.name ?? known(sku)?.name ?? "Chosen" : "None";
-    useEffect(() => () => previewMine(null), []);
 
-    const set = (l: Look) => { setLookState(l); setDirty(true); previewMine(l); };
-    const clear = (...keys: (keyof Look)[]) => { const l = { ...look }; for (const k of keys) delete l[k]; set(l); };
+    /* every change applies at once: on your own name / avatar / profile immediately, and for everyone with Terono a
+       moment later (saved shortly after the last change, one save at a time, the newest always wins) */
+    const [status, setStatus] = useState<"saved" | "saving" | "error">("saved");
+    const latest = useRef<Look>(look);
+    const timer = useRef(0);
+    const saving = useRef<Promise<void> | null>(null);
+    const savedJson = useRef(JSON.stringify(look));
+    const flush = async () => {
+        clearTimeout(timer.current);
+        timer.current = 0;
+        while (saving.current) await saving.current;
+        const l = latest.current;
+        const json = JSON.stringify(l);
+        if (json === savedJson.current) { setStatus("saved"); return; }
+        saving.current = (async () => {
+            try {
+                await api("/me/look", "PUT", { look: l });
+                savedJson.current = json;
+                await refreshBadges();
+                if (latest.current === l) setStatus("saved");
+            } catch (e) {
+                setStatus("error");
+                toast(`Couldn't save your profile: ${e instanceof Error ? e.message : e}`, "failure");
+            }
+        })();
+        await saving.current;
+        saving.current = null;
+    };
+    // leaving the page (or Discord reloading) still saves what was changed last
+    useEffect(() => () => { if (timer.current) void flush().finally(() => previewMine(null)); else previewMine(null); }, []);
 
-    async function choose(kind: Item["kind"], heading: string) {
-        const it = await pickItem(kind, heading);
-        if (it === undefined) return;
-        if (kind === "deco") it ? set({ ...look, d: { a: it.asset!, s: it.sku } }) : clear("d");
-        if (kind === "plate") it ? set({ ...look, n: { a: it.asset!, s: it.sku, p: it.palette ?? "none", t: it.label ?? it.name } }) : clear("n");
-        if (kind === "effect") it ? set({ ...look, e: it.sku }) : clear("e");
-        if (kind === "frame") it ? set({ ...look, r: it.sku }) : clear("r");
-    }
+    const set = (l: Look) => {
+        setLookState(l);
+        latest.current = l;
+        previewMine(l);
+        setStatus("saving");
+        clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => void flush(), 600);
+    };
+    const clear = (...keys: (keyof Look)[]) => { const l = { ...latest.current }; for (const k of keys) delete l[k]; set(l); };
+
+    // the shop as dropdown options, with the chosen item listed even when it's no longer in the shop
+    const pickOptions = (kind: Item["kind"], sku?: string): DdOption[] => {
+        const items = shop.filter(i => i.kind === kind);
+        const opts: DdOption[] = [{ value: "", label: "None", img: "" }];
+        if (sku && !items.some(i => i.sku === sku)) opts.push({ value: sku, label: known(sku)?.name ?? "Chosen", img: shopImg(sku) ?? "" });
+        for (const i of items) opts.push({ value: i.sku, label: i.name, sub: i.category, img: i.img ?? "", group: undefined });
+        return opts;
+    };
+    const choose = (kind: Item["kind"], sku: string) => {
+        const it = shop.find(i => i.sku === sku && i.kind === kind);
+        const key = kind === "deco" ? "d" : kind === "plate" ? "n" : kind === "effect" ? "e" : "r";
+        if (!sku) return clear(key);
+        if (!it) return;
+        if (kind === "deco") set({ ...latest.current, d: { a: it.asset!, s: it.sku } });
+        if (kind === "plate") set({ ...latest.current, n: { a: it.asset!, s: it.sku, p: it.palette ?? "none", t: it.label ?? it.name } });
+        if (kind === "effect") set({ ...latest.current, e: it.sku });
+        if (kind === "frame") set({ ...latest.current, r: it.sku });
+    };
 
     async function uploadBanner(file?: File) {
         if (!file) return;
@@ -530,23 +531,9 @@ export function MyLookPanel() {
         setBusy(true);
         try {
             const r = await api("/me/banner", "PUT", await bannerFile(cropped));
-            set({ ...look, b: r.hash });
-            toast("Banner uploaded. Save to show it.", "success");
+            set({ ...latest.current, b: r.hash });
         } catch (e) {
             toast(`Couldn't upload: ${e instanceof Error ? e.message : e}`, "failure");
-        }
-        setBusy(false);
-    }
-
-    async function save() {
-        setBusy(true);
-        try {
-            await api("/me/look", "PUT", { look });
-            await refreshBadges();
-            setDirty(false);
-            toast("Saved. Everyone with Terono sees your profile like this now.", "success");
-        } catch (e) {
-            toast(`Couldn't save: ${e instanceof Error ? e.message : e}`, "failure");
         }
         setBusy(false);
     }
@@ -563,7 +550,7 @@ export function MyLookPanel() {
     const t = look.t ?? [0x1e1f22, 0x429cff];
     return (
         <div className="dz-look">
-            <p className="dz-look-note">Discord's Nitro profile items, free: everyone using Terono sees them on you (in chat, the member list, profiles and calls). People without Terono see your normal profile. Changes show on your own name right away; <b>Save</b> shows them to everyone.</p>
+            <p className="dz-look-note">Discord's Nitro profile items, free: everyone using Terono sees them on you (in chat, the member list, profiles and calls). People without Terono see your normal profile. Every change applies right away, for you and for everyone with Terono.</p>
 
             <section className="dz-set-group">
                 <h3 className="dz-set-group-title">Your name</h3>
@@ -572,12 +559,12 @@ export function MyLookPanel() {
 
             <section className="dz-set-group">
                 <h3 className="dz-set-group-title">Avatar, nameplate, effect and frame</h3>
-                <div className="dz-look-items">
-                    <LookItem label="Avatar decoration" value={chosen(look.d?.s)} img={look.d && `https://cdn.discordapp.com/avatar-decoration-presets/${look.d.a}.png?size=96&passthrough=false`} onPick={() => choose("deco", "Avatar decoration")} onRemove={look.d ? () => clear("d") : undefined} />
-                    <LookItem label="Nameplate" value={chosen(look.n?.s)} img={look.n && `https://cdn.discordapp.com/assets/collectibles/${look.n.a}static.png`} onPick={() => choose("plate", "Nameplate")} onRemove={look.n ? () => clear("n") : undefined} />
-                    <LookItem label="Profile effect" value={chosen(look.e)} img={shopImg(look.e)} onPick={() => choose("effect", "Profile effect")} onRemove={look.e ? () => clear("e") : undefined} />
-                    <LookItem label="Profile frame" value={chosen(look.r)} img={shopImg(look.r)} onPick={() => choose("frame", "Profile frame")} onRemove={look.r ? () => clear("r") : undefined} />
-                </div>
+                {([["deco", "Decoration", look.d?.s], ["plate", "Nameplate", look.n?.s], ["effect", "Effect", look.e], ["frame", "Frame", look.r]] as [Item["kind"], string, string | undefined][]).map(([kind, label, sku]) => (
+                    <div key={kind} className="dz-look-row">
+                        <label>{label}</label>
+                        <Dropdown ariaLabel={label} value={sku ?? ""} onChange={v => choose(kind, v)} placeholder={shop.length ? "None" : "Loading Discord's shop…"} options={pickOptions(kind, sku)} />
+                    </div>
+                ))}
             </section>
 
             <section className="dz-set-group">
@@ -598,25 +585,12 @@ export function MyLookPanel() {
             </section>
 
             <div className="dz-look-actions">
+                <span className={`dz-look-status dz-look-${status}`} role="status">
+                    {status === "saving" ? "Saving…" : status === "error" ? "Not saved" : "All changes saved"}
+                </span>
+                {status === "error" && <Button size="small" onClick={() => void flush()}>Try again</Button>}
                 <Button variant="secondary" disabled={busy || !Object.keys(look).length} onClick={() => set({})}>Remove everything</Button>
-                <Button disabled={busy || !dirty} onClick={save}>{busy ? "Saving…" : "Save"}</Button>
             </div>
-        </div>
-    );
-}
-
-function LookItem({ label, value, img, onPick, onRemove }: { label: string; value: string; img?: string | false; onPick(): void; onRemove?(): void; }) {
-    return (
-        <div className="dz-look-slot">
-            <button className="dz-look-item" onClick={onPick}>
-                <span className="dz-look-thumb">{img ? <img src={img} alt="" /> : <span>+</span>}</span>
-                <span><b>{label}</b><small>{value}</small></span>
-            </button>
-            {onRemove && (
-                <button className="dz-look-remove" title={`Remove ${label.toLowerCase()}`} aria-label={`Remove ${label.toLowerCase()}`} onClick={onRemove}>
-                    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
-                </button>
-            )}
         </div>
     );
 }
@@ -625,15 +599,17 @@ function LookItem({ label, value, img, onPick, onRemove }: { label: string; valu
 
 export function openPersonEditor(userId: string) {
     const u = UserStore.getUser(userId);
-    let draft: Look = personLook(userId) ?? {};
+    const draft: Look = personLook(userId) ?? {};
+    // changes apply as you make them
+    let t = 0;
     openModal(props => (
         <Modal {...props} title={`Name style for ${u?.globalName || u?.username || "this person"}`} size="md"
             actions={[
-                { text: "Remove", variant: "secondary", onClick: () => { setPerson(userId, null); props.onClose(); } },
-                { text: "Save", variant: "primary", onClick: () => { setPerson(userId, draft); props.onClose(); } },
+                { text: "Remove", variant: "secondary", onClick: () => { clearTimeout(t); setPerson(userId, null); props.onClose(); } },
+                { text: "Done", variant: "primary", onClick: () => props.onClose() },
             ]}>
-            <p className="dz-look-note">Only you see this: their name shows in this font and color everywhere in your Discord.</p>
-            <PersonDraft initial={draft} sample={u?.globalName || u?.username || "Name"} onChange={l => { draft = l; }} />
+            <p className="dz-look-note">Only you see this: their name shows in this font and color everywhere in your Discord, as soon as you change it.</p>
+            <PersonDraft initial={draft} sample={u?.globalName || u?.username || "Name"} onChange={l => { clearTimeout(t); t = window.setTimeout(() => setPerson(userId, l), 250); }} />
         </Modal>
     ));
 }
@@ -686,7 +662,10 @@ html[data-dz-avatars="square"] .mask__44b0c foreignObject :is(img, .avatarStack_
 html[data-dz-avatars="square"] img[class*="avatar"]:not(foreignObject img) { border-radius: 12% !important; }
 `;
 
-export const COSMETICS_CSS = `
+export const COSMETICS_CSS = DD_CSS + `
+.dz-look-status { margin-right: auto; font-size: 13px; color: var(--text-muted, #aaa); }
+.dz-look-status.dz-look-saving { color: var(--dz-accent, #429cff); }
+.dz-look-status.dz-look-error { color: #ed4245; }
 .dz-look { display: flex; flex-direction: column; gap: 14px; }
 .dz-look-note { margin: 4px 0 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted, #aaa); }
 .dz-look-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0; color: var(--text-default, #fff); }

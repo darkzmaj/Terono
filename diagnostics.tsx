@@ -11,10 +11,13 @@ import { Button } from "@components/Button";
 import { gitHash } from "@shared/vencordUserAgent";
 import { copyToClipboard } from "@utils/clipboard";
 import { PluginNative } from "@utils/types";
-import { Modal, openModal, useEffect, UserStore, useState } from "@webpack/common";
+import { findStoreLazy } from "@webpack";
+import { FluxDispatcher, Modal, openModal, useEffect, UserStore, useState } from "@webpack/common";
 
 import { BADGE_API, badgesReady, OWNER_ID } from "./badgeConfig";
 import { toast } from "./toast";
+
+const StreamSettings = findStoreLazy("ApplicationStreamingSettingsStore");
 import { VERSION } from "./version";
 
 /* ================= troubleshooting =================
@@ -173,6 +176,17 @@ async function runChecks(): Promise<Check[]> {
         id: "perf", title: "Performance", level: "warn", detail: "This PC is on the slower side and your look uses blur / moving light / a video background. Performance mode makes Discord much lighter.",
         fix: { label: "Turn on Performance mode", run: () => { s.lite = true; } },
     });
+
+    // screenshares: without Nitro, Discord sends them at up to 720p and 30 fps. Higher settings (FakeNitro's quality
+    // bypass makes them selectable) may be held back by Discord, which viewers see as choppy or delayed video.
+    try {
+        const q = StreamSettings.getState?.() as { resolution?: number; fps?: number; } | undefined;
+        if (q && !UserStore.getCurrentUser()?.premiumType && ((q.resolution ?? 0) > 720 || (q.fps ?? 0) > 30)) add({
+            id: "stream", title: "Screenshare quality", level: "warn",
+            detail: `Your account has no Nitro, so Discord sends screenshares at up to 720p and 30 fps. Yours is set to ${q.resolution === 0 ? "source" : `${q.resolution}p`} at ${q.fps} fps${isPluginEnabled("FakeNitro") ? " (made possible by FakeNitro)" : ""}: Discord may hold a free account's stream back from that, so the people watching can get choppy or delayed video. 720p at 30 fps is what Discord gives every account.`,
+            fix: { label: "Use 720p 30 fps", run: () => FluxDispatcher.dispatch({ type: "STREAM_UPDATE_SETTINGS", preset: 3, resolution: 720, frameRate: 30 }) },
+        });
+    } catch { /* store not found: skip */ }
 
     return out;
 }
