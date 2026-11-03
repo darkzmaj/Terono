@@ -493,7 +493,7 @@ export default definePlugin({
             find: "UserProfileStore",
             replacement: {
                 match: /(?<=getUserProfile\(\i\){return )(.+?)(?=})/,
-                replace: "$self.profileHook($1)",
+                replace: "$self.profileHook($1,arguments[0])",
             },
         },
         {
@@ -522,7 +522,7 @@ export default definePlugin({
 
     // the patches stay in Discord's code; with Terono's features off they hand back what Discord had
     showActivities: () => !featuresOn || settings.store.showActivities,
-    profileHook: (p: any) => featuresOn ? profileHook(p) : p,
+    profileHook: (p: any, id?: string) => featuresOn ? profileHook(p, id) : p,
     bannerHook: (d: any) => featuresOn ? bannerHook(d) : undefined,
     namesEverywhere: () => featuresOn && settings.store.namesEverywhere,
     // for troubleshooting from the console: Vencord.Plugins.plugins.Terono.startupTimes()

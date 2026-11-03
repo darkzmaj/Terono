@@ -6,7 +6,7 @@
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { Button } from "@components/Button";
-import { findLazy, findStoreLazy } from "@webpack";
+import { findByCodeLazy, findLazy, findStoreLazy } from "@webpack";
 import { Menu, Modal, openModal, RestAPI, useEffect, useMemo, useRef, UserStore, useState } from "@webpack/common";
 
 import { BADGE_API, badgesReady } from "./badgeConfig";
@@ -75,12 +75,13 @@ export function setPerson(id: string, look: Look | null) {
 }
 
 export const personLook = (id: string) => people()[id] ?? null;
-export const peopleList = () => people();
+// your own look is set in Your profile only: a People entry for yourself would fight it, so it isn't used or listed
+export const peopleList = () => { const all = people(); delete all[UserStore.getCurrentUser()?.id ?? ""]; return all; };
 
 export function lookOf(id: string): Look | null {
     const me = UserStore.getCurrentUser()?.id;
     const server = id === me && mine ? mine : (looks()[id]?.l as Look | undefined);
-    const own = people()[id];
+    const own = id === me ? undefined : people()[id];
     if (!server && !own) return null;
     // your own name style for someone wins over theirs
     return { ...server, ...own };
@@ -95,11 +96,18 @@ const originals = new Map<string, any>();
 const appliedKey = new WeakMap<object, string>();
 let queued = false;
 
+// the colors the name editor shows when none are picked (an effect without colors is never sent: see below)
+export const DEFAULT_NAME_COLORS = [0x429cff, 0x9b6dff];
+
 function userFields(look: Look, rec: any) {
     const f: Record<string, any> = {};
     if (look.f != null || look.x != null || look.c?.length) {
-        const colors = look.c?.length ? look.c : rec.displayNameStyles?.colors ?? [];
-        f.displayNameStyles = { fontId: look.f ?? 11, effectId: look.x ?? (colors.length > 1 ? 2 : 1), colors };
+        const own = look.c?.length ? look.c : rec.displayNameStyles?.colors ?? [];
+        const effectId = look.x ?? (own.length > 1 ? 2 : 1);
+        // Gradient, Prism, Toon and Pop make the text see-through and paint it with the colors: with no colors the
+        // name is invisible. Any effect gets the editor's colors then; a font alone (Solid, no color) stays plain.
+        const colors = own.length || effectId === 1 ? own : DEFAULT_NAME_COLORS;
+        f.displayNameStyles = { fontId: look.f ?? 11, effectId, colors };
     }
     if (look.d) f.avatarDecorationData = { asset: look.d.a, skuId: look.d.s };
     if (look.n) f.collectibles = { ...rec.collectibles, nameplate: { asset: look.n.a, skuId: look.n.s, palette: look.n.p, label: look.n.t } };
@@ -167,9 +175,25 @@ function refreshProfiles() {
     queueMicrotask(() => { refreshQueued = false; try { ProfileStore.emitChange(); } catch { /* not loaded yet */ } });
 }
 
+// Discord only loads someone's full profile when it needs it (the small popouts don't); colors, banner, effect and
+// frame can only attach to a loaded one, so for people with such a look it's loaded once (again after a while)
+const fetchProfile = findByCodeLazy('"USER_PROFILE_FETCH_START"', "withMutualFriendsCount") as (id: string, opts?: object) => Promise<unknown>;
+const asked = new Map<string, number>();
+function loadProfileOf(id: string) {
+    const now = Date.now();
+    if (now - (asked.get(id) ?? 0) < 5 * 60_000) return;
+    asked.set(id, now);
+    // after the current render: the store must not change while Discord is reading it
+    setTimeout(() => { try { void fetchProfile(id).catch(() => { }); } catch { /* Discord changed: the look shows once Discord loads the profile itself */ } }, 0);
+}
+
 /** UserProfileStore.getUserProfile: card colors, profile effect and frame. */
-export function profileHook(profile: any) {
-    if (!profile?.userId) return profile;
+export function profileHook(profile: any, id?: string) {
+    if (!profile?.userId) {
+        const want = id && lookOf(id);
+        if (want && (want.t || want.e || want.r || want.b)) loadProfileOf(id!);
+        return profile;
+    }
     const look = lookOf(profile.userId);
     if (!look || !(look.t || look.e || look.r)) return profile;
     const cached = profileCache.get(profile);
@@ -301,7 +325,9 @@ export function NameStyleEditor({ look, onChange, sample }: { look: Look; onChan
             </div>
             <div className="dz-look-row">
                 <label>Effect</label>
-                <Dropdown ariaLabel="Name effect" value={String(effect)} onChange={v => onChange({ ...look, x: Number(v) })}
+                <Dropdown ariaLabel="Name effect" value={String(effect)}
+                    // an effect saves the colors shown with it, so what you see here is what everyone gets
+                    onChange={v => onChange({ ...look, x: Number(v), c: colors.length || v === "1" ? colors : DEFAULT_NAME_COLORS })}
                     options={NAME_EFFECTS.map(([v, n]): DdOption => ({ value: String(v), label: n }))} />
             </div>
             <div className="dz-look-row">
@@ -644,7 +670,8 @@ export function PeoplePanel() {
 }
 
 export const personMenu: NavContextMenuPatchCallback = (children, { user }: { user?: { id: string; }; }) => {
-    if (!user?.id) return;
+    // your own name style lives in Settings -> Your profile
+    if (!user?.id || user.id === UserStore.getCurrentUser()?.id) return;
     children.push(
         <Menu.MenuItem id="dz-name-style" key="dz-name-style" label="Name style…" action={() => openPersonEditor(user.id)} />
     );
