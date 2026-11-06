@@ -9,7 +9,7 @@ import { addContextMenuPatch, addGlobalContextMenuPatch, GlobalContextMenuPatchC
 import * as DataStore from "@api/DataStore";
 import { plugins } from "@api/PluginManager";
 import { Settings, SettingsStore, useSettings } from "@api/Settings";
-import { disableStyle, enableStyle } from "@api/Styles";
+import { disableStyle, enableStyle, requireStyle } from "@api/Styles";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { GoogleLanguages } from "@plugins/translate/languages";
 import { handleTranslate } from "@plugins/translate/TranslationAccessory";
@@ -23,6 +23,7 @@ import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
 import { BULK_CSS, startBulk, stopBulk } from "./bulk";
 import { CALL_CSS, startCall, stopCall } from "./call";
+import { onClassMapChange, startClassMap, stopClassMap, tc } from "./classes";
 import { AVATAR_CSS, bannerHook, COSMETICS_CSS, personMenu, profileHook, startCosmetics, stopCosmetics } from "./cosmetics";
 import { recordError, safely, startupTimes } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
@@ -53,7 +54,7 @@ function onKeyDown(e: KeyboardEvent) {
 
 function onDocClick(e: MouseEvent) {
     const t = e.target as HTMLElement | null;
-    if (t?.classList?.contains("backForwardButtons__63abb")) {
+    if (t?.classList?.contains(tc("backForwardButtons__63abb"))) {
         const last = t.lastElementChild?.getBoundingClientRect();
         if (settings.store.quickIcon && (!last || e.clientX > last.right)) openPluginModal(plugins.Terono);
         return;
@@ -291,6 +292,7 @@ function onSettingsChange(_root: unknown, path: string) {
    updates keep working. Turning them on or off takes effect at once. */
 
 let featuresOn = false;
+let offClassNames: (() => void) | null = null;
 
 async function startFeatures() {
     if (featuresOn) return;
@@ -317,7 +319,7 @@ async function startFeatures() {
         addProfileBadge(vrocaBadge);
     });
     // the search window, the Blocked list and the person editor can open before the settings screen ever did
-    badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS });
+    badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: tc(FEATURE_CSS()) });
     document.head.append(badgeStyle);
     safely("menus", () => addGlobalContextMenuPatch(menuPatch));
     safely("personMenu", () => addContextMenuPatch("user-context", personMenu));
@@ -377,8 +379,25 @@ async function migrate() {
 
 const LOCAL_THEME = /^(terono|darkness)\.theme\.css$/i;
 
+const FEATURE_CSS = () => BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS;
+
+// the theme as written, with the running Discord's class names (classes.ts)
+function writeTheme() {
+    const st = requireStyle(themeStyle);
+    if (st.dom) st.dom.textContent = tc(st.source);
+}
+
+// Discord's names found for more of Terono's stylesheets (some load later): everything written with them again
+function onClassNames() {
+    if (!featuresOn) return;
+    writeTheme();
+    if (badgeStyle) badgeStyle.textContent = tc(FEATURE_CSS());
+    safely("apply", applyAll);
+}
+
 function useBuiltInTheme() {
     enableStyle(themeStyle);
+    writeTheme();
     if (Settings.themeLinks.some(l => THEME_LINK_RE.test(l)))
         Settings.themeLinks = Settings.themeLinks.filter(l => !THEME_LINK_RE.test(l));
     // an old local copy from earlier setups would load it twice too
@@ -551,6 +570,9 @@ export default definePlugin({
         // the core: settings, updates, the plugin hub, the user count; everything else is Terono's features, which
         // can be turned off on their own (System -> Terono) and come back without a restart
         SettingsStore.addGlobalChangeListener(onSettingsChange);
+        // before the features: their styles and lookups use Discord's current class names
+        safely("classNames", startClassMap);
+        offClassNames = onClassMapChange(onClassNames);
         document.addEventListener("keydown", onKeyDown, true); // Ctrl + 1: the settings, also with the features off
         if (!settings.store.teronoOff) await startFeatures();
         else disableStyle(themeStyle);
@@ -564,6 +586,8 @@ export default definePlugin({
     stop() {
         stopFeatures();
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
+        stopClassMap();
+        offClassNames?.();
         document.removeEventListener("keydown", onKeyDown, true);
         stopUsage();
         setTaskbarIcon(false);

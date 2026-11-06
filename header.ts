@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { tc } from "./classes";
+
 /* ================= exact centering of the header's middle zone =================
    Items are ordered left(1) | spacer(2) | middle(3) | spacer(4) | right(5). Two equal flexible spacers
    only center the middle when both sides are equally wide, so the wider side's width difference is
@@ -31,7 +33,7 @@ function schedule() {
 function flexItems(container: HTMLElement) {
     const out: Element[] = [];
     for (const child of container.children) {
-        if (child.classList.contains("toolbar__9293f")) out.push(...child.children);
+        if (child.classList.contains(tc("toolbar__9293f"))) out.push(...child.children);
         else out.push(child);
     }
     return out;
@@ -83,7 +85,7 @@ export function attachHeader() {
     resizeObs = new ResizeObserver(schedule);
     childObs = new MutationObserver(() => { observeItems(); schedule(); });
     childObs.observe(el, { childList: true });
-    const toolbar = el.querySelector(".toolbar__9293f");
+    const toolbar = el.querySelector(tc(".toolbar__9293f"));
     if (toolbar) childObs.observe(toolbar, { childList: true });
     observeItems();
     balance();
@@ -130,10 +132,10 @@ export function onHeaderClick(e: MouseEvent) {
     const watch = new MutationObserver(records => {
         for (const r of records) for (const node of r.addedNodes) {
             if (!(node instanceof HTMLElement)) continue;
-            const layer = node.matches(".layer__59d0d") ? node : node.querySelector<HTMLElement>(".layer__59d0d");
+            const layer = node.matches(tc(".layer__59d0d")) ? node : node.querySelector<HTMLElement>(tc(".layer__59d0d"));
             if (layer) place(layer, anchor, zone);
         }
     });
-    for (const c of document.querySelectorAll(".layerContainer__59d0d")) watch.observe(c, { childList: true, subtree: true });
+    for (const c of document.querySelectorAll(tc(".layerContainer__59d0d"))) watch.observe(c, { childList: true, subtree: true });
     setTimeout(() => watch.disconnect(), 800);
 }

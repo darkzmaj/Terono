@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "@webpack/common";
 import { TERONO_LOGO } from "./assets";
 import { IconSwaps } from "./branding";
 import { applyAmbient } from "./call";
+import { tc } from "./classes";
 import { MyLookPanel, PeoplePanel } from "./cosmetics";
 import { DebugInfo } from "./diagnostics";
 import { DdOption, Dropdown } from "./dropdown";
@@ -1284,7 +1285,9 @@ function sheet(name: keyof typeof sheets, css: string) {
         el.id = `terono-${name}`;
         document.head.append(el);
     }
-    if (el.textContent !== css) el.textContent = css;
+    // written with Discord's class names as Terono knows them; tc() gives the running build's (classes.ts)
+    const out = tc(css);
+    if (el.textContent !== out) el.textContent = out;
 }
 
 const pick = (id: ColorKey) => {
@@ -1627,7 +1630,7 @@ function startProbe(url: string) {
 }
 
 function attachVideo() {
-    const bg = document.querySelector("#app-mount .bg__960e4");
+    const bg = document.querySelector(tc("#app-mount .bg__960e4"));
     if (bg && videoEl && videoEl.parentElement !== bg) bg.prepend(videoEl);
 }
 
@@ -1705,7 +1708,7 @@ function watchOutline(update: () => void) {
 
 function updateCardClip() {
     if (!cardLayer) return;
-    const bg = document.querySelector("#app-mount .bg__960e4");
+    const bg = document.querySelector(tc("#app-mount .bg__960e4"));
     if (bg && cardLayer.previousElementSibling !== bg) bg.after(cardLayer);
     if (document.hidden) return;
     const d = panelOutline(cardLayer.getBoundingClientRect());
@@ -1918,7 +1921,7 @@ function liquidTick(t: number) {
 
 function updateLiquidClip() {
     if (!liquidLayer) return;
-    const bg = document.querySelector("#app-mount .bg__960e4");
+    const bg = document.querySelector(tc("#app-mount .bg__960e4"));
     // right above the background (and the card picture, if any), under the panels
     const after = cardLayer ?? bg;
     if (after && liquidLayer.previousElementSibling !== after) after.after(liquidLayer);
@@ -1981,7 +1984,7 @@ ${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.
 let driftEl: HTMLElement | null = null;
 
 function driftTick(t: number) {
-    if (!driftEl?.isConnected) driftEl = document.querySelector<HTMLElement>("#app-mount .bg__960e4");
+    if (!driftEl?.isConnected) driftEl = document.querySelector<HTMLElement>(tc("#app-mount .bg__960e4"));
     if (!driftEl) return;
     // the same path as the old animation: corner to corner and back, once a minute
     const k = -Math.cos(t * Math.PI * 2 / 60);
@@ -2050,7 +2053,7 @@ export function applyMedia() {
             Object.assign(videoEl, { muted: true, defaultMuted: true, volume: 0, loop: true, autoplay: true, playsInline: true, disableRemotePlayback: true });
             document.addEventListener("visibilitychange", onVisibility);
             bgObserver = new MutationObserver(attachVideo);
-            const layer = document.querySelector("#app-mount .bg__960e4")?.parentElement;
+            const layer = document.querySelector(tc("#app-mount .bg__960e4"))?.parentElement;
             if (layer) bgObserver.observe(layer, { childList: true });
         }
         if (videoEl.src !== src) videoEl.src = src;

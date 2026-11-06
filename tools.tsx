@@ -10,6 +10,7 @@ import { openUserProfile } from "@utils/discord";
 import { findByPropsLazy } from "@webpack";
 import { ChannelStore, Modal, NavigationRouter, openModal, RelationshipStore, RestAPI, SelectedChannelStore, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
+import { tc } from "./classes";
 import { settings } from "./settings";
 import { toast } from "./toast";
 
@@ -256,11 +257,11 @@ function ensureButtons() {
     } else if (!search) have?.remove();
 
     // friends page: right after the last tab (Pending), before "Add Friend"
-    const add = s.blockedButton ? document.querySelector<HTMLElement>(".tabBar__133bf .addFriend__133bf") : null;
+    const add = s.blockedButton ? document.querySelector<HTMLElement>(tc(".tabBar__133bf .addFriend__133bf")) : null;
     const blocked = document.querySelector(".dz-blocked-btn");
     if (add && blocked && blocked.nextElementSibling !== add) add.before(blocked);
     if (add && !blocked) {
-        const sample = add.parentElement?.querySelector<HTMLElement>(".item__133bf:not(.addFriend__133bf)");
+        const sample = add.parentElement?.querySelector<HTMLElement>(tc(".item__133bf:not(.addFriend__133bf)"));
         const b = document.createElement("div");
         b.className = `${sample?.className.replace(/\bselected\S*/g, "") ?? ""} dz-blocked-btn`;
         b.setAttribute("role", "button");

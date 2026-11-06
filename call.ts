@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { tc } from "./classes";
 import { settings } from "./settings";
 
 /* ================= ambient mode =================
@@ -37,14 +38,14 @@ function syncGlows() {
     const want = new Set<HTMLVideoElement>();
     if (settings.store.callAmbient) {
         // the big stream of the focused view: not the small tiles in the row under it, not the grid
-        for (const v of document.querySelectorAll<HTMLVideoElement>(".tileWrapper__6981d [data-selenium-video-tile] video")) {
-            if (!v.closest(".participantsWrapperAnimated__6981d")) want.add(v);
+        for (const v of document.querySelectorAll<HTMLVideoElement>(tc(".tileWrapper__6981d [data-selenium-video-tile] video"))) {
+            if (!v.closest(tc(".participantsWrapperAnimated__6981d"))) want.add(v);
         }
     }
     for (const [v, g] of glows) if (!want.has(v) || !g.host.isConnected) { stopGlow(g); glows.delete(v); }
     for (const v of want) {
         if (glows.has(v)) continue;
-        const host = v.closest<HTMLElement>(".wrapper__2f4f7");
+        const host = v.closest<HTMLElement>(tc(".wrapper__2f4f7"));
         if (!host) continue;
         const glow = Object.assign(document.createElement("video"), { className: "dz-ambient", muted: true, autoplay: true, playsInline: true, disablePictureInPicture: true, width: GW, height: GH });
         glow.setAttribute("aria-hidden", "true");

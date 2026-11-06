@@ -7,6 +7,8 @@
 import { findStoreLazy } from "@webpack";
 import { ChannelStore, GuildStore } from "@webpack/common";
 
+import { tc } from "./classes";
+
 const GuildReadStateStore = findStoreLazy("GuildReadStateStore");
 const SortedGuildStore = findStoreLazy("SortedGuildStore");
 
@@ -61,7 +63,7 @@ function isQuietUnread(id: string) {
 
 function scanUnread() {
     for (const el of document.querySelectorAll<HTMLElement>(".guilds__5e434 .listItem__650eb [data-list-item-id^='guildsnav___']")) {
-        const item = el.closest<HTMLElement>(".listItem__650eb");
+        const item = el.closest<HTMLElement>(tc(".listItem__650eb"));
         if (!item) continue;
         const id = el.dataset.listItemId!.replace("guildsnav___", "");
         const unread = /^\d+$/.test(id) && isQuietUnread(id);
@@ -83,8 +85,8 @@ function scanUnread() {
 function scan() {
     timer = 0;
     scanUnread();
-    for (const badge of document.querySelectorAll(".guilds__5e434 .numberBadge__463b7")) {
-        const item = badge.closest<HTMLElement>(".listItem__650eb");
+    for (const badge of document.querySelectorAll(tc(".guilds__5e434 .numberBadge__463b7"))) {
+        const item = badge.closest<HTMLElement>(tc(".listItem__650eb"));
         if (!item) continue;
         const id = item.querySelector<HTMLElement>("[data-list-item-id]")?.dataset.listItemId?.replace("guildsnav___", "");
         // a DM or group DM: shown round
@@ -108,7 +110,7 @@ const schedule = () => { if (!timer) timer = window.setTimeout(scan, 250); };
 export function startShapes() {
     observer = new MutationObserver(schedule);
     const attach = () => {
-        const list = document.querySelector(".guilds__5e434");
+        const list = document.querySelector(tc(".guilds__5e434"));
         if (!list) return void setTimeout(attach, 2000);
         observer!.observe(list, { childList: true, subtree: true });
         schedule();

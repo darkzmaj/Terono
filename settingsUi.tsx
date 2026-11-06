@@ -16,6 +16,7 @@ import { Modal, openModal, useEffect, useState } from "@webpack/common";
 
 import { BADGES_CSS, BadgesPanel } from "./badges";
 import { BRANDING_CSS } from "./branding";
+import { tc } from "./classes";
 import { COSMETICS_CSS } from "./cosmetics";
 import { DEBUG_CSS } from "./diagnostics";
 import { listedPlugins, PluginHub, Row } from "./hub";
@@ -358,7 +359,7 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS + COSMETICS_CSS + DEBUG_CSS + PROFILES_CSS + TOOLS_CSS;
+    css.textContent = tc(CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS + COSMETICS_CSS + DEBUG_CSS + PROFILES_CSS + TOOLS_CSS);
     document.head.append(css);
 }
 

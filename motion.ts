@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { tc } from "./classes";
+
 /* ================= one slow clock for everything that drifts =================
    CSS animations run at the monitor's refresh rate (144 / 240 Hz), and a moving layer behind the whole window
    makes Chromium redraw the whole window that often, even for motion of a few pixels per second. The background
@@ -41,7 +43,7 @@ function sync() {
 
 function tick() {
     // while a stream or camera plays (call view or the small stream window), the GPU is the video's: hold still
-    if (document.querySelector("[data-selenium-video-tile] video, .pictureInPictureWindow__6341f video")) return;
+    if (document.querySelector(tc("[data-selenium-video-tile] video, .pictureInPictureWindow__6341f video"))) return;
     const t = (performance.now() - start) / 1000;
     for (const f of tickers) f(t);
 }

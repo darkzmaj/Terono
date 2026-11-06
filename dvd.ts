@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { tc } from "./classes";
+
 /* ================= the bouncing logo =================
    A logo (or your own picture) drifting behind the panels like an old DVD player's screensaver. It only moves with
    transform on its own layer (no layout, no repaint), at most 60 times a second whatever the monitor's refresh rate.
@@ -97,7 +99,7 @@ function sync() {
 
 function place() {
     if (!el) return;
-    const bg = document.querySelector("#app-mount .bg__960e4");
+    const bg = document.querySelector(tc("#app-mount .bg__960e4"));
     if (bg && el.previousElementSibling !== bg) bg.after(el);
     else if (!bg && !el.isConnected) document.getElementById("app-mount")?.prepend(el);
 }
