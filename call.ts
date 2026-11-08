@@ -6,6 +6,7 @@
 
 import { tc } from "./classes";
 import { settings } from "./settings";
+import { streaming } from "./streammode";
 
 /* ================= ambient mode =================
    The colors of the stream you're watching glow softly around it, like YouTube's ambient mode. Discord's call view
@@ -36,7 +37,8 @@ function stopGlow(g: Glow) {
 
 function syncGlows() {
     const want = new Set<HTMLVideoElement>();
-    if (settings.store.callAmbient) {
+    // not while you're streaming yourself: your PC is encoding then, and the glow would be a second copy to draw
+    if (settings.store.callAmbient && !streaming()) {
         // the big stream of the focused view: not the small tiles in the row under it, not the grid
         for (const v of document.querySelectorAll<HTMLVideoElement>(tc(".tileWrapper__6981d [data-selenium-video-tile] video"))) {
             if (!v.closest(tc(".participantsWrapperAnimated__6981d"))) want.add(v);

@@ -25,6 +25,7 @@ import { addTicker, isAway, MOTION_STEP_MS, removeTicker, setPauseWhenUnfocused 
 import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
+import { inStreamMode } from "./streammode";
 import { toast } from "./toast";
 import { isOwner, UsagePanel } from "./usage";
 
@@ -1634,10 +1635,11 @@ function attachVideo() {
     if (bg && videoEl && videoEl.parentElement !== bg) bg.prepend(videoEl);
 }
 
-function onVisibility() {
+// background / panel videos stop while Discord is hidden and while a stream plays (streammode.ts)
+export function onVisibility() {
     for (const v of [videoEl, cardLayer?.querySelector("video")]) {
         if (!v) continue;
-        if (document.hidden) v.pause();
+        if (document.hidden || inStreamMode()) v.pause();
         else v.play().catch(() => { });
     }
     updateCardClip();

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { localStorage } from "@utils/localStorage";
 import { wreq } from "@webpack";
 
 import { CLASS_SIGNATURES } from "./classSignatures";
@@ -120,17 +121,48 @@ export function tc(text: string): string {
 export function onClassMapChange(f: () => void) { listeners.add(f); return () => void listeners.delete(f); }
 export const classMapVersion = () => version;
 
-// stylesheets Discord loads later: look again for a while after start, then now and then
+/* Remembered per Discord build, so a start on a known build costs nothing; and a new look only when Discord has
+   loaded more of its code (a settings page, a popout opening the first time), never on a fixed timer. */
+const CACHE_KEY = "Terono_classMap";
+const buildId = () => {
+    const env = (window as any).GLOBAL_ENV;
+    return `${env?.SENTRY_TAGS?.buildId ?? env?.BUILD_NUMBER ?? "?"}:${Object.keys(CLASS_SIGNATURES).length}`;
+};
+function loadCache() {
+    try {
+        const c = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
+        if (c?.build !== buildId()) return false;
+        identity = !!c.identity;
+        map.clear();
+        for (const [k, v] of c.map) map.set(k, v);
+        unresolved.clear();
+        for (const k of c.unresolved) unresolved.add(k);
+        return true;
+    } catch { return false; }
+}
+function saveCache() {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ build: buildId(), identity, map: [...map], unresolved: [...unresolved] })); } catch { }
+}
+
 let timer = 0;
-let tries = 0;
+let seen = 0;
 export function startClassMap() {
-    try { rebuildClassMap(); } catch { /* Discord's module cache not readable: the names stay as written */ }
-    const again = () => {
-        try { rebuildClassMap(); } catch { }
+    const cached = loadCache();
+    if (!cached) {
+        try { rebuildClassMap(); } catch { /* Discord's module cache not readable: the names stay as written */ }
+        saveCache();
+    }
+    seen = Object.keys(wreq.c).length;
+    const watch = () => {
         if (identity || !unresolved.size) return;
-        timer = window.setTimeout(again, ++tries < 24 ? 5000 : 60000);
+        const now = Object.keys(wreq.c).length;
+        if (now !== seen) {
+            seen = now;
+            try { if (rebuildClassMap()) saveCache(); } catch { }
+        }
+        timer = window.setTimeout(watch, 4000);
     };
-    timer = window.setTimeout(again, 3000);
+    timer = window.setTimeout(watch, 4000);
 }
 
 export function stopClassMap() { clearTimeout(timer); }

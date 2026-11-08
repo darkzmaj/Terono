@@ -31,8 +31,9 @@ import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
 import { overlayAction, stopOverlay } from "./overlay";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
-import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
+import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, onVisibility, removeAll, settings } from "./settings";
 import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
+import { onStreamMode, startStreamMode, stopStreamMode, STREAM_CSS } from "./streammode";
 import themeStyle from "./theme/Terono.theme.css?managed";
 import { startTools, stopTools, TOOLS_CSS } from "./tools";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
@@ -293,6 +294,7 @@ function onSettingsChange(_root: unknown, path: string) {
 
 let featuresOn = false;
 let offClassNames: (() => void) | null = null;
+let offStreamMode: (() => void) | null = null;
 
 async function startFeatures() {
     if (featuresOn) return;
@@ -311,6 +313,10 @@ async function startFeatures() {
     safely("shapes", startShapes);
     safely("bulk", startBulk);
     safely("calls", startCall);
+    safely("streamMode", () => {
+        startStreamMode();
+        offStreamMode = onStreamMode(() => onVisibility());
+    });
     safely("cosmetics", startCosmetics);
     safely("tools", startTools);
     safely("badges", startBadges); // before the creator badge, which then shows first
@@ -339,7 +345,7 @@ function stopFeatures() {
     badgeStyle = null;
     document.removeEventListener("click", onDocClick, true);
     for (const [name, f] of [["header", detachHeader], ["preview", cancelPreview], ["motion", stopMotion], ["branding", stopBranding], ["shapes", stopShapes],
-        ["bulk", stopBulk], ["calls", stopCall], ["cosmetics", stopCosmetics], ["tools", stopTools], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
+        ["bulk", stopBulk], ["calls", stopCall], ["streamMode", () => { stopStreamMode(); offStreamMode?.(); }], ["cosmetics", stopCosmetics], ["tools", stopTools], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
         ["apply", removeAll]] as [string, () => void][]) quietly(name, f);
     disableStyle(themeStyle);
 }
@@ -379,7 +385,7 @@ async function migrate() {
 
 const LOCAL_THEME = /^(terono|darkness)\.theme\.css$/i;
 
-const FEATURE_CSS = () => BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS;
+const FEATURE_CSS = () => BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS + STREAM_CSS;
 
 // the theme as written, with the running Discord's class names (classes.ts)
 function writeTheme() {

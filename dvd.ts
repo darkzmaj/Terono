@@ -5,6 +5,7 @@
  */
 
 import { tc } from "./classes";
+import { inStreamMode } from "./streammode";
 
 /* ================= the bouncing logo =================
    A logo (or your own picture) drifting behind the panels like an old DVD player's screensaver. It only moves with
@@ -117,7 +118,7 @@ export function startDvd(o: DvdOptions) {
         // a fullscreen stream covers it anyway (checked now and then, not every frame); in calls it keeps moving:
         // moving one small layer costs a stream nothing
         videoCheck = window.setInterval(() => {
-            covered = !!document.fullscreenElement;
+            covered = !!document.fullscreenElement || inStreamMode();
             place();
         }, 1000);
     }

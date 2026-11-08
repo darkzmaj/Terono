@@ -3,7 +3,7 @@
  * @author darkzmaj
  * @source https://github.com/darkzmaj/Terono
  * @website https://github.com/darkzmaj/Terono
- * @version 1.2.0
+ * @version 1.2.1
  * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -34,7 +34,7 @@ body {
     --border-thickness: 1px; /* thickness of borders around main panels. DOES NOT AFFECT OTHER BORDERS */
     --custom-guild-list-width: calc(var(--guildbar-avatar-size) + var(--custom-guild-list-padding) * 2 + var(--border-thickness) * 2);
 
-    --border-hover-transition: 0.2s ease;
+    --border-hover-transition: 0.1s ease;
     --elevation-low: none;
     --elevation-medium: none;
     --elevation-high: none;
@@ -592,7 +592,7 @@ body {
 
 /* animations.css */
 body {
-    --list-item-transition: 0.2s ease; /* transition for list items */
+    --list-item-transition: 0.1s ease; /* transition for list items */
     --dms-icon-svg-transition: 0.4s ease; /* transition for the dms icon */
 }
 
@@ -2402,7 +2402,7 @@ html[data-dz-members="left"] :is(.content_f75fb0 > .container_c8ffbb, .content_f
 /* ================= SERVER LIST ================= */
 
 .guilds__5e434 .childWrapper__6e9f8 {
-    transition: background-color 90ms ease, color 90ms ease !important;
+    transition: background-color 60ms ease, color 60ms ease !important;
 }
 
 /* the list reserves room for its scrollbar on one side only, which put every icon (and folder) off-center:
@@ -2532,7 +2532,7 @@ html[data-dz-panels="discord"] body {
 .interactive__972a0,
 .container__91a9d,
 .member_c8ffbb {
-    transition: background-color 110ms ease, color 110ms ease;
+    transition: background-color 60ms ease, color 60ms ease;
 }
 
 
