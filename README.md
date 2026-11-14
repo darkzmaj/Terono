@@ -42,15 +42,16 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 ## What you get
 
 **Look**
-- 12 **presets** with live preview, then change anything. **Default** is normal Discord that you can still recolor and rearrange.
+- 17 **presets** with live preview (new: Mango, CyberPunk, Miami, Kiwi and Cowboy, each with its own layout), then change anything. **Default** is normal Discord that you can still recolor and rearrange.
 - Colors: primary, text, icons, status, window buttons and an **app border** (color, gradient or your own picture).
 - Panels: dark, gray, white or your own color or gradient; sharp to round corners; solid, **glass** or **liquid glass** (moving or still); a picture or video inside them; joined like Discord or as separate cards.
 - Embeds in their own color, gradient or glass. Background: animated, static, solid, picture, GIF or video.
-- **70 fonts** in 7 styles with a search, or your own font file. Your own home logo and your own pictures for Discord's icons.
+- **Decorations** in front of everything, never in the way: Christmas (snow that piles up on the panels and their floors and that you sweep off with the mouse, blinking lights, garland, ornaments, a snowman), Halloween (cobwebs, glowing pumpkins, dead trees, bats, a spider), winter, autumn, Easter, summer, birthday and April Fools, or **your own particles** (draw a shape or use a picture; speed, size, amount, colors, direction). Drawn off Discord's main thread, so it stays smooth.
+- **82 fonts** in 10 styles (new: Cyberpunk, Old style and Western) with a search, or your own font file. Your own home logo and your own pictures for Discord's icons.
 
 **Your profile** (seen by everyone with Terono)
 - Discord's **Nitro profile items, free**: a font, effect (gradient, neon, glow, …) and colors for your name, any **avatar decoration**, **nameplate**, **profile effect** and **profile frame** from Discord's shop, profile card colors and your own **banner** (picture or GIF). Discord draws them itself, in chat, the member list, profiles and calls.
-- **Badges:** the **Terono OG** badge for everyone on 1.0.0 – 1.1.5, up to 3 badges of your own, and Discord's badges (now with the Nitro tenure tiers, Gifting Champion and more).
+- **Badges:** the **Terono OG** badge for everyone on 1.0.0 – 1.1.5, up to 6 badges of your own, and Discord's badges (now with the Nitro tenure tiers, Gifting Champion and more).
 - **People:** give anyone's name your own font and color (only you see it). **Square or rounded profile pictures** for everyone.
 
 **Layout**
@@ -61,6 +62,8 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 
 **Calls & overlay** *(beta)*
 - **Ambient mode:** the colors of the stream you watch glow softly around it, like on YouTube, without slowing the stream.
+- **Volume up to 500%** for people and streams (on by default; drag past 200%).
+- **Your own sounds:** ringtone, message, join and leave, mute, stream sounds and more, from files on your PC.
 - **Terono overlay** over your games, in your Terono look: who's in your call and who's talking, DMs and mentions as they come in. A hotkey makes it clickable: mute, deafen, leave, open a message.
 
 **Tools**
@@ -69,7 +72,8 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 - **Blocked** button on the friends page (after Pending), with everyone you've blocked or ignored.
 - Search a chat's **pictures**, **videos**, **links** or **files**, from a button or right inside Discord's search.
 - **Turn Terono's features off** and use Discord as it is (plugins and updates keep working), or keep Terono and park every other plugin.
-- **Plugins:** every Vencord plugin by category, switched on and off instantly.
+- **Plugins:** every Vencord plugin with its own search, by category or only the ones that are on, switched on and off instantly.
+- **Marks chats read** when you've scrolled to the newest message, so the unread ring never sticks.
 - **Bulk mode:** hold Ctrl and click servers, DMs or friends, then right-click one: everything in Discord's menu is done to all of them. Double-click Home to read everything.
 - **Profiles:** save everything or only parts (look, layout, features, or pick sections), switch between them, and **share them as a code** (`a//$//K//…`) anyone can paste.
 - Auto-translate, chat bar and right-click menu cleanup, role count styles, Terono loading screens.
@@ -97,6 +101,12 @@ Settings → Terono → **Presets**: **Preview** tries one on your own Discord, 
 | **Deep Lagoon** | **Mirror White** |
 | <img src="assets/screenshots/violet.png" alt="Violet Focus"> | <img src="assets/screenshots/minimal.png" alt="Minimal"> |
 | **Violet Focus** | **Minimal** |
+| <img src="assets/presets/mango.jpg" alt="Mango"> | <img src="assets/presets/cyberpunk.jpg" alt="CyberPunk"> |
+| **Mango** | **CyberPunk** |
+| <img src="assets/presets/miami.jpg" alt="Miami"> | <img src="assets/presets/kiwi.jpg" alt="Kiwi"> |
+| **Miami** | **Kiwi** |
+| <img src="assets/presets/cowboy.jpg" alt="Cowboy"> | |
+| **Cowboy** | |
 
 The picture at the top is **Terono Classic**.
 

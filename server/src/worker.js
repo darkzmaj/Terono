@@ -11,8 +11,8 @@
 // POST   /hello              { id, v }  marks a Terono 1.0.5 - 1.1.5 user for the OG badge
 // GET    /authorize?code=    Discord sign-in (redirect target of the in-app "Authorize" window) -> { token, id }
 // GET    /me                 the signed-in user's badges
-// PUT    /me/badge/<0-2>     { name, effect, color, image (base64 PNG, 64x64, static) }
-// DELETE /me/badge/<0-2>
+// PUT    /me/badge/<0-5>     { name, effect, color, image (base64 PNG, 64x64, static) }
+// DELETE /me/badge/<0-5>
 // PUT    /me/official        { badges: [key, ...] }
 // POST   /seen               { id }  counts a user in the Terono user number (stored as a hash; setting can turn it off)
 // GET    /stats              { online, day, total }: the user number, readable only by the owner
@@ -84,7 +84,7 @@ async function route(req, env, url) {
         const user = await session(req, env);
         if (!user) return json({ error: "Not signed in" }, 401);
         if (m === "GET" && path === "/me") return me(env, user);
-        const slot = path.match(/^\/me\/badge\/([0-2])$/);
+        const slot = path.match(/^\/me\/badge\/([0-5])$/);
         if (slot && m === "PUT") return putBadge(req, env, user, Number(slot[1]));
         if (slot && m === "DELETE") return delBadge(env, user, Number(slot[1]));
         if (m === "PUT" && path === "/me/official") return putOfficial(req, env, user);

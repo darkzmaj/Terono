@@ -8,7 +8,7 @@ import { Button } from "@components/Button";
 import { copyToClipboard } from "@utils/clipboard";
 import { openUserProfile } from "@utils/discord";
 import { findByPropsLazy } from "@webpack";
-import { ChannelStore, Modal, NavigationRouter, openModal, RelationshipStore, RestAPI, SelectedChannelStore, useEffect, useRef, UserStore, useState } from "@webpack/common";
+import { ChannelStore, FluxDispatcher, Modal, NavigationRouter, openModal, ReadStateStore, RelationshipStore, RestAPI, SelectedChannelStore, useEffect, useRef, UserStore, useState } from "@webpack/common";
 
 import { tc } from "./classes";
 import { settings } from "./settings";
@@ -235,8 +235,25 @@ export function openBlocked() {
 
 const SEARCH_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm2 0v7.6l3.3-3.3a1 1 0 0 1 1.4 0l2.3 2.3 1.3-1.3a1 1 0 0 1 1.4 0L18 12.6V5H6Zm9 3.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM9 19h6a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2Z"/></svg>';
 
+/* Read where you are: with Discord in front and the chat scrolled to the bottom, the open channel is marked read.
+   Discord does this itself, but not always (the "new messages since…" bar stays and needs Mark as Read); this does
+   what that button does, once per new message. */
+let lastAck = "";
+function autoRead() {
+    if (!settings.store.autoRead || !document.hasFocus()) return;
+    const id = SelectedChannelStore.getChannelId();
+    if (!id || !ReadStateStore.hasUnread(id)) return;
+    const sc = document.querySelector<HTMLElement>('[class*="messagesWrapper"] [class*="scroller"]');
+    if (!sc || sc.scrollHeight - sc.scrollTop - sc.clientHeight > 8) return;
+    const messageId = ReadStateStore.lastMessageId(id);
+    if (!messageId || lastAck === `${id}:${messageId}`) return;
+    lastAck = `${id}:${messageId}`;
+    FluxDispatcher.dispatch({ type: "BULK_ACK", context: "APP", channels: [{ channelId: id, messageId, readStateType: 0 }] });
+}
+
 function ensureButtons() {
     if (document.hidden) return;
+    autoRead();
     const s = settings.store;
     // chat header: next to the search bar
     const search = s.searchTools ? document.querySelector<HTMLElement>('[class*="toolbar_"] > [class*="search_"]') : null;
@@ -251,8 +268,7 @@ function ensureButtons() {
         b.tabIndex = 0;
         b.title = "Pictures, links and files in this chat";
         b.innerHTML = SEARCH_ICON;
-        b.onclick = () => openSearchTools();
-        b.onkeydown = e => { if (e.key === "Enter") openSearchTools(); };
+        b.dataset.dzAction = "search";
         search.before(b);
     } else if (!search) have?.remove();
 
@@ -267,8 +283,7 @@ function ensureButtons() {
         b.setAttribute("role", "button");
         b.tabIndex = 0;
         b.textContent = "Blocked";
-        b.onclick = openBlocked;
-        b.onkeydown = e => { if (e.key === "Enter") openBlocked(); };
+        b.dataset.dzAction = "blocked";
         add.before(b);
     } else if (!add) blocked?.remove();
 }
@@ -316,13 +331,7 @@ function injectSearchGroup() {
         row.setAttribute("role", "button");
         row.tabIndex = -1;
         row.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${MODE_ICONS[mode]}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="dz-sx-label">${label}</div><div class="dz-sx-sub">${MODE_NOTES[mode]}</div></div>`;
-        // mousedown: before the search box loses focus and Discord closes the list
-        row.addEventListener("mousedown", e => {
-            e.preventDefault();
-            e.stopPropagation();
-            (document.activeElement as HTMLElement | null)?.blur?.();
-            openSearchTools(mode);
-        });
+        row.dataset.dzAction = `search:${mode}`;
         wrap.append(row);
         group.append(wrap);
     }
@@ -342,9 +351,34 @@ function watchSearchList() {
 const isSearchBox = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('[class*="toolbar_"] [class*="search_"]');
 const onSearchFocus = (e: Event) => { if (isSearchBox(e.target)) watchSearchList(); };
 
+/* Every button Terono adds (search, Blocked, the Terono rows in Discord's search) is handled here, on the document,
+   by its data-dz-action, not by a handler on the button: Discord re-renders those places and a re-created or moved
+   button then still works. Pointer-down, before Discord's search list closes itself on the same press. */
+function act(t: HTMLElement) {
+    const a = t.dataset.dzAction!;
+    if (a === "blocked") return openBlocked();
+    if (a.startsWith("search:")) (document.activeElement as HTMLElement | null)?.blur?.();
+    openSearchTools((a.split(":")[1] as Mode | undefined) ?? undefined);
+}
+function onPointer(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const t = (e.target as Element | null)?.closest?.<HTMLElement>("[data-dz-action]");
+    if (!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    act(t);
+}
+function onKey(e: KeyboardEvent) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const t = (e.target as Element | null)?.closest?.<HTMLElement>("[data-dz-action]");
+    if (t) { e.preventDefault(); act(t); }
+}
+
 let timer = 0;
 
 export function startTools() {
+    document.addEventListener("pointerdown", onPointer, true);
+    document.addEventListener("keydown", onKey, true);
     timer = window.setInterval(ensureButtons, 1000);
     document.addEventListener("focusin", onSearchFocus, true);
     document.addEventListener("input", onSearchFocus, true);
@@ -352,6 +386,8 @@ export function startTools() {
 }
 
 export function stopTools() {
+    document.removeEventListener("pointerdown", onPointer, true);
+    document.removeEventListener("keydown", onKey, true);
     document.removeEventListener("focusin", onSearchFocus, true);
     document.removeEventListener("input", onSearchFocus, true);
     document.removeEventListener("mouseup", onSearchFocus, true);

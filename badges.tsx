@@ -25,7 +25,7 @@ const AUTH_KEY = "Terono_badgeAuth";
 const HELLO_KEY = "Terono_badgeHello";
 // changes arrive live; the full list is only downloaded at start, after a reconnect and every few hours
 const REFRESH_MS = 6 * 60 * 60 * 1000;
-export const MAX_CUSTOM = 3;
+export const MAX_CUSTOM = 6;
 
 // official-look badges (icons from Discord's own CDN); Discord Staff, Partner and Moderator Programs are left out
 export const OFFICIAL: [key: string, name: string, icon: string][] = [
@@ -512,7 +512,7 @@ export function BadgesPanel() {
                 <h3 className="dz-set-group-title">Custom badges ({MAX_CUSTOM} max)</h3>
                 <p className="dz-badge-note">Any image; it's made 64×64 and still (GIFs keep their first frame). Optionally give it a glow or an outline in any color. Everyone with Terono sees them, so keep them friendly.</p>
                 <div className={auth ? "" : "dz-badge-locked"}>
-                    {[0, 1, 2].map(i => <Slot key={`${i}:${rev}:${mine ? 1 : 0}`} index={i} saved={mine?.custom.find(c => c.s === i)} onSaved={reload} />)}
+                    {Array.from({ length: MAX_CUSTOM }, (_, i) => i).map(i => <Slot key={`${i}:${rev}:${mine ? 1 : 0}`} index={i} saved={mine?.custom.find(c => c.s === i)} onSaved={reload} />)}
                 </div>
             </section>
 

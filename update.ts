@@ -96,9 +96,8 @@ export async function canUpdate(root: string): Promise<{ ok: boolean; reason?: s
     if (await quiet(plugin, "rev-parse", "--is-shallow-repository") !== "true")
         return { ok: false, reason: "This is a development copy of Terono. Update it with git." };
 
-    if (await quiet(plugin, "status", "--porcelain", "--untracked-files=no"))
-        return { ok: false, reason: "The Terono folder has local changes. Run Terono Setup to reset it." };
-
+    // changed files in a Setup install's Terono folder (a half-finished update, an edit) are reset by the update,
+    // exactly as Terono Setup would; refusing made "run Setup" the answer to something the update can do itself
     return { ok: true };
 }
 
@@ -137,9 +136,9 @@ async function update(root: string, tag: string) {
     const check = await canUpdate(root);
     if (!check.ok) throw new Error(check.reason);
 
-    // 1. Terono: exactly the released version
+    // 1. Terono: exactly the released version (a short network hiccup gets a second try)
     state.step = 0;
-    if ((await git(plugin, "fetch", "--depth", "1", "origin", "tag", tag, "--no-tags")).code !== 0)
+    if (!await twice(() => git(plugin, "fetch", "--depth", "1", "origin", "tag", tag, "--no-tags")))
         throw new Error(`Couldn't download Terono ${tag}. Check your internet connection and try again.`);
     if ((await git(plugin, "reset", "--hard", tag)).code !== 0)
         throw new Error("Couldn't switch to the new Terono version. Run Terono Setup to repair it.");
@@ -148,23 +147,40 @@ async function update(root: string, tag: string) {
     state.step = 1;
     const lock = join(root, "pnpm-lock.yaml");
     const lockBefore = fileHash(lock);
+    const vencordBefore = await quiet(root, "rev-parse", "HEAD");
     const vencordOwn = await quiet(root, "rev-parse", "--is-shallow-repository") === "true"
         && !await quiet(root, "status", "--porcelain", "--untracked-files=no");
+    let vencordMoved = false;
     if (vencordOwn) {
-        if ((await git(root, "fetch", "--depth", "1", "origin", "main")).code !== 0 || (await git(root, "reset", "--hard", "FETCH_HEAD")).code !== 0)
+        if (!await twice(() => git(root, "fetch", "--depth", "1", "origin", "main")) || (await git(root, "reset", "--hard", "FETCH_HEAD")).code !== 0)
             throw new Error("Couldn't update Vencord. Check your internet connection and try again.");
+        vencordMoved = !!vencordBefore && await quiet(root, "rev-parse", "HEAD") !== vencordBefore;
     } else log("Vencord folder isn't a Terono Setup install, left as it is.");
 
-    // 3. dependencies, only when Vencord's changed
-    state.step = 2;
-    if (fileHash(lock) !== lockBefore || !existsSync(join(root, "node_modules"))) {
-        const pm = /"packageManager"\s*:\s*"(pnpm@[\w.+-]+)"/.exec(readFileSync(join(root, "package.json"), "utf8"))?.[1] ?? "pnpm";
-        if ((await npx(root, `${pm} install --frozen-lockfile`)).code !== 0)
-            throw new Error("Installing packages failed. Try again, or run Terono Setup.");
-    } else log("Packages are up to date.");
+    // 3 + 4. dependencies when Vencord's changed, then the build (what Vencord's own updater runs)
+    const pm = /"packageManager"\s*:\s*"(pnpm@[\w.+-]+)"/.exec(readFileSync(join(root, "package.json"), "utf8"))?.[1] ?? "pnpm";
+    const install = async () => {
+        state.step = 2;
+        if (fileHash(lock) === lockBefore && existsSync(join(root, "node_modules"))) { log("Packages are up to date."); return true; }
+        return twice(() => npx(root, `${pm} install --frozen-lockfile`));
+    };
+    const build = async () => { state.step = 3; return (await run("node", ["scripts/build/build.mjs"], root)).code === 0; };
 
-    // 4. build (what Vencord's own updater runs)
-    state.step = 3;
-    if ((await run("node", ["scripts/build/build.mjs"], root)).code !== 0)
-        throw new Error("Building failed. Try again, or run Terono Setup.");
+    if (await install() && await build()) return;
+
+    // A brand-new Vencord can break Terono until Terono catches up (Vencord 1.15.15 did): go back to the Vencord this
+    // PC had, which worked, and build that, so the Terono update still goes through.
+    if (vencordMoved && vencordBefore) {
+        log("The new Vencord didn't build with Terono; going back to the Vencord this PC had.");
+        state.step = 1;
+        if (await twice(() => git(root, "fetch", "--depth", "1", "origin", vencordBefore)) && (await git(root, "reset", "--hard", vencordBefore)).code === 0
+            && await twice(() => npx(root, `${pm} install --frozen-lockfile`)) && await build()) return;
+    }
+    throw new Error("Building failed. Try again, or run Terono Setup.");
+}
+
+async function twice(step: () => Promise<{ code: number; }>) {
+    if ((await step()).code === 0) return true;
+    await new Promise(r => setTimeout(r, 2000));
+    return (await step()).code === 0;
 }

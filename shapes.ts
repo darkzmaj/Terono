@@ -62,7 +62,7 @@ function isQuietUnread(id: string) {
 }
 
 function scanUnread() {
-    for (const el of document.querySelectorAll<HTMLElement>(".guilds__5e434 .listItem__650eb [data-list-item-id^='guildsnav___']")) {
+    for (const el of document.querySelectorAll<HTMLElement>(tc(".guilds__5e434 .listItem__650eb [data-list-item-id^='guildsnav___']"))) {
         const item = el.closest<HTMLElement>(tc(".listItem__650eb"));
         if (!item) continue;
         const id = el.dataset.listItemId!.replace("guildsnav___", "");

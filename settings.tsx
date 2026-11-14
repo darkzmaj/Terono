@@ -5,7 +5,7 @@
  */
 
 import * as DataStore from "@api/DataStore";
-import { definePluginSettings, useSettings } from "@api/Settings";
+import { definePluginSettings, Settings as PluginSettings, useSettings } from "@api/Settings";
 import { Paragraph } from "@components/Paragraph";
 import { localStorage } from "@utils/localStorage";
 import { OptionType, PluginNative } from "@utils/types";
@@ -16,6 +16,7 @@ import { IconSwaps } from "./branding";
 import { applyAmbient } from "./call";
 import { tc } from "./classes";
 import { MyLookPanel, PeoplePanel } from "./cosmetics";
+import { DECORATION_THEMES, DECORATIONS_CSS, imageToDecoration, ShapeDrawer, startDecorations, stopDecorations } from "./decorations";
 import { DebugInfo } from "./diagnostics";
 import { DdOption, Dropdown } from "./dropdown";
 import { DVD_CSS, startDvd, stopDvd } from "./dvd";
@@ -25,6 +26,7 @@ import { addTicker, isAway, MOTION_STEP_MS, removeTicker, setPauseWhenUnfocused 
 import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
+import { SoundsPanel } from "./sounds";
 import { inStreamMode } from "./streammode";
 import { toast } from "./toast";
 import { isOwner, UsagePanel } from "./usage";
@@ -284,6 +286,50 @@ export function applyDvd() {
     });
 }
 
+/* Louder than Discord allows: Vencord's VolumeBooster, set so the volume sliders go to 500% (2.5 x Discord's 200%).
+   It changes Discord's code, so turning it on or off takes effect after the next restart. Terono only turns it off
+   again if Terono was the one that turned it on. */
+export function syncVolumeBoost() {
+    const vb = PluginSettings.plugins.VolumeBooster as Record<string, any> | undefined;
+    if (!vb) return;
+    const raw = PluginSettings.plugins.Terono as Record<string, any>;
+    if (settings.store.volumeBoost) {
+        if (!vb.enabled) { vb.enabled = true; raw.volumeBoostOurs = true; }
+        if (!vb.multiplier || vb.multiplier < 2.5) vb.multiplier = 2.5;
+    } else if (raw.volumeBoostOurs) {
+        vb.enabled = false;
+        raw.volumeBoostOurs = false;
+    }
+}
+
+export function applyDecorations() {
+    const s = settings.store;
+    const on = !!s.decoTheme && s.decoTheme !== "none";
+    sheet("deco", on ? DECORATIONS_CSS : "");
+    if (!on) return stopDecorations();
+    const colors = String(s.decoColors || "").split(",").map(c => c.trim()).filter(c => HEX_RE.test(c));
+    const shape = (s.decoShape || "circle") as any;
+    startDecorations({
+        theme: s.decoTheme,
+        density: Math.max(0, Math.min(360, Number(s.decoDensity) || 100)),
+        speed: Math.max(0.1, Math.min(4, Number(s.decoSpeed) || 1)),
+        size: Math.max(0.3, Math.min(4, Number(s.decoSize) || 1)),
+        colors: colors.length ? colors : null,
+        mouse: s.decoMouse !== false,
+        lights: s.decoLights !== false,
+        piles: s.decoPiles !== false,
+        props: s.decoProps !== false,
+        custom: {
+            shape,
+            image: (shape === "drawn" ? s.decoDrawn : shape === "image" ? s.decoImage : "") || null,
+            direction: (s.decoDirection || "down") as any,
+            rotate: s.decoRotate !== false,
+            color: HEX_RE.test(s.decoColor) ? s.decoColor : "#ffffff",
+        },
+        strictPause: !!(s.lite || s.ultra),
+    });
+}
+
 function setBorderBlob(b: Blob | null) {
     if (borderUrl) URL.revokeObjectURL(borderUrl);
     borderUrl = b ? URL.createObjectURL(b) : null;
@@ -429,6 +475,18 @@ export const FONT_LIST: [string, string, string][] = [
     ["plexmono", "IBM Plex Mono", "Mono"],
     ["geistmono", "Geist Mono", "Mono"],
     ["vt323", "VT323", "Mono"],
+    ["sharetech", "Share Tech Mono", "Mono"],
+    ["tektur", "Tektur", "Cyberpunk"],
+    ["majormono", "Major Mono Display", "Cyberpunk"],
+    ["turret", "Turret Road", "Cyberpunk"],
+    ["syncopate", "Syncopate", "Cyberpunk"],
+    ["cinzel", "Cinzel", "Old style"],
+    ["imfell", "IM Fell English", "Old style"],
+    ["fraktur", "UnifrakturMaguntia", "Old style"],
+    ["specialelite", "Special Elite", "Old style"],
+    ["rye", "Rye", "Western"],
+    ["smokum", "Smokum", "Western"],
+    ["ewert", "Ewert", "Western"],
 ];
 const FONTS: Record<string, string> = Object.fromEntries(FONT_LIST.map(([k, f]) => [k, f]));
 const FONT_LABELS: Record<string, string> = { discord: "Discord (gg sans)", terono: "Terono (Figtree)" };
@@ -602,6 +660,21 @@ export const settings = definePluginSettings({
     },
 
     /* --- tools --- */
+    volumeBoost: {
+        type: OptionType.BOOLEAN,
+        description: "Turn people and streams up to 500% (Discord stops at 200%): right-click someone in a call, or a stream, and drag their volume past 200. Uses Vencord's VolumeBooster; switching it changes after a restart.",
+        default: true,
+        onChange: () => syncVolumeBoost(),
+    },
+    sounds: {
+        type: OptionType.COMPONENT,
+        component: () => <SoundsPanel />,
+    },
+    autoRead: {
+        type: OptionType.BOOLEAN,
+        description: "Mark the open chat as read when you're scrolled to the bottom and Discord is in front, also when Discord itself misses it (the \"new messages since…\" bar that needs Mark as Read).",
+        default: true,
+    },
     searchTools: {
         type: OptionType.BOOLEAN,
         description: "Media, links and files buttons next to the search bar: all pictures and videos of a chat as a grid, every link (with a search inside the links, e.g. \"kori\" finds coolify.kori.my), or every file.",
@@ -656,6 +729,52 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         hidden: () => settings.store.appBorder !== "image",
         component: () => <FileRow title="Frame picture" note="PNG, JPG, GIF or WEBP up to 20 MB, stretched around the window. Stored only on this PC." accept={IMAGE_TYPES.join(",")} onFile={onBorderFile} />,
+    },
+    decoTheme: {
+        type: OptionType.SELECT,
+        description: "Seasonal decorations drifting behind the panels: snow (piling up on the panels, swept off with the mouse), Christmas lights, leaves, bats, confetti and more, or your own particles. Smooth 60 fps; it stops while Discord is hidden or a stream plays, and in Performance or Ultimate performance mode also while Discord isn't in front.",
+        options: DECORATION_THEMES.map(([value, label]) => ({ label, value, default: value === "none" })),
+        onChange: () => applyDecorations(),
+    },
+    decoDensity: { type: OptionType.SLIDER, description: "How many particles.", markers: [20, 60, 100, 160, 240, 360], default: 100, stickToMarkers: false, hidden: () => settings.store.decoTheme === "none", onChange: () => applyDecorations() },
+    decoSpeed: { type: OptionType.SLIDER, description: "Speed.", markers: [0.25, 0.5, 1, 1.5, 2, 3], default: 1, stickToMarkers: false, hidden: () => settings.store.decoTheme === "none", onChange: () => applyDecorations() },
+    decoSize: { type: OptionType.SLIDER, description: "Size.", markers: [0.5, 0.75, 1, 1.5, 2, 3], default: 1, stickToMarkers: false, hidden: () => settings.store.decoTheme === "none", onChange: () => applyDecorations() },
+    decoMouse: { type: OptionType.BOOLEAN, description: "The mouse pushes particles away, sweeps snow off the panels and pops balloons.", default: true, hidden: () => settings.store.decoTheme === "none", onChange: () => applyDecorations() },
+    decoLights: { type: OptionType.BOOLEAN, description: "A string of Christmas lights along the top of the window.", default: true, hidden: () => settings.store.decoTheme !== "christmas", onChange: () => applyDecorations() },
+    decoProps: { type: OptionType.BOOLEAN, description: "Set pieces: cobwebs, pumpkins, dead trees, garland and ornaments, snowman, frost, icicles, bunting, balloon bunches, googly eyes…", default: true, hidden: () => settings.store.decoTheme === "none" || settings.store.decoTheme === "custom", onChange: () => applyDecorations() },
+    decoPiles: { type: OptionType.BOOLEAN, description: "Snow and leaves pile up on the panels (on top, on ledges and at the bottom) and slowly melt away.", default: true, hidden: () => !["christmas", "winter", "autumn"].includes(settings.store.decoTheme), onChange: () => applyDecorations() },
+    decoColors: { type: OptionType.STRING, description: "Your own colors, comma-separated hex (#ff0000, #00ff00). Empty: the theme's colors.", default: "", hidden: () => settings.store.decoTheme === "none" || settings.store.decoTheme === "custom", onChange: () => applyDecorations() },
+    decoShape: {
+        type: OptionType.SELECT, description: "Particle shape.",
+        options: [
+            { label: "Circle", value: "circle", default: true }, { label: "Star", value: "star" }, { label: "Heart", value: "heart" },
+            { label: "Snowflake", value: "snowflake" }, { label: "Leaf", value: "leaf" }, { label: "My drawing", value: "drawn" }, { label: "My picture", value: "image" },
+        ],
+        hidden: () => settings.store.decoTheme !== "custom", onChange: () => applyDecorations(),
+    },
+    decoDirection: {
+        type: OptionType.SELECT, description: "Direction.",
+        options: [{ label: "Fall down", value: "down", default: true }, { label: "Rise up", value: "up" }, { label: "Drift around", value: "drift" }],
+        hidden: () => settings.store.decoTheme !== "custom", onChange: () => applyDecorations(),
+    },
+    decoRotate: { type: OptionType.BOOLEAN, description: "Particles spin.", default: true, hidden: () => settings.store.decoTheme !== "custom", onChange: () => applyDecorations() },
+    decoColor: { type: OptionType.STRING, description: "Particle color (hex, e.g. #ffffff). Pictures keep their own colors.", default: "#ffffff", hidden: () => settings.store.decoTheme !== "custom" || settings.store.decoShape === "image", onChange: () => applyDecorations() },
+    decoDrawn: { type: OptionType.STRING, description: "Your drawn particle.", default: "", hidden: true },
+    decoDrawer: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.decoTheme !== "custom" || settings.store.decoShape !== "drawn",
+        component: () => {
+            const { decoDrawn } = settings.use(["decoDrawn"]);
+            return <ShapeDrawer value={decoDrawn || null} onChange={url => { settings.store.decoDrawn = url; applyDecorations(); }} />;
+        },
+    },
+    decoImage: { type: OptionType.STRING, description: "Your particle picture.", default: "", hidden: true },
+    decoImageFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.decoTheme !== "custom" || settings.store.decoShape !== "image",
+        component: () => <FileRow title="Particle picture" note="PNG, JPG, GIF or WEBP; shrunk to 64 px and stored in your settings." accept={IMAGE_TYPES.join(",")} onFile={async f => {
+            try { settings.store.decoImage = await imageToDecoration(f); applyDecorations(); toast("Particle picture updated.", "success"); } catch { toast("Use an image of 20 MB or less.", "failure"); }
+        }} />,
     },
     dvd: {
         type: OptionType.BOOLEAN,
@@ -1145,13 +1264,13 @@ export const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Performance mode: no background animation, blur, pulsing badges or hover animations. Best for weak PCs and laptops on battery.",
         default: false,
-        onChange: () => { applyAttrs(); applyDvd(); },
+        onChange: () => { applyAttrs(); applyDvd(); applyDecorations(); },
     },
     ultra: {
         type: OptionType.BOOLEAN,
         description: "Ultimate performance mode: everything from Performance mode, plus instant hover and menu changes, no blur anywhere, and every animation in Discord (spinners, badges, the bouncing logo) stops while Discord isn't in front. Discord looks the same, just lighter. Requested by BLOODHOUND CIGGA.",
         default: false,
-        onChange: () => { applyAttrs(); applyLiquid(); applyDvd(); setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra); },
+        onChange: () => { applyAttrs(); applyLiquid(); applyDvd(); applyDecorations(); setPauseWhenUnfocused(settings.store.pauseUnfocused || settings.store.ultra); },
     },
     pauseUnfocused: {
         type: OptionType.BOOLEAN,
@@ -1219,7 +1338,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    taskbarIcon: "Terono icon on the taskbar", avatarShape: "Profile pictures", namesEverywhere: "Name styles everywhere", searchTools: "Search tools", blockedButton: "Blocked button on the friends page", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
+    taskbarIcon: "Terono icon on the taskbar", avatarShape: "Profile pictures", namesEverywhere: "Name styles everywhere", volumeBoost: "Volume up to 500%", searchTools: "Search tools", autoRead: "Always mark read at the bottom", blockedButton: "Blocked button on the friends page", shareUsage: "Count me as a Terono user", autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -1240,7 +1359,7 @@ const NAMES: Record<string, string> = {
     appBorder: "App border", borderColor: "Border color", borderColor2: "Gradient end", appBorderFile: "Frame picture", appBorderWidth: "Width",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
     teronoOff: "Turn Terono's features off", autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", ultra: "Ultimate performance mode", pauseUnfocused: "Pause when Discord isn't in front",
-    unreadRing: "Unread line around servers", customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
+    unreadRing: "Unread line around servers", decoTheme: "Decorations", decoDensity: "Amount", decoSpeed: "Speed", decoSize: "Size", decoMouse: "Mouse interaction", decoLights: "Christmas lights", decoPiles: "Piles", decoProps: "Set pieces", decoColors: "Colors", decoShape: "Shape", decoDirection: "Direction", decoRotate: "Spin", decoColor: "Color", decoDrawer: "Draw your particle", decoImageFile: "Picture", customSelection: "Custom selection color", dvd: "Bouncing logo", dvdFile: "Picture", dvdSize: "Size", dvdSpeed: "Speed",
 };
 
 // Only the screen shows in Vencord's own list; each option's "show only when…" rule moves to dzHidden, which the
@@ -1277,7 +1396,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border" | "ultra" | "dvd" | "unread", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null, ultra: null, dvd: null, unread: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border" | "ultra" | "dvd" | "unread" | "deco", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null, ultra: null, dvd: null, unread: null, deco: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -1678,7 +1797,7 @@ let cardPath = "";
 function panelOutline(base: DOMRect) {
     const n = (v: number) => Math.round(v * 10) / 10;
     let d = "";
-    for (const el of document.querySelectorAll<HTMLElement>(CARD_SEL)) {
+    for (const el of document.querySelectorAll<HTMLElement>(tc(CARD_SEL))) {
         const b = el.getBoundingClientRect();
         if (b.width < 2 || b.height < 2) continue;
         const x = n(b.left - base.left), y = n(b.top - base.top), w = n(b.width), h = n(b.height);
@@ -2156,7 +2275,7 @@ export const applyTimes: Record<string, number> = {};
 export function applyAll() {
     const steps: [string, () => void][] = [
         ["attrs", applyAttrs], ["vars", applyVars], ["logo", applyLogo], ["chat", applyChat], ["header", applyHeader], ["font", applyFont],
-        ["media", applyMedia], ["cardMedia", applyCardMedia], ["liquid", applyLiquid], ["loading", applyLoading], ["overlay", applyOverlay], ["dvd", applyDvd],
+        ["media", applyMedia], ["cardMedia", applyCardMedia], ["liquid", applyLiquid], ["loading", applyLoading], ["overlay", applyOverlay], ["dvd", applyDvd], ["decorations", applyDecorations],
     ];
     for (const [name, fn] of steps) {
         const t = performance.now();
@@ -2167,6 +2286,7 @@ export function applyAll() {
 
 export function removeAll() {
     stopDvd();
+    stopDecorations();
     removeCardLayer();
     removeLiquid();
     removeTicker(driftTick);

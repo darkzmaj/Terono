@@ -75,7 +75,7 @@ function observeItems() {
 }
 
 export function attachHeader() {
-    const el = document.querySelector<HTMLElement>(HEADER);
+    const el = document.querySelector<HTMLElement>(tc(HEADER));
     if (el === current) return schedule();
 
     detachHeader();
@@ -122,7 +122,7 @@ function place(layer: HTMLElement, anchor: DOMRect, zone: number) {
 }
 
 export function onHeaderClick(e: MouseEvent) {
-    const btn = (e.target as Element | null)?.closest?.(".title_f75fb0 .toolbar__9293f > *");
+    const btn = (e.target as Element | null)?.closest?.(tc(".title_f75fb0 .toolbar__9293f > *"));
     if (!btn) return;
 
     const zone = Number(getComputedStyle(btn).order);

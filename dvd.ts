@@ -63,10 +63,13 @@ function bounce() {
     maybeAimAtCorner();
 }
 
+// the next frame is asked for only when it's due: a pending animation frame makes Chromium run Discord's whole
+// rendering step at the monitor's rate (240 Hz on a 240 Hz screen) even when nothing changes
+let wait = 0;
 function frame(now: number) {
-    raf = requestAnimationFrame(frame);
-    if (now - lastFrame < FPS_STEP - 1) return;
+    if (!raf) return;
     lastFrame = now;
+    wait = window.setTimeout(() => { wait = 0; if (raf) raf = requestAnimationFrame(frame); }, Math.max(0, FPS_STEP - 2));
     // a long gap (paused, a hiccup) continues from where it was instead of jumping
     const dt = Math.min(now - last, 50) / 1000;
     last = now;
@@ -94,6 +97,7 @@ function sync() {
         raf = requestAnimationFrame(frame);
     } else if (!run && raf) {
         cancelAnimationFrame(raf);
+        clearTimeout(wait);
         raf = 0;
     }
 }
@@ -137,6 +141,7 @@ export function startDvd(o: DvdOptions) {
 
 export function stopDvd() {
     cancelAnimationFrame(raf);
+    clearTimeout(wait);
     raf = 0;
     clearInterval(videoCheck);
     window.removeEventListener("focus", sync);

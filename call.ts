@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { tc } from "./classes";
 import { settings } from "./settings";
 import { streaming } from "./streammode";
 
@@ -33,22 +32,28 @@ function stopGlow(g: Glow) {
     g.ro.disconnect();
     g.glow.srcObject = null;
     g.glow.remove();
+    g.host.classList.remove("dz-amb-host");
 }
 
 function syncGlows() {
     const want = new Set<HTMLVideoElement>();
     // not while you're streaming yourself: your PC is encoding then, and the glow would be a second copy to draw
     if (settings.store.callAmbient && !streaming()) {
-        // the big stream of the focused view: not the small tiles in the row under it, not the grid
-        for (const v of document.querySelectorAll<HTMLVideoElement>(tc(".tileWrapper__6981d [data-selenium-video-tile] video"))) {
-            if (!v.closest(tc(".participantsWrapperAnimated__6981d"))) want.add(v);
+        // the big streams in the call view (focused or in the grid), not the small tiles: Discord's current build
+        // dropped the old focused-view wrapper, so pick by size instead of by class
+        for (const v of document.querySelectorAll<HTMLVideoElement>("[class*=callContainer_] [data-selenium-video-tile] video:not(.dz-ambient)")) {
+            if (v.clientWidth >= 420) want.add(v);
         }
     }
     for (const [v, g] of glows) if (!want.has(v) || !g.host.isConnected) { stopGlow(g); glows.delete(v); }
     for (const v of want) {
         if (glows.has(v)) continue;
-        const host = v.closest<HTMLElement>(tc(".wrapper__2f4f7"));
+        // the tile clips its corners, so the glow goes on the box around it
+        const host = v.closest<HTMLElement>("[data-selenium-video-tile]")?.parentElement;
         if (!host) continue;
+        host.classList.add("dz-amb-host");
+        // the glow is placed relative to the box: give it a position only if Discord didn't
+        if (getComputedStyle(host).position === "static") host.style.position = "relative";
         const glow = Object.assign(document.createElement("video"), { className: "dz-ambient", muted: true, autoplay: true, playsInline: true, disablePictureInPicture: true, width: GW, height: GH });
         glow.setAttribute("aria-hidden", "true");
         host.prepend(glow);
@@ -111,6 +116,6 @@ export function stopCall() {
 export const CALL_CSS = `
 .dz-ambient { position: absolute; width: 64px !important; height: 36px !important; object-fit: fill; z-index: -1; pointer-events: none; transform-origin: 0 0;
     transform: scale(var(--dz-sx, 20), var(--dz-sy, 20)); filter: blur(3px) saturate(1.5); opacity: .6; will-change: transform; animation: dz-amb-in .5s ease both; }
-.wrapper__2f4f7:has(> .dz-ambient) { overflow: visible !important; isolation: isolate; }
+.dz-amb-host { overflow: visible !important; isolation: isolate; }
 @keyframes dz-amb-in { from { opacity: 0; } }
 `;

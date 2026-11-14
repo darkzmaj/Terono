@@ -124,7 +124,7 @@ Every change shows up straight away; there's nothing to save or restart.
 
 ### Presets: a whole look in one click
 
-The **Presets** tab has 12 complete looks: **Default** (normal Discord: panels joined like Discord, its colors, font and layout, and still everything changeable) and the ones in the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
+The **Presets** tab has 17 complete looks: **Default** (normal Discord: panels joined like Discord, its colors, font and layout, and still everything changeable) and the ones in the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal, plus Mango, CyberPunk, Miami, Kiwi and Cowboy, which each bring their own layout too.
 
 1. Not sure? Click **Preview**. The settings close and the preset is shown on your actual Discord. The bar at the bottom lets you:
    - flip through the presets with **‹** and **›**,
@@ -192,7 +192,7 @@ You can combine them freely. For example, Server list **Right** + Channel list s
 
 ### Font & Logo
 
-- **Font:** a dropdown with 70 fonts, each shown in its own style, in groups (Clean, Rounded, Geometric, Serif, Display, Handwritten, Mono); type to search. **Your own font file** uses a `.ttf`, `.otf`, `.woff` or `.woff2` file.
+- **Font:** a dropdown with 82 fonts, each shown in its own style, in groups (Clean, Rounded, Geometric, Serif, Display, Handwritten, Mono, Cyberpunk, Old style, Western); type to search. **Your own font file** uses a `.ttf`, `.otf`, `.woff` or `.woff2` file.
 - **Home logo:** the Terono logo sits on the Home button by default. Set **Logo source** to **URL** and paste a **Logo link**, or to **File** and upload an image. **Logo size** makes it bigger or smaller; an empty link brings the Terono logo back.
 - **Quick settings icon:** the Terono icon next to the arrows that opens these settings.
 - **Terono loading screens:** the Terono logo and "Terono Discord" instead of Discord's logo while Discord starts, updates and connects, in your colors. The small update window ("Checking for updates…") changes from the next start.
@@ -235,6 +235,18 @@ In **Profiles & sharing**:
 In **Calls & overlay**:
 
 - **Ambient mode:** while you watch a stream, its colors glow softly around it, like on YouTube, following the picture live. It plays a tiny copy of the stream, so the stream itself stays as smooth as without it. Everything else in calls is Discord's own.
+- **Volume up to 500%** (on by default): right-click someone in a call, or a stream, and drag the volume past 200%. Nobody's volume changes until you move it. Turning it on or off takes effect after a restart.
+- **Sounds:** pick your own file (MP3, OGG, WAV, M4A, AAC or FLAC, up to 8 MB) for the ringtone, messages, joins and leaves, mute and deafen, push to talk, stream sounds and more. **Play** listens, **Reset** puts Discord's back. The files stay on your PC.
+
+### Decorations
+
+In **Decorations** (Look): Christmas, Halloween, winter, autumn, Easter, summer, birthday, April Fools, or your own particles.
+
+- They're drawn in front of the panels but never block a click, and stay clear of the window buttons and your profile panel.
+- **Christmas:** snow that piles up on the panels and at their bottoms, which you sweep off with the mouse; blinking lights; garland, ornaments, frost and a snowman. **Halloween:** cobwebs, glowing pumpkins, dead trees, bats and a spider that runs off when the mouse comes close. Autumn leaves pile up too.
+- **Amount, speed, size, mouse interaction, set pieces, piles** and **colors** can all be changed.
+- **Your own particles:** draw a shape or pick a picture, then set its color, direction and spin.
+- It all runs off Discord's main thread and pauses whenever Discord is in the background.
 
 ### Your profile (everyone with Terono sees it)
 
@@ -262,7 +274,7 @@ In the **Badges** tab:
 
 - **Terono OG:** everyone who uses Terono between 1.0.0 and 1.1.5 gets this badge automatically, and keeps it.
 - **Connect with Discord** once: Discord asks you to **Authorize**. Terono only gets your user ID. This makes sure only you can change your badges.
-- **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
+- **Custom badges:** up to 6. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
 - **Discord badges:** click the ones you want to wear (Nitro and its tenure tiers from Bronze to Opal, Server Booster, HypeSquad, Early Supporter, Gifting tiers from Patron to Legend, every Account Age tier from Seed to Primordial, Orbs Apprentice and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
 
 Everyone who uses Terono sees your changes right away, on the profile and in Discord's **See all badges** window. People without Terono don't see them at all.

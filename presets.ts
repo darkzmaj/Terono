@@ -104,6 +104,31 @@ export const PRESETS: Preset[] = [
         description: "Solid black, soft corners, server list on the left, Discord's own font.",
         values: { cardShape: "soft", background: "solid", bgBase: "#050506", serverList: "left", font: "discord", roleCount: "dash" },
     },
+    {
+        id: "mango", name: "Mango",
+        description: "Warm mango orange and yellow over a sunset glow: round glass cards, servers along the bottom, centered channel name, Grandstander.",
+        values: { accentPreset: "custom", accent: "#ffb020", cardPreset: "custom", cardFill: "gradient", cardColor: "#1a0f05", cardColor2: "#2a1606", cardAngle: 160, cardStyle: "glass", glassOpacity: 70, cardShape: "round", bgBase: "#120802", bgColor1: "#ff8a00", bgColor2: "#ffd23f", font: "grandstander", voice: "#7ed957", serverList: "bottom", headerName: "middle", headerHash: false, embedStyle: "glass", roleCount: "space" },
+    },
+    {
+        id: "cyberpunk", name: "CyberPunk",
+        description: "Neon yellow and cyan on black: sharp cards, servers on the right, members on the left, search in the middle, Orbitron.",
+        values: { accentPreset: "custom", accent: "#fcee0a", cardPreset: "custom", cardFill: "gradient", cardColor: "#07070c", cardColor2: "#140a1f", cardAngle: 120, cardShape: "sharp", bgBase: "#000000", bgColor1: "#00f0ff", bgColor2: "#ff003c", font: "orbitron", voice: "#00f0ff", close: "#ff003c", minimize: "#fcee0a", maximize: "#00f0ff", customText: true, textColor: "#e8f9ff", roleCount: "bracket", serverList: "right", membersSide: "left", headerName: "right", headerButtons: "left", headerSearch: "middle", embedStyle: "gradient" },
+    },
+    {
+        id: "miami", name: "Miami",
+        description: "Sunset beach: hot pink to teal over a purple dusk, glass cards, servers on top from the right, centered names, Righteous.",
+        values: { accentPreset: "custom", accent: "#ff3fa4", cardPreset: "custom", cardFill: "gradient", cardColor: "#1a0b2e", cardColor2: "#0b2a3a", cardAngle: 135, cardStyle: "glass", glassOpacity: 55, cardShape: "curved", bgBase: "#14051f", bgColor1: "#ff3fa4", bgColor2: "#14c8c8", font: "righteous", voice: "#14c8c8", headerName: "middle", headerHash: false, serverListDirection: "rtl", headerButtons: "right", headerSearch: "left", dmHeaderName: "middle", embedStyle: "glass", roleCount: "custom", roleCountCustom: "✦ %users%" },
+    },
+    {
+        id: "kiwi", name: "Kiwi",
+        description: "Fresh kiwi green with a golden center: round cards, a mirrored layout (channels right, members left, servers left), Lexend.",
+        values: { accentPreset: "custom", accent: "#8ee000", cardPreset: "custom", cardFill: "gradient", cardColor: "#0a1404", cardColor2: "#1a2406", cardAngle: 150, cardShape: "round", bgBase: "#050a02", bgColor1: "#8ee000", bgColor2: "#c9a227", font: "lexend", voice: "#8ee000", serverList: "left", channelsSide: "right", membersSide: "left", headerName: "left", headerButtons: "right", embedStyle: "solid", roleCount: "dot" },
+    },
+    {
+        id: "cowboy", name: "Cowboy",
+        description: "Desert dusk: leather browns and sunset orange, sharp cards, servers along the bottom, centered names, Rye western lettering.",
+        values: { accentPreset: "custom", accent: "#d9822b", cardPreset: "custom", cardFill: "gradient", cardColor: "#1e120a", cardColor2: "#2b170b", cardAngle: 170, cardShape: "sharp", bgBase: "#120a05", bgColor1: "#d9822b", bgColor2: "#7a3b12", font: "rye", voice: "#c9a227", close: "#b23a1e", customText: true, textColor: "#f3e3c8", roleCount: "custom", roleCountCustom: "〔%users%〕", serverList: "bottom", headerName: "middle", headerHash: false, headerButtons: "right", dmHeaderName: "middle", embedStyle: "solid" },
+    },
 ];
 
 // "layout": where things sit. A preset can be applied with or without it; everything else is "theme".

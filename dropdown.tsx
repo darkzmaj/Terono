@@ -25,13 +25,15 @@ export interface DdOption {
 
 const LIMIT = 300;
 
-export function Dropdown({ value, options, onChange, placeholder = "Choose…", ariaLabel, search }: {
+export function Dropdown({ value, options, onChange, placeholder = "Choose…", ariaLabel, search, onPreview }: {
     value: string;
     options: DdOption[];
     onChange(value: string): void;
     placeholder?: string;
     ariaLabel?: string;
     search?: boolean;
+    /** the highlighted option while the list is open (null when it closes): to show it before it's picked */
+    onPreview?(value: string | null): void;
 }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState("");
@@ -53,6 +55,8 @@ export function Dropdown({ value, options, onChange, placeholder = "Choose…", 
     }, [open]);
 
     useEffect(() => { if (open) list.current?.querySelector<HTMLElement>(".dz-dd-hi")?.scrollIntoView({ block: "nearest" }); }, [hi, open]);
+    // preview what's highlighted (hovered or chosen with the arrow keys), and stop previewing when the list closes
+    useEffect(() => { if (onPreview) onPreview(open ? shown[hi]?.value ?? null : null); }, [hi, open, shown]);
 
     const pick = (o: DdOption) => { setOpen(false); if (o.value !== value) onChange(o.value); };
 

@@ -247,7 +247,6 @@ function UpdateScreen({ version, onClose }: { version: string; onClose(): void; 
                         <circle className="dz-upd-track" cx="60" cy="60" r="52" />
                         <circle className="dz-upd-fill" cx="60" cy="60" r="52" style={{ strokeDasharray: RING, strokeDashoffset: RING * (1 - progress / 100) }} />
                     </svg>
-                    {phase === "running" && <span className="dz-upd-orbit" aria-hidden="true" />}
                     <img src={TERONO_LOGO} alt="" />
                     {phase === "done" && (
                         <span className="dz-upd-check" aria-hidden="true">
@@ -345,19 +344,13 @@ const CSS = `
 .dz-upd[data-phase="error"] .dz-upd-card { animation: dz-upd-card 520ms cubic-bezier(.34, 1.45, .5, 1) both, dz-upd-shake 420ms 80ms ease both; }
 
 .dz-upd-logo { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; display: grid; place-items: center; }
-.dz-upd-logo img { position: relative; width: 62px; height: 62px; transition: scale 400ms cubic-bezier(.34, 1.6, .5, 1); }
-.dz-upd[data-phase="done"] .dz-upd-logo img { animation: dz-upd-pop 620ms cubic-bezier(.34, 1.6, .5, 1) both; }
+.dz-upd-logo img { position: relative; width: 62px; height: 62px; }
 .dz-upd-ring { position: absolute; inset: 0; rotate: -90deg; overflow: visible; }
 .dz-upd-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
 .dz-upd-track { stroke: color-mix(in srgb, var(--dz-text, #f1f2f4) 9%, transparent); }
 .dz-upd-fill { stroke: var(--dz-accent, #429cff); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--dz-accent, #429cff) 60%, transparent));
     transition: stroke-dashoffset 700ms cubic-bezier(.34, 1.25, .5, 1), stroke 250ms ease; }
 .dz-upd[data-phase="error"] .dz-upd-fill { stroke: #ed4245; filter: none; }
-.dz-upd-orbit { position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
-    background: conic-gradient(from 0deg, transparent 0 70%, color-mix(in srgb, var(--dz-accent, #429cff) 70%, white) 92%, transparent);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
-    animation: dz-upd-spin 1.15s cubic-bezier(.55, .1, .45, .9) infinite; }
 .dz-upd-check { position: absolute; right: 14px; bottom: 14px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
     background: var(--dz-accent, #429cff); box-shadow: 0 0 0 4px var(--dz-card, #070708), 0 6px 16px color-mix(in srgb, var(--dz-accent, #429cff) 50%, transparent);
     animation: dz-upd-pop 520ms 160ms cubic-bezier(.34, 1.8, .5, 1) both; }

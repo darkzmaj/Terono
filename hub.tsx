@@ -12,6 +12,7 @@ import { Switch } from "@components/Switch";
 import { Plugin } from "@utils/types";
 import { useMemo, useState } from "@webpack/common";
 
+import { Dropdown } from "./dropdown";
 import { toast } from "./toast";
 
 // Every Vencord plugin in this build, in one place: by category, searchable. Plugins stay separate (Vencord keeps
@@ -175,7 +176,7 @@ export function PluginHub() {
     const [filter, setFilter] = useState("All");
     const [rev, setRev] = useState(0);
     const all = listedPlugins();
-    const query = "";
+    const [query, setQuery] = useState("");
     const filters = useMemo(() => FILTERS.filter(f => f === "All" || f === "Recommended" || f === "On" || all.some(p => (CATEGORY_OF.get(p.name) ?? OTHER) === f)), [all]);
 
     const q = query.trim().toLowerCase();
@@ -201,10 +202,16 @@ export function PluginHub() {
                     : <Button size="small" variant="secondary" onClick={() => { parkAll(); setRev(r => r + 1); }}>Turn all other plugins off</Button>}
             </div>
             <div className="dz-hub-bar">
-                <div className="dz-hub-filters" role="tablist">
-                    {filters.map(f => (
-                        <button key={f} role="tab" aria-selected={f === filter} className="dz-hub-filter" onClick={() => setFilter(f)}>{f}</button>
+                <input className="dz-hub-search" type="search" placeholder={`Search ${all.length} plugins`} value={query} onChange={e => setQuery(e.currentTarget.value)} aria-label="Search plugins" />
+                <div className="dz-hub-nav">
+                    {["All", "On", "Recommended"].map(f => (
+                        <button key={f} aria-pressed={f === filter} className="dz-hub-filter" onClick={() => setFilter(f)}>{f}</button>
                     ))}
+                    <div className="dz-hub-cat">
+                        <Dropdown ariaLabel="Category" value={filters.slice(3).includes(filter) ? filter : ""} placeholder="Category"
+                            options={[{ value: "", label: "Every category" }, ...filters.filter(f => !["All", "On", "Recommended"].includes(f)).map(f => ({ value: f, label: f, sub: `${all.filter(p => (CATEGORY_OF.get(p.name) ?? OTHER) === f).length} plugins` }))]}
+                            onChange={v => setFilter(v || "All")} />
+                    </div>
                 </div>
             </div>
             {[...groups].filter(([, list]) => list.length).map(([cat, list]) => (

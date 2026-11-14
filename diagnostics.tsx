@@ -18,6 +18,7 @@ import { BADGE_API, badgesReady, OWNER_ID } from "./badgeConfig";
 import { toast } from "./toast";
 
 const StreamSettings = findStoreLazy("ApplicationStreamingSettingsStore");
+import { tc } from "./classes";
 import { VERSION } from "./version";
 
 /* ================= troubleshooting =================
@@ -71,7 +72,7 @@ function collect() {
     const root = getComputedStyle(document.documentElement);
     const body = getComputedStyle(document.body);
     const parts = Object.fromEntries(Object.entries(PARTS).map(([name, sel]) => {
-        const el = document.querySelector<HTMLElement>(sel);
+        const el = document.querySelector<HTMLElement>(tc(sel));
         if (!el) return [name, "missing"];
         const r = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
@@ -147,7 +148,7 @@ async function runChecks(): Promise<Check[]> {
         ? { id: "errors", title: "Start-up errors", level: "fail", detail: errors.join(" · "), fix: { label: "Reload Discord", run: () => location.reload() } }
         : { id: "errors", title: "Start-up", level: "ok", detail: "Every part of Terono started." });
 
-    const missing = Object.entries(PARTS).filter(([, sel]) => !document.querySelector(sel)).map(([n]) => n).filter(n => n !== "memberList" && n !== "header" && n !== "chat");
+    const missing = Object.entries(PARTS).filter(([, sel]) => !document.querySelector(tc(sel))).map(([n]) => n).filter(n => n !== "memberList" && n !== "header" && n !== "chat");
     add(missing.length
         ? { id: "parts", title: "Discord's layout", level: "warn", detail: `Not found: ${missing.join(", ")}. Discord probably changed; an update of Terono fixes this.` }
         : { id: "parts", title: "Discord's layout", level: "ok", detail: "Terono finds every part it styles." });

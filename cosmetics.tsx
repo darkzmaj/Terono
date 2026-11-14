@@ -299,6 +299,22 @@ export function loadCatalog() {
                 out.push({ kind: "frame", sku: it.sku_id, name: p.name, category: c.name, label: it.label, img: layer && `https://cdn.discordapp.com/media/v1/collectibles-shop/${it.sku_id}/${layer.id}/static` });
             }
         }
+        // items Discord itself knows that the shop no longer lists (older collections): offered too
+        try {
+            const have = new Set(out.map(i => i.sku));
+            const products: any[] = [...(CollectiblesStore.products?.values?.() ?? [])];
+            for (const p of products) {
+                const it = p?.items?.[0];
+                const sku = it?.skuId ?? it?.sku_id ?? p?.skuId;
+                if (!it || !sku || have.has(sku)) continue;
+                const name = p.name ?? it.title ?? "Item";
+                if (p.type === 0 && it.asset) out.push({ kind: "deco", sku, name, asset: it.asset, category: "More from Discord", img: `https://cdn.discordapp.com/avatar-decoration-presets/${it.asset}.png?size=96&passthrough=false` });
+                else if (p.type === 2 && it.asset) out.push({ kind: "plate", sku, name, asset: it.asset, palette: it.palette ?? "none", label: it.label ?? name, category: "More from Discord", img: `https://cdn.discordapp.com/assets/collectibles/${it.asset}static.png` });
+                else if (p.type === 1) out.push({ kind: "effect", sku, name, category: "More from Discord", img: it.thumbnailPreviewSrc ?? it.staticFrameSrc });
+                else if (p.type === 3) { const layer = it.layers?.find((l: any) => l.type === "staple" && l.anchor === "top") ?? it.layers?.[0]; out.push({ kind: "frame", sku, name, category: "More from Discord", img: layer && `https://cdn.discordapp.com/media/v1/collectibles-shop/${sku}/${layer.id}/static` }); }
+                have.add(sku);
+            }
+        } catch { /* Discord's own list not loaded: the shop's is enough */ }
         return out;
     }).catch(e => { catalog = null; throw e; });
     return catalog;
@@ -538,16 +554,20 @@ export function MyLookPanel() {
         for (const i of items) opts.push({ value: i.sku, label: i.name, sub: i.category, img: i.img ?? "", group: undefined });
         return opts;
     };
-    const choose = (kind: Item["kind"], sku: string) => {
-        const it = shop.find(i => i.sku === sku && i.kind === kind);
+    // the look with one item swapped (or removed): for picking, and for previewing what's hovered before picking
+    const withItem = (base: Look, kind: Item["kind"], sku: string): Look | null => {
         const key = kind === "deco" ? "d" : kind === "plate" ? "n" : kind === "effect" ? "e" : "r";
-        if (!sku) return clear(key);
-        if (!it) return;
-        if (kind === "deco") set({ ...latest.current, d: { a: it.asset!, s: it.sku } });
-        if (kind === "plate") set({ ...latest.current, n: { a: it.asset!, s: it.sku, p: it.palette ?? "none", t: it.label ?? it.name } });
-        if (kind === "effect") set({ ...latest.current, e: it.sku });
-        if (kind === "frame") set({ ...latest.current, r: it.sku });
+        if (!sku) { const l = { ...base }; delete l[key]; return l; }
+        const it = shop.find(i => i.sku === sku && i.kind === kind);
+        if (!it) return null;
+        if (kind === "deco") return { ...base, d: { a: it.asset!, s: it.sku } };
+        if (kind === "plate") return { ...base, n: { a: it.asset!, s: it.sku, p: it.palette ?? "none", t: it.label ?? it.name } };
+        if (kind === "effect") return { ...base, e: it.sku };
+        return { ...base, r: it.sku };
     };
+    const choose = (kind: Item["kind"], sku: string) => { const l = withItem(latest.current, kind, sku); if (l) set(l); };
+    // hovering an item shows it on your profile and name right away; leaving the list puts your look back
+    const preview = (kind: Item["kind"], sku: string | null) => previewMine(sku === null ? latest.current : withItem(latest.current, kind, sku) ?? latest.current);
 
     async function uploadBanner(file?: File) {
         if (!file) return;
@@ -588,7 +608,7 @@ export function MyLookPanel() {
                 {([["deco", "Decoration", look.d?.s], ["plate", "Nameplate", look.n?.s], ["effect", "Effect", look.e], ["frame", "Frame", look.r]] as [Item["kind"], string, string | undefined][]).map(([kind, label, sku]) => (
                     <div key={kind} className="dz-look-row">
                         <label>{label}</label>
-                        <Dropdown ariaLabel={label} value={sku ?? ""} onChange={v => choose(kind, v)} placeholder={shop.length ? "None" : "Loading Discord's shop…"} options={pickOptions(kind, sku)} />
+                        <Dropdown ariaLabel={label} value={sku ?? ""} onChange={v => choose(kind, v)} onPreview={v => preview(kind, v)} placeholder={shop.length ? "None" : "Loading Discord's shop…"} options={pickOptions(kind, sku)} />
                     </div>
                 ))}
             </section>
@@ -681,11 +701,15 @@ export const personMenu: NavContextMenuPatchCallback = (children, { user }: { us
    Each avatar is cut round by its own small SVG mask; without the mask, rounded corners give the shape (the status
    dot then sits on the corner). Plain avatar pictures (chat) just get the corners. Pure CSS. */
 
+// matched by structure (an SVG avatar mask holding a picture), not one class name: Discord draws avatars with several
+// different components (chat, member list, profiles, calls, DMs), so a class-based rule missed some
 export const AVATAR_CSS = `
-html[data-dz-avatars] .mask__44b0c foreignObject { mask: none !important; }
-html[data-dz-avatars="rounded"] .mask__44b0c foreignObject :is(img, .avatarStack__44b0c),
+html[data-dz-avatars] :is(.mask__44b0c, svg[class*="mask_"], svg[class*="avatar"]) foreignObject[mask] { mask: none !important; }
+html[data-dz-avatars="rounded"] :is(.mask__44b0c, svg[class*="mask_"], svg[class*="avatar"]) foreignObject[mask] > *,
+html[data-dz-avatars="rounded"] :is(.mask__44b0c, svg[class*="mask_"], svg[class*="avatar"]) foreignObject[mask] :is(img, .avatarStack__44b0c),
 html[data-dz-avatars="rounded"] img[class*="avatar"]:not(foreignObject img) { border-radius: 28% !important; }
-html[data-dz-avatars="square"] .mask__44b0c foreignObject :is(img, .avatarStack__44b0c),
+html[data-dz-avatars="square"] :is(.mask__44b0c, svg[class*="mask_"], svg[class*="avatar"]) foreignObject[mask] > *,
+html[data-dz-avatars="square"] :is(.mask__44b0c, svg[class*="mask_"], svg[class*="avatar"]) foreignObject[mask] :is(img, .avatarStack__44b0c),
 html[data-dz-avatars="square"] img[class*="avatar"]:not(foreignObject img) { border-radius: 12% !important; }
 `;
 

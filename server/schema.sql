@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated INTEGER NOT NULL DEFAULT 0
 );
 
--- up to 3 uploaded badges per user (slot 0-2); image is a static 64x64 PNG
+-- up to 6 uploaded badges per user (slot 0-5); image is a static 64x64 PNG
 CREATE TABLE IF NOT EXISTS badges (
     user_id TEXT NOT NULL,
     slot INTEGER NOT NULL,

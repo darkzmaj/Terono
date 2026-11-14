@@ -24,6 +24,7 @@ import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./pre
 import { startPreview } from "./preview";
 import { PROFILES_CSS } from "./profiles";
 import { loadFontPreviews, settings, useSettingsRevision } from "./settings";
+import { SOUNDS_CSS } from "./sounds";
 import { toast } from "./toast";
 import { TOOLS_CSS } from "./tools";
 import { UpdatePanel } from "./updater";
@@ -60,6 +61,13 @@ const TABS: Tab[] = [
         ],
     },
     {
+        id: "decorations", section: "Look", label: "Decorations", icon: "M12 2l1.8 4.6L18 8l-4.2 1.4L12 14l-1.8-4.6L6 8l4.2-1.4L12 2Zm6 10 1 2.5 2.5 1-2.5 1L18 19l-1-2.5-2.5-1 2.5-1L18 12ZM6 14l.8 2 2 .8-2 .8L6 20l-.8-2.4-2-.8 2-.8L6 14Z",
+        groups: [
+            { title: "Decorations", keys: ["decoTheme", "decoDensity", "decoSpeed", "decoSize", "decoMouse", "decoLights", "decoProps", "decoPiles", "decoColors"] },
+            { title: "Your own particles", keys: ["decoShape", "decoDrawer", "decoImageFile", "decoDirection", "decoRotate", "decoColor"] },
+        ],
+    },
+    {
         id: "fonts", section: "Look", label: "Font & logo", icon: "M5 4h14v3h-2V6h-4v12h2v2H9v-2h2V6H7v1H5V4Z",
         groups: [
             { title: "Font", keys: ["fontPicker", "fontFile"] },
@@ -91,13 +99,15 @@ const TABS: Tab[] = [
         id: "calls", section: "Features", label: "Calls & overlay", icon: "M15 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2l5 3V5l-5 3Z",
         groups: [
             { title: "Streams (beta)", keys: ["callAmbient"] },
+            { title: "Volume", keys: ["volumeBoost"] },
+            { title: "Sounds", keys: ["sounds"] },
             { title: "Terono overlay (beta)", keys: ["overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity"] },
         ],
     },
     {
         id: "tools", section: "Features", label: "Tools", icon: "M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6Z",
         groups: [
-            { title: "Search & friends", keys: ["searchTools", "blockedButton"] },
+            { title: "Search & friends", keys: ["searchTools", "blockedButton", "autoRead"] },
             { title: "Shortcuts", keys: ["openKeybind", "bulkMode", "homeDoubleClick"] },
             { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
         ],
@@ -359,7 +369,7 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = tc(CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS + COSMETICS_CSS + DEBUG_CSS + PROFILES_CSS + TOOLS_CSS);
+    css.textContent = tc(CSS + SOUNDS_CSS + BADGES_CSS + BRANDING_CSS + USAGE_CSS + COSMETICS_CSS + DEBUG_CSS + PROFILES_CSS + TOOLS_CSS);
     document.head.append(css);
 }
 
@@ -471,6 +481,10 @@ const CSS = `
 .dz-hub-search:focus { border-color: var(--dz-accent, #429cff); }
 .dz-hub-search::placeholder { color: var(--text-muted, #aaa); }
 .dz-hub-filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.dz-hub-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dz-hub-filter[aria-pressed="true"] { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff); }
+.dz-hub-cat { flex: 1 1 200px; min-width: 180px; }
+.dz-hub-cat .dz-dd { max-width: none; }
 .dz-hub-filter { padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 600 12px var(--font-primary, "gg sans", sans-serif);
     color: var(--text-muted, #aaa); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);
     border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); transition: background 140ms ease, color 140ms ease; }

@@ -31,8 +31,9 @@ import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
 import { overlayAction, stopOverlay } from "./overlay";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
-import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, onVisibility, removeAll, settings } from "./settings";
+import { ACCENTS, applyAll, applyDarkerPalette, applyTimes, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, onVisibility, removeAll, settings, syncVolumeBoost } from "./settings";
 import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
+import { applySounds, removeSounds } from "./sounds";
 import { onStreamMode, startStreamMode, stopStreamMode, STREAM_CSS } from "./streammode";
 import themeStyle from "./theme/Terono.theme.css?managed";
 import { startTools, stopTools, TOOLS_CSS } from "./tools";
@@ -319,6 +320,7 @@ async function startFeatures() {
     });
     safely("cosmetics", startCosmetics);
     safely("tools", startTools);
+    safely("sounds", () => void applySounds());
     safely("badges", startBadges); // before the creator badge, which then shows first
     safely("creatorBadges", () => {
         addProfileBadge(creatorBadge);
@@ -345,7 +347,7 @@ function stopFeatures() {
     badgeStyle = null;
     document.removeEventListener("click", onDocClick, true);
     for (const [name, f] of [["header", detachHeader], ["preview", cancelPreview], ["motion", stopMotion], ["branding", stopBranding], ["shapes", stopShapes],
-        ["bulk", stopBulk], ["calls", stopCall], ["streamMode", () => { stopStreamMode(); offStreamMode?.(); }], ["cosmetics", stopCosmetics], ["tools", stopTools], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
+        ["bulk", stopBulk], ["calls", stopCall], ["streamMode", () => { stopStreamMode(); offStreamMode?.(); }], ["cosmetics", stopCosmetics], ["tools", stopTools], ["sounds", removeSounds], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
         ["apply", removeAll]] as [string, () => void][]) quietly(name, f);
     disableStyle(themeStyle);
 }
@@ -582,6 +584,7 @@ export default definePlugin({
         document.addEventListener("keydown", onKeyDown, true); // Ctrl + 1: the settings, also with the features off
         if (!settings.store.teronoOff) await startFeatures();
         else disableStyle(themeStyle);
+        safely("volumeBoost", syncVolumeBoost);
         safely("usage", () => startUsage(() => settings.store.shareUsage));
         safely("taskbarIcon", () => setTaskbarIcon(settings.store.taskbarIcon));
         safely("updated", () => announceUpdated(settings.store.lastVersion));

@@ -3,7 +3,7 @@
  * @author darkzmaj
  * @source https://github.com/darkzmaj/Terono
  * @website https://github.com/darkzmaj/Terono
- * @version 1.2.1
+ * @version 1.2.2
  * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -278,6 +278,17 @@ body {
 .content_f75fb0 > aside > .outer_c0bea0 /* dm user panel */ {
     overflow: visible;
     margin-right: 0;
+}
+
+/* the card inside the DM side panel follows the panel's corners exactly (1px inside its border); before it was
+   4px less round and sat flush, so the corners showed a seam */
+.content_f75fb0 > aside > .outer_c0bea0 > .inner_c0bea0,
+.content_f75fb0 > aside > .outer_c0bea0 [class*="banner_"] {
+    border-radius: calc(var(--dz-panel-radius, var(--radius-lg)) - 1px) !important;
+}
+.content_f75fb0 > aside > .outer_c0bea0 [class*="banner_"] {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
 }
 
 .searchResultsWrap_a98f3b /* search results */ {
@@ -2212,6 +2223,12 @@ html[data-dz-card-fill="gradient"]:root {
     background-color: var(--dz-solid-3) !important;
 }
 
+/* every layer inside a call tile follows the tile's corners: Discord's speaking ring and focus outline kept their
+   own 8px corners inside Terono's rounder tile, which left gaps at the corners while talking */
+[data-selenium-video-tile] :is([class*="border_"], video, [class*="videoWrapper_"], [class*="overlay_"]) {
+    border-radius: inherit !important;
+}
+
 /* tray icons inherited a near-black color from the call container */
 .callContainer_cb9592 :is(.leftTrayIcon_cb9592, .rightTrayIcon_cb9592, .lookBlank__201d5),
 .callContainer_cb9592 .colorable_f1ceac.primaryDark_f1ceac {
@@ -2519,6 +2536,10 @@ html[data-dz-lite] .guilds__5e434 .listItem__650eb > :not(.wrapper__58105) {
 }
 
 /* ================= JOINED PANELS (Panels: "Joined, like Discord", the Default preset) ================= */
+
+/* Discord pulls the voice-connected panel 1px left to overlap its joined panels; with separate cards that put
+   its icons a pixel off the rest */
+html:not([data-dz-panels="discord"]) .wrapper_e131a9 { margin-left: 0 !important; }
 
 html[data-dz-panels="discord"] body {
     --gap: 0px;
