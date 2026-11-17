@@ -344,7 +344,9 @@ const CSS = `
 .dz-upd[data-phase="error"] .dz-upd-card { animation: dz-upd-card 520ms cubic-bezier(.34, 1.45, .5, 1) both, dz-upd-shake 420ms 80ms ease both; }
 
 .dz-upd-logo { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; display: grid; place-items: center; }
-.dz-upd-logo img { position: relative; width: 62px; height: 62px; }
+/* the T stays in the middle of the ring in every phase: the finishing burst used to join the grid and push it up */
+.dz-upd-logo img { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; translate: -50% -50%; }
+.dz-upd-burst { position: absolute; inset: 0; pointer-events: none; }
 .dz-upd-ring { position: absolute; inset: 0; rotate: -90deg; overflow: visible; }
 .dz-upd-ring circle { fill: none; stroke-width: 5; stroke-linecap: round; }
 .dz-upd-track { stroke: color-mix(in srgb, var(--dz-text, #f1f2f4) 9%, transparent); }
