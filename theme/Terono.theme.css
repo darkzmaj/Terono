@@ -3,7 +3,7 @@
  * @author darkzmaj
  * @source https://github.com/darkzmaj/Terono
  * @website https://github.com/darkzmaj/Terono
- * @version 1.2.2
+ * @version 1.2.3
  * @description Fast, customizable Discord theme by darkzmaj. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -757,23 +757,14 @@ body {
         --border-normal: var(--border);
         --border-strong: var(--border);
         --border-subtle: var(--border);
-        --button-danger-background-disabled: lime;
-        --button-outline-brand-background-hover: blue;
-        --button-outline-brand-border-active: magenta;
         --button-outline-primary-text: var(--text-1);
         --card-background-default: var(--bg-3);
-        --card-primary-pressed-bg: lime;
-        --card-secondary-bg: blue;
-        --card-secondary-pressed-bg: magenta;
         --channel-icon: var(--text-4);
         --channel-text-area-placeholder: var(--text-5);
         --channels-default: var(--text-4);
         --channeltextarea-background: var(--border);
-        --chat-background: yellow;
         --chat-background-default: var(--bg-3);
-        --chat-border: lime;
         --chat-text-muted: var(--text-5);
-        --checkbox-background-active: blue;
         --checkbox-background-default: var(--bg-2);
         --checkbox-background-hover: var(--bg-1);
         --checkbox-background-selected-default: var(--accent-2);
@@ -784,60 +775,10 @@ body {
         --checkbox-border-selected-default: var(--button-border);
         --checkbox-border-selected-hover: var(--button-border);
         --checkbox-icon-active: var(--text-0);
-        --chip-blurple-dark-background: magenta;
-        --chip-blurple-dark-text: red;
-        --chip-blurple-light-background: yellow;
-        --chip-blurple-light-text: lime;
-        --chip-blurple-medium-background: blue;
-        --chip-blurple-medium-text: magenta;
-        --chip-gray-dark-background: red;
-        --chip-gray-dark-text: yellow;
-        --chip-gray-light-background: lime;
-        --chip-gray-light-text: blue;
-        --chip-gray-medium-background: magenta;
-        --chip-gray-medium-text: red;
-        --chip-green-dark-background: yellow;
-        --chip-green-dark-text: lime;
-        --chip-green-light-background: blue;
-        --chip-green-light-text: magenta;
-        --chip-green-medium-background: red;
-        --chip-green-medium-text: yellow;
-        --chip-orange-dark-background: lime;
-        --chip-orange-dark-text: blue;
-        --chip-orange-light-background: magenta;
-        --chip-orange-light-text: red;
-        --chip-orange-medium-background: yellow;
-        --chip-orange-medium-text: lime;
-        --chip-pink-dark-background: blue;
-        --chip-pink-dark-text: magenta;
-        --chip-pink-light-background: red;
-        --chip-pink-light-text: yellow;
-        --chip-pink-medium-background: lime;
-        --chip-pink-medium-text: blue;
-        --chip-purple-dark-background: magenta;
-        --chip-purple-dark-text: red;
-        --chip-purple-light-background: yellow;
-        --chip-purple-light-text: lime;
-        --chip-purple-medium-background: blue;
-        --chip-purple-medium-text: magenta;
-        --chip-red-dark-background: red;
-        --chip-red-dark-text: yellow;
-        --chip-red-light-background: lime;
-        --chip-red-light-text: blue;
-        --chip-red-medium-background: magenta;
-        --chip-red-medium-text: red;
-        --chip-yellow-dark-background: yellow;
-        --chip-yellow-dark-text: lime;
-        --chip-yellow-light-background: blue;
-        --chip-yellow-light-text: magenta;
-        --chip-yellow-medium-background: red;
-        --chip-yellow-medium-text: yellow;
         --content-inventory-media-seekbar-container: var(--bg-1);
         --content-inventory-overlay-text-primary: var(--text-2);
         --content-inventory-overlay-text-secondary: var(--text-3);
-        --context-menu-backdrop-background: red;
         --control-brand-foreground: var(--accent-2);
-        --control-brand-foreground-new: lime;
         --control-connect-background-active: var(--accent-5);
         --control-connect-background-default: var(--accent-4);
         --control-connect-background-hover: var(--accent-3);
@@ -941,42 +882,7 @@ body {
         --control-secondary-text-active: var(--text-3);
         --control-secondary-text-default: var(--text-3);
         --control-secondary-text-hover: var(--text-3);
-        --creator-revenue-icon-gradient-end: blue;
-        --creator-revenue-icon-gradient-start: magenta;
-        --creator-revenue-info-box-background: red;
-        --creator-revenue-info-box-border: yellow;
-        --creator-revenue-locked-channel-icon: lime;
-        --creator-revenue-progress-bar: blue;
-        --embed-background: magenta;
-        --embed-background-alternate: red;
-        --experimental-avatar-embed-bg: yellow;
         /* --expressive-gradient-blue-end: lime;
-        --expressive-gradient-blue-start: blue;
-        --expressive-gradient-green-end: magenta;
-        --expressive-gradient-green-start: red;
-        --expressive-gradient-nitro-green-end: yellow;
-        --expressive-gradient-nitro-green-start: lime;
-        --expressive-gradient-nitro-pink-end: blue;
-        --expressive-gradient-nitro-pink-start: magenta;
-        --expressive-gradient-pink-end: red;
-        --expressive-gradient-pink-start: yellow;
-        --expressive-gradient-purple-end: lime;
-        --expressive-gradient-purple-start: blue;
-        --expressive-gradient-tenure-badge-bronze-end: magenta;
-        --expressive-gradient-tenure-badge-bronze-start: red;
-        --expressive-gradient-tenure-badge-diamond-end: yellow;
-        --expressive-gradient-tenure-badge-diamond-start: lime;
-        --expressive-gradient-tenure-badge-emerald-end: blue;
-        --expressive-gradient-tenure-badge-emerald-start: magenta;
-        --expressive-gradient-tenure-badge-gold-end: red;
-        --expressive-gradient-tenure-badge-gold-start: yellow;
-        --expressive-gradient-tenure-badge-opal-end: lime;
-        --expressive-gradient-tenure-badge-opal-start: blue;
-        --expressive-gradient-tenure-badge-platinum-end: magenta;
-        --expressive-gradient-tenure-badge-platinum-start: red;
-        --expressive-gradient-tenure-badge-ruby-end: yellow;
-        --expressive-gradient-tenure-badge-ruby-start: lime;
-        --expressive-gradient-tenure-badge-silver-end: blue;
         --expressive-gradient-tenure-badge-silver-start: magenta; */
         --gradient-progress-pill-background: var(--text-5);
         --home-background: var(--bg-4);
@@ -985,7 +891,6 @@ body {
         --icon-feedback-info: var(--blue-1);
         --icon-feedback-positive: var(--green-1);
         --icon-feedback-warning: var(--yellow-1);
-        --icon-invert: magenta;
         --icon-link: var(--text-4);
         --icon-muted: var(--text-5);
         --icon-status-dnd: var(--dnd);
@@ -994,18 +899,13 @@ body {
         --icon-status-online: var(--online);
         --icon-strong: var(--text-3);
         --icon-subtle: var(--text-4);
-        --icon-transparent: lime;
         --icon-voice-muted: var(--accent-new);
         --input-background-default: var(--bg-3);
         --input-background-error-default: color-mix(in hsl, var(--red-2), transparent 90%);
         --input-border-active: var(--accent-2);
         --input-border-default: var(--border-light);
         --input-border-error-default: var(--red-2);
-        --input-border-error-hover: blue;
         --input-border-hover: var(--border);
-        --input-border-readonly: red;
-        --input-foreground-placeholder: yellow;
-        --input-icon-default: lime;
         --input-placeholder-text-default: var(--text-5);
         --input-text-default: var(--text-3);
         --input-text-error-default: var(--text-3);
@@ -1019,11 +919,8 @@ body {
         --interactive-text-active: var(--text-3);
         --interactive-text-default: var(--text-4);
         --interactive-text-hover: var(--text-3);
-        --logo-primary: yellow;
         --mention-background: color-mix(in hsl, var(--accent-2), transparent 90%);
         --mention-foreground: var(--accent-1);
-        --message-automod-background-default: lime;
-        --message-automod-background-hover: blue;
         --message-background-hover: var(--message-hover);
         --message-highlight-background-default: var(--reply);
         --message-highlight-background-hover: var(--reply-hover);
@@ -1031,12 +928,8 @@ body {
         --message-mentioned-background-hover: var(--mention-hover);
         --message-reacted-background-default: color-mix(in hsl, var(--accent-2), transparent 80%);
         --message-reacted-text-default: var(--text-2);
-        --mobile-background-scrim-opaque: magenta;
-        --mobile-expression-picker-background-default: red;
-        --mobile-text-heading-primary: yellow;
         --modal-background: var(--bg-4);
         --modal-footer-background: var(--bg-4);
-        --navigator-header-tint: lime;
         --notice-background-critical: var(--bg-3);
         --notice-background-info: var(--blue-3);
         --notice-background-positive: var(--green-3);
@@ -1045,18 +938,9 @@ body {
         --notice-text-info: var(--text-0);
         --notice-text-positive: var(--text-0);
         --notice-text-warning: var(--text-0);
-        --overlay-backdrop-lightbox: yellow;
-        --panel-bg: lime;
-        --polls-normal-image-background: blue;
         --polls-victor-fill: color-mix(in hsl, var(--green-2), transparent 90%);
         --polls-voted-fill: color-mix(in hsl, var(--accent-2), transparent 90%);
         /* --premium-nitro-pink-text: magenta; */
-        --profile-gradient-note-background: red;
-        --profile-gradient-overlay: yellow;
-        --profile-gradient-overlay-synced-with-user-theme: lime;
-        --profile-gradient-role-pill-background: blue;
-        --profile-gradient-role-pill-border: magenta;
-        --profile-gradient-section-box: red;
         --progressbar-indicator-background: var(--accent-2);
         --progressbar-track-background: var(--bg-2);
         --radio-background-active: var(--bg-1);
@@ -1069,9 +953,6 @@ body {
         --radio-border-hover: var(--border);
         --radio-border-selected-default: var(--button-border);
         --radio-border-selected-hover: var(--button-border);
-        --radio-foreground-active: yellow;
-        --radio-foreground-default: lime;
-        --radio-foreground-hover: blue;
         --radio-thumb-background-active: var(--text-0);
         --reaction-background-active: var(--active);
         --reaction-background-default: var(--hover);
@@ -1086,64 +967,24 @@ body {
         --reaction-text-default: var(--text-3);
         --reaction-text-hover: var(--text-2);
         --reaction-text-reacted-default: var(--text-1);
-        --redesign-button-active-background: red;
-        --redesign-button-active-pressed-background: yellow;
-        --redesign-button-active-text: lime;
-        --redesign-button-danger-background: blue;
-        --redesign-button-destructive-background: magenta;
-        --redesign-button-destructive-pressed-background: red;
-        --redesign-button-destructive-text: yellow;
         --redesign-button-overlay-alpha-background: hsl(0, 0%, 0%, 0.5);
         --redesign-button-overlay-alpha-pressed-background: hsl(0, 0%, 0%, 0.7);
         --redesign-button-overlay-alpha-text: var(--text-3);
-        --redesign-button-positive-background: red;
-        --redesign-button-premium-primary-pink-for-gradient: yellow;
-        --redesign-button-premium-primary-pressed-background: lime;
-        --redesign-button-premium-primary-purple-for-gradient: blue;
-        --redesign-button-premium-primary-purple-for-gradient-2: magenta;
-        --redesign-button-primary-alt-border: red;
-        --redesign-button-primary-background: yellow;
-        --redesign-button-primary-overlay-background: lime;
-        --redesign-button-primary-overlay-pressed-background: blue;
-        --redesign-button-primary-overlay-text: magenta;
-        --redesign-button-primary-pressed-background: red;
-        --redesign-button-primary-text: yellow;
         --redesign-button-secondary-background: var(--bg-2);
-        --redesign-button-secondary-border: blue;
-        --redesign-button-secondary-overlay-background: magenta;
-        --redesign-button-secondary-overlay-pressed-background: red;
-        --redesign-button-secondary-overlay-text: yellow;
         --redesign-button-secondary-pressed-background: var(--bg-1);
-        --redesign-button-secondary-pressed-border: blue;
         --redesign-button-secondary-text: var(--text-3);
-        --redesign-button-selected-background: magenta;
-        --redesign-button-selected-pressed-background: red;
-        --redesign-button-selected-text: yellow;
-        --redesign-button-tertiary-background: lime;
-        --redesign-button-tertiary-pressed-background: blue;
-        --redesign-button-tertiary-pressed-text: magenta;
-        --redesign-button-tertiary-text: red;
-        --scrollbar-auto-scrollbar-color-thumb: yellow;
-        --scrollbar-auto-scrollbar-color-track: lime;
         --scrollbar-auto-thumb: var(--bg-1);
         --scrollbar-auto-track: transparent;
         --scrollbar-thin-thumb: var(--bg-1);
         --scrollbar-thin-track: transparent;
         --slider-track-background: var(--bg-2);
         --spine-default: var(--text-5);
-        --spoiler-hidden-background: yellow;
-        --spoiler-hidden-background-hover: lime;
-        --spoiler-revealed-background: blue;
         --status-danger: var(--red-2);
         --status-online: var(--green-2);
         --status-positive: var(--green-2);
         --status-positive-background: var(--green-2);
-        --status-positive-text: magenta;
         --status-speaking: var(--green-2);
         --status-warning: var(--yellow-2);
-        --status-warning-background: red;
-        --status-warning-text: yellow;
-        --switch-background-active: lime;
         --switch-background-default: var(--bg-2);
         --switch-background-hover: var(--bg-2);
         --switch-background-selected-default: var(--accent-2);
@@ -1154,30 +995,16 @@ body {
         --switch-border-selected-hover: var(--border-hover);
         --switch-thumb-background-default: rgb(255, 255, 255);
         --switch-thumb-background-selected-default: rgb(255, 255, 255);
-        --switch-thumb-icon-active: blue;
-        --switch-thumb-icon-default: magenta;
         --text-brand: var(--accent-1);
         /* --text-code: red;
-        --text-code-addition: yellow;
-        --text-code-builtin: lime;
-        --text-code-bullet: blue;
-        --text-code-comment: magenta;
-        --text-code-deletion: red;
-        --text-code-keyword: yellow;
-        --text-code-section: lime;
-        --text-code-string: blue;
-        --text-code-tag: magenta;
-        --text-code-title: red;
         --text-code-variable: yellow; */
         --text-default: var(--text-3);
         --text-feedback-critical: var(--red-1);
         --text-feedback-info: var(--accent-1);
         --text-feedback-positive: var(--green-1);
         --text-feedback-warning: var(--yellow-1);
-        --text-invert: blue;
         --text-link: var(--accent-1);
         --text-muted: var(--text-5);
-        --text-overlay-dark: magenta;
         --text-overlay-light: var(--text-0);
         --text-status-dnd: var(--dnd);
         --text-status-idle: var(--idle);
@@ -1186,8 +1013,6 @@ body {
         --text-strong: var(--text-2);
         --text-subtle: var(--text-4);
         --textbox-markdown-syntax: var(--text-4);
-        --thread-channel-spine: blue;
-        --user-profile-activity-toolbar-background: magenta;
         --user-profile-background-hover: var(--hover);
         --user-profile-border: var(--border);
         --user-profile-note-background-focus: var(--bg-4);
@@ -2225,9 +2050,14 @@ html[data-dz-card-fill="gradient"]:root {
 
 /* every layer inside a call tile follows the tile's corners: Discord's speaking ring and focus outline kept their
    own 8px corners inside Terono's rounder tile, which left gaps at the corners while talking */
-[data-selenium-video-tile] :is([class*="border_"], video, [class*="videoWrapper_"], [class*="overlay_"]) {
-    border-radius: inherit !important;
+[data-selenium-video-tile],
+[data-selenium-video-tile] :is([class*="border_"], video, canvas, [class*="videoWrapper_"], [class*="videoContainer_"], [class*="wrapper_"], .media-engine-video, [class*="overlay_"], [class*="tileChild_"]) {
+    /* the tile's own radius, written out: "inherit" passed 0 down through Discord's unrounded in-between boxes, and
+       a playing video is drawn by the GPU outside the tile's clipping, so its square corners showed */
+    border-radius: var(--radius-md) !important;
 }
+/* the speaking ring sits exactly on the tile's edge */
+[data-selenium-video-tile] [class*="border_"] { inset: 0 !important; }
 
 /* tray icons inherited a near-black color from the call container */
 .callContainer_cb9592 :is(.leftTrayIcon_cb9592, .rightTrayIcon_cb9592, .lookBlank__201d5),
@@ -2804,3 +2634,13 @@ html:not([data-dz-plugin]) .container_a2f514 .tipTitle_a2f514 {
 :is(.shinyButton__6a443, .premiumSubscribeButton_d723f6) :is(.contents__201d5, svg) {
     color: #fff !important;
 }
+
+
+/* hidden spoilers: a plain frosted pill, the same for text and pictures, that shows nothing until clicked */
+body {
+    --spoiler-hidden-background: color-mix(in srgb, var(--text-1, #fff) 16%, transparent);
+    --spoiler-hidden-background-hover: color-mix(in srgb, var(--text-1, #fff) 22%, transparent);
+    --spoiler-revealed-background: color-mix(in srgb, var(--text-1, #fff) 8%, transparent);
+}
+[class*="spoilerContent_"][class*="hidden_"] { color: transparent !important; filter: blur(2px); }
+[class*="spoilerContent_"][class*="hidden_"] * { color: transparent !important; text-shadow: none !important; opacity: 0 !important; }

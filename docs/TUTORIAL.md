@@ -242,7 +242,7 @@ In **Calls & overlay**:
 
 In **Decorations** (Look): Christmas, Halloween, winter, autumn, Easter, summer, birthday, April Fools, or your own particles.
 
-- They're drawn in front of the panels but never block a click, and stay clear of the window buttons and your profile panel.
+- They're drawn in front of the panels but never block a click. Frost, cobwebs, icicles and lights stay on your DM list, your profile panel, the chat's corners and the top of the window; the snowman, tree and pumpkins fade to see-through when you point at them.
 - **Christmas:** snow that piles up on the panels and at their bottoms, which you sweep off with the mouse; blinking lights; garland, ornaments, frost and a snowman. **Halloween:** cobwebs, glowing pumpkins, dead trees, bats and a spider that runs off when the mouse comes close. Autumn leaves pile up too.
 - **Amount, speed, size, mouse interaction, set pieces, piles** and **colors** can all be changed.
 - **Your own particles:** draw a shape or pick a picture, then set its color, direction and spin.

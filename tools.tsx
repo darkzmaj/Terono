@@ -28,7 +28,11 @@ const RelationshipActions = findByPropsLazy("unblockUser", "removeFriend");
 
 type Mode = "pictures" | "videos" | "links" | "files";
 const MODES: [Mode, string][] = [["pictures", "Pictures"], ["videos", "Videos"], ["links", "Links"], ["files", "Files"]];
-interface Hit { key: string; msg: string; channel: string; guild?: string; author: string; time: string; url: string; thumb?: string; video?: boolean; name?: string; size?: number; host?: string; }
+interface Hit {
+    key: string; msg: string; channel: string; guild?: string; author: string; time: string; url: string; thumb?: string; video?: boolean; name?: string; size?: number; host?: string;
+    // a link's embed, as Discord shows it under the message
+    embed?: { site?: string; title?: string; text?: string; image?: string; color?: string; };
+}
 
 const PAGE = 25;
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -81,7 +85,16 @@ function hitsOf(m: any, mode: Mode, guild?: string): Hit[] {
         for (const u of urls) {
             let host = "";
             try { host = new URL(u).host; } catch { continue; }
-            out.push({ ...base, key: `${m.id}-${u}`, url: u.replace(/[.,;:!?]+$/, ""), host });
+            const url = u.replace(/[.,;:!?]+$/, "");
+            const e = (m.embeds ?? []).find((x: any) => x.url === url || x.url === u);
+            const img = e?.thumbnail?.proxy_url ?? e?.image?.proxy_url;
+            out.push({
+                ...base, key: `${m.id}-${u}`, url, host,
+                embed: e && (e.title || e.description || img) ? {
+                    site: e.provider?.name ?? e.author?.name, title: e.title, text: e.description?.slice(0, 220),
+                    image: img && `${img}${img.includes("?") ? "&" : "?"}width=160&height=160`, color: typeof e.color === "number" ? `#${e.color.toString(16).padStart(6, "0")}` : undefined,
+                } : undefined,
+            });
         }
     }
     return out;
@@ -159,14 +172,26 @@ function SearchTools({ channelId, initial, close }: { channelId: string; initial
                     <button key={h.key} className="dz-st-media" title={`${h.author} · ${when(h.time)}${h.name ? ` · ${h.name}` : ""}`} onClick={() => jump(h)}>
                         {h.video && !h.thumb?.match(/\.(png|jpe?g|webp|gif)(\?|$)/i) ? <video src={h.thumb ?? h.url} muted preload="metadata" /> : <img src={h.thumb} alt="" loading="lazy" />}
                         {h.video && <span className="dz-st-play">▶</span>}
+                        <span className="dz-st-cap">{h.name || h.author}</span>
                     </button>
                 ))}</div>
                 : <div className="dz-st-list">{hits.map(h => (
                     <div key={h.key} className="dz-st-row">
+                        {mode === "files" && <span className="dz-st-ext">{(h.name?.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? "file").toUpperCase()}</span>}
                         <div className="dz-st-text" onClick={() => jump(h)} role="button" tabIndex={0}>
                             <b>{mode === "links" ? h.host : h.name}</b>
                             <span>{mode === "links" ? h.url : `${((h.size ?? 0) / 1024 / 1024).toFixed(2)} MB`}</span>
                             <small>{h.author} · {when(h.time)}</small>
+                            {h.embed && (
+                                <div className="dz-st-embed" style={h.embed.color ? { borderLeftColor: h.embed.color } : undefined}>
+                                    <div className="dz-st-embed-text">
+                                        {h.embed.site && <small>{h.embed.site}</small>}
+                                        {h.embed.title && <b>{h.embed.title}</b>}
+                                        {h.embed.text && <span>{h.embed.text}</span>}
+                                    </div>
+                                    {h.embed.image && <img src={h.embed.image} alt="" loading="lazy" />}
+                                </div>
+                            )}
                         </div>
                         <Button size="small" variant="secondary" onClick={() => { copyToClipboard(h.url); toast("Copied.", "success"); }}>Copy</Button>
                         <Button size="small" variant="secondary" onClick={() => VencordNative.native.openExternal(h.url)}>Open</Button>
@@ -398,6 +423,10 @@ export function stopTools() {
 }
 
 export const TOOLS_CSS = `
+.dz-grow { flex: 1; min-width: 160px; }
+.dz-chip { padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 600 12px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa);
+    background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
+.dz-chip.dz-on { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff); }
 .dz-sx { border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); margin-top: 4px; padding-top: 4px; }
 .dz-sx-head { font: 600 12px/16px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
 .dz-sx-item { cursor: pointer; display: flex; align-items: center; gap: 12px; }
@@ -406,11 +435,23 @@ export const TOOLS_CSS = `
 .dz-sx-label { font: 500 14px/18px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, var(--text-normal, #fff)); }
 .dz-sx-sub { font: 500 14px/18px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa); }
 .dz-st { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; }
+.dz-st, .dz-st * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--dz-accent, #429cff) 50%, transparent) transparent; }
 .dz-st-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .dz-st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; max-height: 58vh; overflow-y: auto; }
 .dz-st-media { position: relative; aspect-ratio: 1; padding: 0; border: 0; border-radius: 10px; overflow: hidden; cursor: pointer; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
 .dz-st-media img, .dz-st-media video { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
 .dz-st-media:hover img, .dz-st-media:hover video { transform: scale(1.04); }
+.dz-st-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 6px 4px; font-size: 11px; line-height: 1.2; text-align: left; color: #fff;
+    background: linear-gradient(transparent, rgb(0 0 0 / 75%)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dz-st-ext { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; font: 800 11px var(--font-primary, "gg sans", sans-serif);
+    color: var(--dz-accent, #429cff); background: color-mix(in srgb, var(--dz-accent, #429cff) 14%, transparent); }
+.dz-st-embed { display: flex; gap: 10px; margin-top: 6px; padding: 8px 10px; border-radius: 8px; border-left: 3px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 25%, transparent);
+    background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent); }
+.dz-st-embed .dz-st-embed-text small { color: var(--text-muted, #aaa); }
+.dz-st-embed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dz-st-embed .dz-st-embed-text b { font-size: 13px; color: var(--text-link, #00a8fc); }
+.dz-st-embed .dz-st-embed-text span { font-size: 12px; color: var(--text-muted, #aaa); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.dz-st-embed img { flex: none; width: 72px; height: 72px; object-fit: cover; border-radius: 6px; }
 .dz-st-play { position: absolute; inset: auto 6px 6px auto; padding: 2px 6px; border-radius: 6px; font-size: 11px; color: #fff; background: rgb(0 0 0 / 60%); }
 .dz-st-list { display: flex; flex-direction: column; max-height: 58vh; overflow-y: auto; }
 .dz-st-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }

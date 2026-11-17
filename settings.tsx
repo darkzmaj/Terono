@@ -308,7 +308,9 @@ export function applyDecorations() {
     sheet("deco", on ? DECORATIONS_CSS : "");
     if (!on) return stopDecorations();
     const colors = String(s.decoColors || "").split(",").map(c => c.trim()).filter(c => HEX_RE.test(c));
-    const shape = (s.decoShape || "circle") as any;
+    // "my drawing" / "my picture" with nothing drawn or picked yet: circles until there is, instead of nothing
+    let shape = (s.decoShape || "circle") as any;
+    if ((shape === "drawn" && !s.decoDrawn) || (shape === "image" && !s.decoImage)) shape = "circle";
     startDecorations({
         theme: s.decoTheme,
         density: Math.max(0, Math.min(360, Number(s.decoDensity) || 100)),
@@ -363,7 +365,9 @@ function FileRow({ title, note, accept, onFile }: { title: string; note: string;
         <div>
             <h3 className="dz-h3">{title}</h3>
             <Paragraph>{note}</Paragraph>
-            <input type="file" accept={accept} onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); }} style={{ marginTop: 6, color: "var(--text-default)" }} />
+            <label className="dz-file-btn" style={{ marginTop: 6 }}>Choose file
+                <input type="file" accept={accept} onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); e.currentTarget.value = ""; }} />
+            </label>
         </div>
     );
 }

@@ -403,6 +403,8 @@ const CSS = `
     .dz-set-group { padding: 4px 12px 8px; }
     .dz-presets { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 }
+/* Terono's scrollbars, not the browser's white ones: the settings page, its lists and its text boxes */
+.dz-set *, :is([class*="scroller"], [class*="content_"]):has(.dz-set) { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--dz-accent, #429cff) 50%, transparent) transparent; }
 /* Discord's modal body is a sideways scroll box, which keeps the tab list from staying put; clip doesn't */
 .bodyInner__8a031:has(.dz-set) { overflow: clip !important; }
 .dz-set-top { flex-wrap: wrap; }

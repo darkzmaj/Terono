@@ -163,6 +163,13 @@ function decoEngine(port: Port) {
     let floors = 0; // surfaces from here on are panel floors: everything that reaches one settles there
     let mN = 0, cX = 0, cY = 0, cW = 0, cH = 0;
     const mX = new Float32Array(MAX_MAIN), mY = new Float32Array(MAX_MAIN), mW = new Float32Array(MAX_MAIN), mH = new Float32Array(MAX_MAIN);
+    // the panels set pieces belong to: [x, y, w, h, radius] each, w = 0 when not on screen
+    // 0 your DM / friends list, 1 your profile panel, 2 the chat (or friends page), 3 the message box
+    const Z = new Float32Array(20);
+    const zx = (k: number) => Z[k * 5], zy = (k: number) => Z[k * 5 + 1], zw = (k: number) => Z[k * 5 + 2], zh = (k: number) => Z[k * 5 + 3], zr = (k: number) => Z[k * 5 + 4];
+    const zon = (k: number) => Z[k * 5 + 2] > 0;
+    // pieces that stand in a corner (snowman, tree): drawn every frame so they can fade while the mouse is near
+    let cornerPiece: OffscreenCanvas | null = null, cpX = 0, cpY = 0, cpW = 0, cpH = 0, cpA = 1;
     let sN = 0;
     const sL = new Float32Array(MAX_SURF), sT = new Float32Array(MAX_SURF), sW = new Float32Array(MAX_SURF);
     const heights = new Float32Array(MAX_SURF * COLS);
@@ -192,8 +199,6 @@ function decoEngine(port: Port) {
     const rand = (a: number, b: number) => a + Math.random() * (b - a);
     // repeatable randomness for set pieces, so they don't jump around when the panels are measured again
     const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-    // left edge of the main content, so nothing sits on the profile panel (and your picture) at the bottom left
-    const contentLeft = () => { let l = W; for (let i = 0; i < mN; i++) if (mW[i] >= 100 && mH[i] >= 300 && mX[i] > 120) l = Math.min(l, mX[i]); return l < W ? l : W * 0.3; };
     const free = (x: number, y: number, r: number) => !(y - r < TOP_CLEAR && (x + r > W - RIGHT_CLEAR || x - r < LEFT_CLEAR));
 
     /* ---------- sprites ---------- */
@@ -482,16 +487,6 @@ function decoEngine(port: Port) {
         for (let x = LEFT_CLEAR + 14; x < W - RIGHT_CLEAR; x += 28) addBulb(x, wy(x) + 5, 1);
     }
 
-    function panelLights(L: Ctx, i: number) {
-        const l = mX[i] + 10, r = mX[i] + mW[i] - 10, top = mY[i];
-        const wy = (x: number) => top + 1 + 3 * Math.abs(Math.sin(Math.PI * (x - l) / 36));
-        L.beginPath();
-        for (let x = l; x <= r; x += 3) L.lineTo(x, wy(x));
-        L.strokeStyle = "rgba(30,40,30,.8)";
-        L.lineWidth = 1.2;
-        L.stroke();
-        for (let x = l + 18; x < r; x += 36) addBulb(x, wy(x) + 3, 0.7);
-    }
 
     function web(L: Ctx, cx: number, cy: number, sx: number, sy: number, R: number) {
         const N = 7;
@@ -527,29 +522,28 @@ function decoEngine(port: Port) {
         for (let k = 0; k < n; k++) branch(L, x2, y2, len * (0.62 + rnd() * 0.18), a + (rnd() - 0.5) * 0.9 + (k - (n - 1) / 2) * 0.6, w * 0.65, d - 1);
     }
 
-    function tree(L: Ctx, x: number, dir: number) {
-        const h = Math.min(240, H * 0.32);
-        L.strokeStyle = L.fillStyle = "rgba(12,8,16,.75)";
+    function tree(L: Ctx, x: number, dir: number, base = H + 4, h = Math.min(240, H * 0.32)) {
+        L.strokeStyle = L.fillStyle = "rgba(12,8,16,.8)";
         L.lineCap = "round";
-        branch(L, x, H + 4, h * 0.34, -Math.PI / 2 + dir * 0.18, h * 0.07, 6);
+        branch(L, x, base, h * 0.34, -Math.PI / 2 + dir * 0.18, h * 0.07, 6);
         L.beginPath();
-        L.ellipse(x, H + 2, h * 0.22, 9, 0, Math.PI, TAU);
+        L.ellipse(x, base - 2, h * 0.22, 7, 0, Math.PI, TAU);
         L.fill();
     }
 
-    function frost(L: Ctx, cx: number, cy: number, sx: number, R: number) {
+    function frost(L: Ctx, cx: number, cy: number, sx: number, R: number, sy = 1) {
         const gr = L.createRadialGradient(cx, cy, 0, cx, cy, R);
         gr.addColorStop(0, "rgba(220,240,255,.42)");
         gr.addColorStop(1, "rgba(220,240,255,0)");
         L.fillStyle = gr;
-        L.fillRect(sx > 0 ? cx : cx - R, cy, R, R);
+        L.fillRect(sx > 0 ? cx : cx - R, sy > 0 ? cy : cy - R, R, R);
         // a few fern-like crystals growing out of the corner
         L.strokeStyle = "rgba(240,250,255,.5)";
         L.lineWidth = 0.8;
         L.beginPath();
         for (let k = 0; k < 7; k++) {
             const a = rnd() * Math.PI / 2, len = R * (0.3 + rnd() * 0.45);
-            const dx = sx * Math.cos(a), dy = Math.sin(a);
+            const dx = sx * Math.cos(a), dy = sy * Math.sin(a);
             L.moveTo(cx, cy);
             L.lineTo(cx + dx * len, cy + dy * len);
             for (let j = 1; j <= 3; j++) {
@@ -561,11 +555,11 @@ function decoEngine(port: Port) {
         L.stroke();
     }
 
-    function icicles(L: Ctx, x0: number, x1: number, y: number) {
+    function icicles(L: Ctx, x0: number, x1: number, y: number, max = 18) {
         L.fillStyle = "rgba(215,235,255,.82)";
         L.beginPath();
         for (let x = x0; x < x1; x += 6 + rnd() * 8) {
-            const w = 3 + rnd() * 4, len = rnd() < 0.15 ? 12 + rnd() * 6 : 3 + rnd() * 8;
+            const w = 3 + rnd() * 4, len = Math.min(max, rnd() < 0.15 ? 12 + rnd() * 6 : 3 + rnd() * 8);
             if (!free(x, y, len)) continue;
             L.moveTo(x, y); L.lineTo(x + w / 2, y + len); L.lineTo(x + w, y);
         }
@@ -590,12 +584,12 @@ function decoEngine(port: Port) {
         L.beginPath(); L.moveTo(x, base - 52); L.lineTo(x + 8, base - 50.5); L.lineTo(x, base - 49.5); L.fill();
     }
 
-    function palm(L: Ctx, bx = W - 50, dir = 1) {
-        const h = Math.min(240, H * 0.32), tx = bx - dir * h * 0.35, ty = H - h;
+    function palm(L: Ctx, bx = W - 50, dir = 1, base = H, h = Math.min(240, H * 0.32)) {
+        const tx = bx - dir * h * 0.35, ty = base - h;
         L.strokeStyle = L.fillStyle = "rgba(14,30,22,.55)";
         L.lineCap = "round";
         L.lineWidth = 9;
-        L.beginPath(); L.moveTo(bx, H + 5); L.quadraticCurveTo(bx - dir * h * 0.05, H - h * 0.55, tx, ty); L.stroke();
+        L.beginPath(); L.moveTo(bx, base + 5); L.quadraticCurveTo(bx - dir * h * 0.05, base - h * 0.55, tx, ty); L.stroke();
         for (let k = 0; k < 7; k++) {
             const a = -Math.PI * (0.95 - k * 0.15), len = h * (0.45 + rnd() * 0.15);
             const ex = tx + dir * Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.6 + len * 0.35;
@@ -720,6 +714,63 @@ function decoEngine(port: Port) {
         return c.canvas;
     }
 
+    /* ---------- the zones ---------- */
+
+    // draw inside a zone's rounded card only, so corner pieces follow its curve instead of poking out
+    function inZone(L: Ctx, k: number, draw: () => void) {
+        if (!zon(k)) return;
+        L.save();
+        L.beginPath();
+        L.roundRect(zx(k), zy(k), zw(k), zh(k), zr(k));
+        L.clip();
+        draw();
+        L.restore();
+    }
+
+    // soft frost growing out of every corner of a zone (inset by the corner's curve)
+    function frostZone(L: Ctx, k: number, R: number, bottom = true) {
+        inZone(L, k, () => {
+            const x0 = zx(k), y0 = zy(k), x1 = x0 + zw(k), y1 = y0 + zh(k), i = zr(k) * 0.3;
+            frost(L, x0 + i, y0 + i, 1, R); frost(L, x1 - i, y0 + i, -1, R);
+            if (bottom) { frost(L, x0 + i, y1 - i, 1, R, -1); frost(L, x1 - i, y1 - i, -1, R, -1); }
+        });
+    }
+
+    function webZone(L: Ctx, k: number, R: number, bottom: boolean) {
+        inZone(L, k, () => {
+            const x0 = zx(k), y0 = zy(k), x1 = x0 + zw(k), y1 = y0 + zh(k);
+            web(L, x0, y0, 1, 1, R); web(L, x1, y0, -1, 1, R);
+            if (bottom) { web(L, x0, y1, 1, -1, R * 0.7); web(L, x1, y1, -1, -1, R * 0.7); }
+        });
+    }
+
+    // icicles hang from a zone's top edge, between its rounded corners
+    const iciclesZone = (L: Ctx, k: number) => { if (zon(k)) icicles(L, zx(k) + zr(k), zx(k) + zw(k) - zr(k), zy(k), 10); };
+
+    function lightsZone(k: number) {
+        if (!zon(k)) return;
+        const l = zx(k) + zr(k) + 6, r = zx(k) + zw(k) - zr(k) - 6, top = zy(k);
+        for (let x = l; x < r; x += 30) addBulb(x, top + 1, 0.65);
+    }
+
+    // where a corner piece stands: the chat's bottom right corner, on top of the message box if there is one
+    function cornerSpot(): [number, number] {
+        if (zon(2)) {
+            const right = zx(2) + zw(2) - Math.max(6, zr(2) * 0.5);
+            if (zon(3) && zy(3) > zy(2) + zh(2) * 0.5) return [Math.min(right, zx(3) + zw(3)), zy(3) - 2];
+            return [right, zy(2) + zh(2) - Math.max(3, zr(2) * 0.25)];
+        }
+        return [W - 10, H - 4];
+    }
+
+    function setCornerPiece(w: number, h: number, draw: (c: Ctx) => void) {
+        const c = sp(w, h);
+        draw(c);
+        cornerPiece = c.canvas;
+        const [r, b] = cornerSpot();
+        cpX = r - w; cpY = b - h; cpW = w; cpH = h;
+    }
+
     function buildLayer() {
         bulbs = pumpkins = ornaments = balloons = eyes = 0;
         spOn = bunnyOn = false;
@@ -738,49 +789,38 @@ function decoEngine(port: Port) {
         bulbSprites = lightColors.map(c => paint("petal", c, Math.ceil(12 * dpr)));
         if (props) propSprites();
 
+        cornerPiece = null;
         if (th === "christmas") {
             if (props) {
                 garland(L);
-                for (const i of big) { frost(L, mX[i], mY[i], 1, 60); frost(L, mX[i] + mW[i], mY[i], -1, 60); }
-                snowman(L, W - 54, H - 4);
                 for (let x = LEFT_CLEAR + SWAG / 2, k = 0; x < W - RIGHT_CLEAR && ornaments < orX.length; x += SWAG * 2, k++) {
                     const len = 14 + rnd() * 30;
                     orX[ornaments] = x; orY[ornaments] = garlandY(x) + 2; orH[ornaments] = len + 22;
                     orSprites[ornaments++] = ornament(len, ORNAMENTS[k % ORNAMENTS.length]);
                 }
+                // frost only in your lists' and the chat's corners, icicles only on your lists
+                frostZone(L, 0, 46); frostZone(L, 1, 40); frostZone(L, 2, 52);
+                iciclesZone(L, 0); iciclesZone(L, 1);
+                setCornerPiece(40, 74, c => snowman(c, 20, 73));
             }
             if (o.lights) {
                 topLights(L, props);
-                for (const i of big) panelLights(L, i);
+                lightsZone(0); lightsZone(1);
             }
         } else if (th === "winter" && props) {
-            snowman(L, W - 54, H - 4);
             icicles(L, LEFT_CLEAR, W - RIGHT_CLEAR, 0);
-            for (const i of big) {
-                frost(L, mX[i], mY[i], 1, 70); frost(L, mX[i] + mW[i], mY[i], -1, 70);
-                icicles(L, mX[i] + 4, mX[i] + mW[i] - 8, mY[i]);
-            }
+            frostZone(L, 0, 50); frostZone(L, 1, 42); frostZone(L, 2, 56);
+            iciclesZone(L, 0); iciclesZone(L, 1);
+            setCornerPiece(40, 74, c => snowman(c, 20, 73));
         } else if (th === "halloween" && props) {
-            for (const i of big) {
-                if (free(mX[i], mY[i], 10)) web(L, mX[i], mY[i], 1, 1, 55 + rnd() * 45);
-                if (free(mX[i] + mW[i], mY[i], 10)) web(L, mX[i] + mW[i], mY[i], -1, 1, 55 + rnd() * 45);
-                // the bottom corners too, hanging upwards
-                if (mH[i] >= 300) { web(L, mX[i], mY[i] + mH[i], 1, -1, 40 + rnd() * 30); web(L, mX[i] + mW[i], mY[i] + mH[i], -1, -1, 40 + rnd() * 30); }
-                if (pumpkins < pkX.length && mW[i] >= 150 && rnd() < 0.85) {
-                    const x = mX[i] + mW[i] * (0.25 + rnd() * 0.6);
-                    if (free(x, mY[i], 30)) { pkX[pumpkins] = x; pkY[pumpkins++] = mY[i]; }
-                }
-            }
-            tree(L, contentLeft() + 26, 1);
-            tree(L, W - 26, -1);
-            // a pumpkin patch along the bottom of the chat, below the messages box
-            if (cW > 0) for (const f of [0.06, 0.11, 0.86, 0.92, 0.5]) {
-                if (pumpkins >= pkX.length) break;
-                const x = cX + cW * f;
-                if (free(x, cY + cH, 20)) { pkX[pumpkins] = x; pkY[pumpkins++] = cY + cH; }
-            }
+            // the same web in the same corners every time: your lists' top corners and every corner of the chat
+            webZone(L, 0, 64, false); webZone(L, 1, 48, false); webZone(L, 2, 70, true);
+            // pumpkins on top of your profile panel and by the tree
+            if (zon(1)) for (const f of [0.18, 0.34]) { pkX[pumpkins] = zx(1) + zw(1) * f; pkY[pumpkins++] = zy(1); }
+            setCornerPiece(150, 150, c => tree(c, 110, -1, 150, 150));
+            { const [r, b] = cornerSpot(); for (const dx of [-150, -122]) if (pumpkins < pkX.length) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
             spOn = true;
-            if (cW > 0) { spX = cX + cW * 0.72; spTop = cY; } else { spX = W * 0.6; spTop = TOP_CLEAR; }
+            if (zon(2)) { spX = zx(2) + zw(2) * 0.72; spTop = zy(2); } else { spX = W * 0.6; spTop = TOP_CLEAR; }
         } else if (th === "easter" && props) {
             const eggs = (o.colors ?? THEMES.easter.colors).map(c => paint("egg", c, Math.ceil(16 * dpr)));
             let k = 0;
@@ -796,29 +836,27 @@ function decoEngine(port: Port) {
             }
             bunnyOn = true;
         } else if (th === "summer" && props) {
-            palm(L);
-            palm(L, contentLeft() + 40, -1);
+            setCornerPiece(150, 170, c => palm(c, 120, 1, 170, 170));
         } else if (th === "birthday" && props) {
             const colors = o.colors ?? CONFETTI;
             bunting(L, colors);
             bbSprites = [];
             const OFF = [-24, -118, 0, -140, 24, -116, -6, -96];
-            for (const ax of [70, W - 80]) {
+            // one bunch standing in the chat's corner, clear of your profile panel
+            const [cr, cb] = cornerSpot();
+            for (const ax of [cr - 40]) {
                 for (let j = 0; j < OFF.length && balloons < bbX.length; j += 2) {
-                    bbAX[balloons] = ax; bbAY[balloons] = H - 8;
-                    bbX[balloons] = ax + OFF[j]; bbY[balloons] = H - 8 + OFF[j + 1];
+                    bbAX[balloons] = ax; bbAY[balloons] = cb;
+                    bbX[balloons] = ax + OFF[j]; bbY[balloons] = cb + OFF[j + 1];
                     bbPop[balloons] = 0;
                     bbSprites[balloons] = paint("balloon", colors[balloons % colors.length], Math.ceil(38 * dpr));
                     balloons++;
                 }
             }
         } else if (th === "autumn" && props) {
-            tree(L, contentLeft() + 26, 1);
-            tree(L, W - 26, -1);
-            for (const i of big) {
-                if (pumpkins >= pkX.length || mH[i] < 300) continue;
-                for (const f of [0.08, 0.9]) if (pumpkins < pkX.length) { pkX[pumpkins] = mX[i] + mW[i] * f; pkY[pumpkins++] = Math.min(H - 2, mY[i] + mH[i]); }
-            }
+            setCornerPiece(150, 150, c => tree(c, 110, -1, 150, 150));
+            { const [r, b] = cornerSpot(); for (const dx of [-150, -122]) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
+            if (zon(1)) for (const f of [0.18, 0.34]) { pkX[pumpkins] = zx(1) + zw(1) * f; pkY[pumpkins++] = zy(1); }
         } else if (th === "aprilfools" && props) {
             for (const i of big) {
                 if (eyes + 2 > eyX.length || rnd() < 0.3) continue;
@@ -832,7 +870,9 @@ function decoEngine(port: Port) {
 
     /* ---------- surfaces ---------- */
 
-    function setRects(main: Float32Array, small: Float32Array, chat: Float32Array | null) {
+    function setRects(main: Float32Array, small: Float32Array, chat: Float32Array | null, zones?: Float32Array) {
+        Z.fill(0);
+        if (zones) Z.set(zones.subarray(0, Z.length));
         mN = Math.min(MAX_MAIN, main.length / 4);
         for (let i = 0; i < mN; i++) { mX[i] = main[i * 4]; mY[i] = main[i * 4 + 1]; mW[i] = main[i * 4 + 2]; mH[i] = main[i * 4 + 3]; }
         if (chat) { cX = chat[0]; cY = chat[1]; cW = chat[2]; cH = chat[3]; } else cW = 0;
@@ -954,6 +994,11 @@ function decoEngine(port: Port) {
     }
 
     function updateProps(dt: number, mouse: boolean) {
+        if (cornerPiece) {
+            // 80% see-through while the mouse is over it, easing in and out
+            const over = mouseIn && mx > cpX - 8 && mx < cpX + cpW + 8 && my > cpY - 8 && my < cpY + cpH + 8;
+            cpA += ((over ? 0.2 : 1) - cpA) * Math.min(1, dt * 8);
+        }
         if (spOn) {
             const sy = spTop + spLen;
             // the spider goes back up, fast, when the mouse comes close
@@ -1022,13 +1067,19 @@ function decoEngine(port: Port) {
             c.drawImage(orSprites[k], -9, 0, 18, orH[k]);
         }
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (cornerPiece) {
+            c.globalAlpha = cpA;
+            c.drawImage(cornerPiece, cpX, cpY, cpW, cpH);
+        }
         for (let k = 0; k < pumpkins; k++) {
             const f = 0.65 + 0.2 * Math.sin(t * 13 + k) + 0.15 * Math.sin(t * 31 + k * 2), x = pkX[k], y = pkY[k];
-            c.globalAlpha = f * 0.4;
+            // anything you point at fades away, so it never hides what's under it
+            const near = mouseIn && Math.abs(mx - x) < 30 && my > y - 40 && my < y + 10 ? 0.2 : 1;
+            c.globalAlpha = f * 0.4 * near;
             c.drawImage(warm!, x - 35, y - 47, 70, 70);
-            c.globalAlpha = 1;
+            c.globalAlpha = near;
             c.drawImage(pkBody!, x - 14, y - 26, 28, 28);
-            c.globalAlpha = f;
+            c.globalAlpha = f * near;
             c.drawImage(pkFace!, x - 14, y - 26, 28, 28);
         }
         c.globalAlpha = 1;
@@ -1047,7 +1098,7 @@ function decoEngine(port: Port) {
             c.setTransform(dpr, 0, 0, dpr, 0, 0);
             c.globalAlpha = 1;
         }
-        if (bunnyOn && bunnyShow > 0.01) c.drawImage(bunny!, 16, H + 2 - bunnyShow * 50, 44, 60);
+        if (bunnyOn && bunnyShow > 0.01) c.drawImage(bunny!, W - 70, H + 2 - bunnyShow * 50, 44, 60);
         if (balloons) {
             c.strokeStyle = "rgba(255,255,255,.5)";
             c.lineWidth = 1;
@@ -1212,7 +1263,7 @@ function decoEngine(port: Port) {
                 if (o) { for (let i = 0; i < count; i++) spr[i] = kindSprite[kd[i]] + Math.floor(Math.random() * kindSprites[kd[i]]); }
                 break;
             case "rects":
-                setRects(m.main, m.small, m.chat);
+                setRects(m.main, m.small, m.chat, m.zones);
                 break;
             case "mouse":
                 mx = m.x; my = m.y; mouseIn = m.on;
@@ -1261,15 +1312,26 @@ function rectsOf(sel: string, max: number) {
     return out;
 }
 
+// a card set pieces belong to: [x, y, w, h, corner radius], or zeros when it isn't on screen
+function zone(sel: string) {
+    const e = document.querySelector(sel);
+    const r = e?.getBoundingClientRect();
+    if (!e || !r || r.width < 80 || r.height < 30 || r.bottom < 0 || r.top > innerHeight) return [0, 0, 0, 0, 0];
+    return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), parseFloat(getComputedStyle(e).borderTopLeftRadius) || 0];
+}
+
 function measure() {
     if (!send || !running) return;
     const main = rectsOf(MAIN, 12), small = rectsOf(SMALL, 36);
+    let chatZone = zone(tc(CHAT));
+    if (!chatZone[2]) chatZone = zone('[class*="peopleColumn_"], [class*="tabBody_"]');
+    const zones = [...zone(tc(".sidebarList__5e434")), ...zone(`section${tc(".panels__5e434")}`), ...chatZone, ...zone('[class*="channelTextArea_"]')];
     const c = document.querySelector(tc(CHAT))?.getBoundingClientRect();
     const chat = c ? [Math.round(c.left), Math.round(c.top), Math.round(c.width), Math.round(c.height)] : null;
-    const key = `${main}|${small}|${chat}`;
+    const key = `${main}|${small}|${chat}|${zones}`;
     if (key === rectKey) return;
     rectKey = key;
-    send({ t: "rects", main: new Float32Array(main), small: new Float32Array(small), chat: chat && new Float32Array(chat) });
+    send({ t: "rects", main: new Float32Array(main), small: new Float32Array(small), chat: chat && new Float32Array(chat), zones: new Float32Array(zones) });
 }
 
 function postSize() {

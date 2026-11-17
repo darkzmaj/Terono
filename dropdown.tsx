@@ -10,8 +10,8 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 /* ================= one dropdown for every "pick one of many" in Terono =================
    Fonts, name fonts and effects, decorations, nameplates, profile effects and frames. Shows the chosen one (with
    its picture or in its font), opens a list with a search box when it's long, works with the keyboard. The list
-   opens in place (it pushes what's below down) instead of floating, so a small window or a scrolled settings
-   page can never cut it off. */
+   floats right under the button, in front of everything (the cards around it are raised while it's open), and
+   is scrolled into view, so it never resizes the card it's in and is never hidden behind the next one. */
 
 export interface DdOption {
     value: string;
@@ -51,7 +51,19 @@ export function Dropdown({ value, options, onChange, placeholder = "Choose…", 
         setHi(Math.max(0, options.findIndex(o => o.value === value)));
         const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
         document.addEventListener("mousedown", away, true);
-        return () => document.removeEventListener("mousedown", away, true);
+        // raise every box between the dropdown and the scroll area, so a later card can't paint over the list
+        const raised: HTMLElement[] = [];
+        for (let el = root.current?.parentElement; el && el !== document.body; el = el.parentElement) {
+            const cs = getComputedStyle(el);
+            if (/(auto|scroll)/.test(cs.overflowY)) break;
+            el.classList.add("dz-dd-raise");
+            raised.push(el);
+        }
+        requestAnimationFrame(() => root.current?.querySelector(".dz-dd-panel")?.scrollIntoView({ block: "nearest" }));
+        return () => {
+            document.removeEventListener("mousedown", away, true);
+            for (const el of raised) el.classList.remove("dz-dd-raise");
+        };
     }, [open]);
 
     useEffect(() => { if (open) list.current?.querySelector<HTMLElement>(".dz-dd-hi")?.scrollIntoView({ block: "nearest" }); }, [hi, open]);
@@ -128,14 +140,17 @@ export const DD_CSS = `
 .dz-dd-open .dz-dd-chev { rotate: 180deg; }
 .dz-dd-thumb { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
 .dz-dd-thumb img { width: 100%; height: 100%; object-fit: contain; }
-.dz-dd-panel { margin-top: 4px; padding: 6px; border-radius: 4px 4px 12px 12px; box-sizing: border-box;
+.dz-dd-open { z-index: 1001; }
+.dz-dd-raise { position: relative; z-index: 1000 !important; overflow: visible !important; }
+.dz-dd-panel { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 1001; padding: 6px; border-radius: 4px 4px 12px 12px; box-sizing: border-box;
     background: color-mix(in srgb, var(--dz-card, #111214) 96%, var(--dz-text, #fff)); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 11%, transparent);
-    box-shadow: 0 10px 28px rgb(0 0 0 / 30%); animation: dz-dd-in 160ms cubic-bezier(.34, 1.4, .5, 1) both; }
+    box-shadow: 0 14px 36px rgb(0 0 0 / 45%); animation: dz-dd-in 160ms cubic-bezier(.34, 1.4, .5, 1) both; }
 .dz-dd-search { width: 100%; box-sizing: border-box; height: 34px; margin-bottom: 6px; padding: 0 10px; border-radius: 8px; outline: none;
     font: 500 14px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff);
     background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 10%, transparent); }
 .dz-dd-search:focus { border-color: var(--dz-accent, #429cff); }
-.dz-dd-list { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.dz-dd-list { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--dz-accent, #429cff) 55%, transparent) transparent; }
 .dz-dd-group { padding: 8px 8px 4px; font: 700 11px var(--font-primary, "gg sans", sans-serif); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted, #aaa); }
 .dz-dd-opt { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--text-default, #fff); }
 .dz-dd-hi { background: color-mix(in srgb, var(--dz-accent, #429cff) 16%, transparent); }

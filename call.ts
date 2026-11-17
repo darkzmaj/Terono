@@ -42,7 +42,10 @@ function syncGlows() {
         // the big streams in the call view (focused or in the grid), not the small tiles: Discord's current build
         // dropped the old focused-view wrapper, so pick by size instead of by class
         for (const v of document.querySelectorAll<HTMLVideoElement>("[class*=callContainer_] [data-selenium-video-tile] video:not(.dz-ambient)")) {
-            if (v.clientWidth >= 420) want.add(v);
+            // streams glow in the grid too (a stream tile there is ~300px wide); cameras only when they're big
+            const tile = v.closest("[data-selenium-video-tile]");
+            const stream = !!tile?.querySelector('[class*="liveIndicator"], [class*="streamPreview"]') || /\bLIVE\b/.test(tile?.textContent ?? "");
+            if (v.clientWidth >= (stream ? 240 : 420)) want.add(v);
         }
     }
     for (const [v, g] of glows) if (!want.has(v) || !g.host.isConnected) { stopGlow(g); glows.delete(v); }

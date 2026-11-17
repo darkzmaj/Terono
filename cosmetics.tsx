@@ -37,7 +37,7 @@ export interface Look {
 const FontIds = findLazy(m => m?.ORBITRON !== undefined && m?.HEXAGON !== undefined && m?.DEFAULT !== undefined) as Record<string, number | string>;
 // Discord's own font id -> class lookup (fonts Discord retired have no class and aren't offered)
 const FontInfo = findLazy(m => typeof m?.p === "function" && String(m?.a).includes("useDisplayNameStylesFont")) as { p(id: number): { className: string; }; };
-const FontClasses = findLazy(m => typeof m === "object" && m !== null && Object.values(m).some(v => typeof v === "string" && v.startsWith("dnsFont__"))) as Record<string, string>;
+const FontClasses = findLazy(m => typeof m === "object" && m !== null && Object.values(m).some(v => typeof v === "string" && /^dnsFont_/.test(v))) as Record<string, string>;
 
 export const NAME_EFFECTS: [number, string][] = [[1, "Solid"], [2, "Gradient"], [3, "Neon"], [4, "Toon"], [5, "Pop"], [6, "Glow"], [7, "Prism"], [8, "Gummy"]];
 
@@ -46,7 +46,7 @@ const title = (s: string) => s.toLowerCase().replace(/_/g, " ").replace(/\b\w/g,
 // [id, name, class] for every font Discord still draws, "Default" first
 export function nameFonts(): [number, string, string][] {
     try {
-        const base = Object.values(FontClasses).find(c => c.startsWith("dnsFont__")) ?? "";
+        const base = Object.values(FontClasses).find(c => /^dnsFont_/.test(c)) ?? "";
         return Object.entries(FontIds)
             .filter(([k, v]) => typeof v === "number" && !/^\d+$/.test(k))
             .map(([k, v]) => [v as number, title(k), k === "DEFAULT" ? "" : FontInfo.p(v as number)?.className ?? ""] as [number, string, string])

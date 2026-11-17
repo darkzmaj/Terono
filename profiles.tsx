@@ -324,11 +324,7 @@ export function ProfilesPanel() {
 export const PROFILES_CSS = `
 .dz-profiles { display: flex; flex-direction: column; gap: 14px; }
 .dz-prof-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 0 10px; }
-.dz-grow { flex: 1; min-width: 160px; }
 .dz-prof-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 10px; }
-.dz-chip { padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 600 12px var(--font-primary, "gg sans", sans-serif); color: var(--text-muted, #aaa);
-    background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent); border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
-.dz-chip.dz-on { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff); }
 .dz-prof-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dz-prof { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 0; border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
 .dz-prof:first-of-type { border-top: none; }
