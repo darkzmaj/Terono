@@ -27,6 +27,7 @@ import { onClassMapChange, startClassMap, stopClassMap, tc } from "./classes";
 import { AVATAR_CSS, bannerHook, COSMETICS_CSS, personMenu, profileHook, startCosmetics, stopCosmetics } from "./cosmetics";
 import { recordError, safely, startupTimes } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
+import { MARK_CSS, startMark, stopMark } from "./mark";
 import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
 import { overlayAction, stopOverlay } from "./overlay";
 import { applyPreset, PRESETS } from "./presets";
@@ -279,7 +280,7 @@ function onSettingsChange(_root: unknown, path: string) {
         return;
     }
     if (path === "plugins.Terono.accentPreset" && ACCENTS[settings.store.accentPreset]) settings.store.accent = ACCENTS[settings.store.accentPreset];
-    if (path === "plugins.Terono.shareUsage") applyUsage();
+    if (path === "plugins.Terono.shareUsage" || path === "plugins.Terono.showAsTerono") applyUsage();
     if (path === "plugins.Terono.taskbarIcon") setTaskbarIcon(settings.store.taskbarIcon !== false);
     if (!featuresOn || !path.startsWith("plugins.Terono.") || pendingApply) return;
     pendingApply = requestAnimationFrame(() => {
@@ -320,6 +321,7 @@ async function startFeatures() {
     });
     safely("cosmetics", startCosmetics);
     safely("tools", startTools);
+    safely("mark", startMark);
     safely("sounds", () => void applySounds());
     safely("badges", startBadges); // before the creator badge, which then shows first
     safely("creatorBadges", () => {
@@ -347,7 +349,7 @@ function stopFeatures() {
     badgeStyle = null;
     document.removeEventListener("click", onDocClick, true);
     for (const [name, f] of [["header", detachHeader], ["preview", cancelPreview], ["motion", stopMotion], ["branding", stopBranding], ["shapes", stopShapes],
-        ["bulk", stopBulk], ["calls", stopCall], ["streamMode", () => { stopStreamMode(); offStreamMode?.(); }], ["cosmetics", stopCosmetics], ["tools", stopTools], ["sounds", removeSounds], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
+        ["bulk", stopBulk], ["calls", stopCall], ["streamMode", () => { stopStreamMode(); offStreamMode?.(); }], ["cosmetics", stopCosmetics], ["tools", stopTools], ["mark", stopMark], ["sounds", removeSounds], ["overlay", stopOverlay], ["forgetOverlay", forgetOverlay],
         ["apply", removeAll]] as [string, () => void][]) quietly(name, f);
     disableStyle(themeStyle);
 }
@@ -387,7 +389,7 @@ async function migrate() {
 
 const LOCAL_THEME = /^(terono|darkness)\.theme\.css$/i;
 
-const FEATURE_CSS = () => BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS + STREAM_CSS;
+const FEATURE_CSS = () => BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + CALL_CSS + AVATAR_CSS + TOOLS_CSS + COSMETICS_CSS + STREAM_CSS + MARK_CSS;
 
 // the theme as written, with the running Discord's class names (classes.ts)
 function writeTheme() {
@@ -585,7 +587,7 @@ export default definePlugin({
         if (!settings.store.teronoOff) await startFeatures();
         else disableStyle(themeStyle);
         safely("volumeBoost", syncVolumeBoost);
-        safely("usage", () => startUsage(() => settings.store.shareUsage));
+        safely("usage", () => startUsage(settings.store as any));
         safely("taskbarIcon", () => setTaskbarIcon(settings.store.taskbarIcon));
         safely("updated", () => announceUpdated(settings.store.lastVersion));
         settings.store.lastVersion = VERSION;

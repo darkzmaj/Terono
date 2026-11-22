@@ -14,8 +14,12 @@
 // PUT    /me/badge/<0-5>     { name, effect, color, image (base64 PNG, 64x64, static) }
 // DELETE /me/badge/<0-5>
 // PUT    /me/official        { badges: [key, ...] }
-// POST   /seen               { id }  counts a user in the Terono user number (stored as a hash; setting can turn it off)
+// POST   /seen               { id, count, member, listed }  count: counts a user in the Terono user number (stored as a
+//                             hash); member: marks the ID as a Terono user (the Terono mark on their profile);
+//                             listed: whether the owner may see them in the user list ("Show me in the Terono user list")
 // GET    /stats              { online, day, total }: the user number, readable only by the owner
+// GET    /member/<id>        { t: 0 | 1 }  whether that person shows as a Terono user (the mark on their profile)
+// GET    /members            [{ id, first, last, online }]  Terono users who allow the list, readable only by the owner
 // PUT    /me/look            { look }  your profile look (name font / effect / colors, avatar decoration, nameplate,
 //                             profile effect, card colors, banner), shown to everyone with Terono; DELETE removes it
 // PUT    /me/banner          { image (base64 PNG / JPEG / WEBP / GIF, up to 900 KB), type }  -> { hash }
@@ -73,6 +77,12 @@ async function route(req, env, url) {
     if (m === "POST" && path === "/hello") return hello(req, env);
     if (m === "GET" && path === "/authorize") return authorize(env, url);
     if (m === "POST" && path === "/seen") return seen(req, env);
+    if (m === "GET" && path.startsWith("/member/")) return member(env, path.slice(8));
+    if (m === "GET" && path === "/members") {
+        const user = await session(req, env);
+        if (!user) return json({ error: "Not signed in" }, 401);
+        return members(env, user);
+    }
 
     if (path === "/stats") {
         const user = await session(req, env);
@@ -159,10 +169,32 @@ async function seen(req, env) {
     const body = await req.json().catch(() => null);
     if (!body || !SNOWFLAKE.test(body.id)) return json({ error: "Bad request" }, 400);
     const now = Date.now();
-    const h = await sha256Hex(`terono-seen:${body.id}`);
-    await env.DB.prepare("INSERT INTO seen (h, first, last) VALUES (?, ?, ?) ON CONFLICT (h) DO UPDATE SET last = excluded.last WHERE seen.last < excluded.last - 3600000")
-        .bind(h, now, now).run();
+    // older plugins send only { id }: that is the count
+    if (body.count !== false) {
+        const h = await sha256Hex(`terono-seen:${body.id}`);
+        await env.DB.prepare("INSERT INTO seen (h, first, last) VALUES (?, ?, ?) ON CONFLICT (h) DO UPDATE SET last = excluded.last WHERE seen.last < excluded.last - 3600000")
+            .bind(h, now, now).run();
+    }
+    if (body.member === true) {
+        const listed = body.listed === true ? 1 : 0;
+        await env.DB.prepare("INSERT INTO members (id, first, last, listed) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET last = excluded.last, listed = excluded.listed")
+            .bind(body.id, now, now, listed).run();
+    }
     return json({ ok: true });
+}
+
+// shown as a Terono user: listed, and Terono was open on that account in the last 60 days
+async function member(env, id) {
+    if (!SNOWFLAKE.test(id)) return json({ error: "Bad request" }, 400);
+    const row = await env.DB.prepare("SELECT 1 AS t FROM members WHERE id = ? AND last > ?").bind(id, Date.now() - 60 * 24 * 3600 * 1000).first();
+    return json({ t: row ? 1 : 0 }, 200, "public, max-age=300");
+}
+
+async function members(env, user) {
+    if (user !== (env.OWNER_ID || OWNER_ID)) return json({ error: "Not allowed" }, 403);
+    const rows = await env.DB.prepare("SELECT id, first, last FROM members WHERE listed = 1 ORDER BY last DESC LIMIT 5000").all();
+    const online = new Set((await (await env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/online")).json()).ids);
+    return json(rows.results.map(r => ({ ...r, online: online.has(r.id) })));
 }
 
 async function stats(env, user) {
@@ -473,6 +505,14 @@ export class Hub {
                 try { ws.send(msg); } catch { /* closing */ }
             }
             return new Response("ok");
+        }
+        if (new URL(req.url).pathname === "/online") {
+            const ids = new Set();
+            for (const ws of this.state.getWebSockets()) {
+                const a = ws.deserializeAttachment();
+                if (a?.u) ids.add(a.u);
+            }
+            return Response.json({ ids: [...ids] });
         }
         if (new URL(req.url).pathname === "/count") {
             const users = new Set();

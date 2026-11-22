@@ -122,7 +122,7 @@ const TABS: Tab[] = [
             { title: "Performance", keys: ["lite", "ultra", "pauseUnfocused"] },
             { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
             { title: "Taskbar", keys: ["taskbarIcon"] },
-            { title: "Privacy", keys: ["shareUsage", "usageCount"] },
+            { title: "Privacy", keys: ["shareUsage", "showAsTerono", "usageCount"] },
         ],
     },
 ];

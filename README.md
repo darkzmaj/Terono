@@ -134,6 +134,8 @@ Terono only talks to these services, for the features that use them:
 
 - **Terono server** (Cloudflare): badges and profile looks (name style, decorations, card colors, banner) with your Discord user ID, only what you set yourself; signing in once lets only you change yours. **Shared profiles** are kept under their code (anyone with the code can load it). **Reports** you choose to send are kept 30 days and only the creator can open them. Nothing else.
 - **Terono user count:** about once a day a one-way hash of your Discord user ID, and an 'online' mark while Discord is open, so the number of Terono users can be counted. Only the creator can see the number. Turn it off with **System → Privacy → Count me as a Terono user** and nothing is sent.
+- **Terono mark:** your Discord user ID is known to the Terono server as a Terono user, so other Terono users see a small Terono mark on your profile.
+- **Terono user list:** only if you allow it (asked once, **System → Privacy → Show me in the Terono user list**), the creator can see your username and profile picture in a list of Terono users. Turn it off and you're taken off the list.
 - **Google Translate:** only with *Auto-translate* on (off by default).
 - **Google Fonts:** fonts other than Discord's own.
 - **GitHub / jsDelivr:** updates and preset pictures.

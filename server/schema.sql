@@ -73,3 +73,12 @@ CREATE TABLE IF NOT EXISTS seen (
     first INTEGER NOT NULL,
     last INTEGER NOT NULL
 );
+
+-- Terono users by Discord user ID, so other Terono users see the Terono mark on their profile. listed = 1: they allow
+-- the owner to see them in the user list ("Show me in the Terono user list"); 0: only the mark.
+CREATE TABLE IF NOT EXISTS members (
+    id TEXT PRIMARY KEY,
+    first INTEGER NOT NULL,
+    last INTEGER NOT NULL,
+    listed INTEGER NOT NULL DEFAULT 0
+);
