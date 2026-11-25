@@ -536,13 +536,15 @@ function decoEngine(port: Port) {
         gr.addColorStop(0, "rgba(220,240,255,.42)");
         gr.addColorStop(1, "rgba(220,240,255,0)");
         L.fillStyle = gr;
-        L.fillRect(sx > 0 ? cx : cx - R, sy > 0 ? cy : cy - R, R, R);
+        L.beginPath();
+        L.arc(cx, cy, R, 0, TAU);
+        L.fill();
         // a few fern-like crystals growing out of the corner
         L.strokeStyle = "rgba(240,250,255,.5)";
         L.lineWidth = 0.8;
         L.beginPath();
         for (let k = 0; k < 7; k++) {
-            const a = rnd() * Math.PI / 2, len = R * (0.3 + rnd() * 0.45);
+            const a = 0.25 + rnd() * (Math.PI / 2 - 0.5), len = R * (0.3 + rnd() * 0.45);
             const dx = sx * Math.cos(a), dy = sy * Math.sin(a);
             L.moveTo(cx, cy);
             L.lineTo(cx + dx * len, cy + dy * len);
@@ -586,7 +588,7 @@ function decoEngine(port: Port) {
 
     function palm(L: Ctx, bx = W - 50, dir = 1, base = H, h = Math.min(240, H * 0.32)) {
         const tx = bx - dir * h * 0.35, ty = base - h;
-        L.strokeStyle = L.fillStyle = "rgba(14,30,22,.55)";
+        L.strokeStyle = L.fillStyle = "rgba(20,58,36,.82)";
         L.lineCap = "round";
         L.lineWidth = 9;
         L.beginPath(); L.moveTo(bx, base + 5); L.quadraticCurveTo(bx - dir * h * 0.05, base - h * 0.55, tx, ty); L.stroke();
@@ -721,7 +723,7 @@ function decoEngine(port: Port) {
         if (!zon(k)) return;
         L.save();
         L.beginPath();
-        L.roundRect(zx(k), zy(k), zw(k), zh(k), zr(k));
+        L.roundRect(zx(k), zy(k), zw(k), zh(k), Math.max(12, zr(k)));
         L.clip();
         draw();
         L.restore();
@@ -730,7 +732,8 @@ function decoEngine(port: Port) {
     // soft frost growing out of every corner of a zone (inset by the corner's curve)
     function frostZone(L: Ctx, k: number, R: number, bottom = true) {
         inZone(L, k, () => {
-            const x0 = zx(k), y0 = zy(k), x1 = x0 + zw(k), y1 = y0 + zh(k), i = zr(k) * 0.3;
+            // start inside the curve, so the frost sits in the corner instead of outlining it
+            const x0 = zx(k), y0 = zy(k), x1 = x0 + zw(k), y1 = y0 + zh(k), i = Math.max(12, zr(k)) * 0.45;
             frost(L, x0 + i, y0 + i, 1, R); frost(L, x1 - i, y0 + i, -1, R);
             if (bottom) { frost(L, x0 + i, y1 - i, 1, R, -1); frost(L, x1 - i, y1 - i, -1, R, -1); }
         });
@@ -762,6 +765,10 @@ function decoEngine(port: Port) {
         }
         return [W - 10, H - 4];
     }
+
+    // the tree's and the palm's pictures: wide enough for every branch and frond (they were cut off at 150 px)
+    const TREE_W = 290, TREE_H = 200, TREE_X = 185;
+    const PALM_W = 280, PALM_H = 240, PALM_X = 220;
 
     function setCornerPiece(w: number, h: number, draw: (c: Ctx) => void) {
         const c = sp(w, h);
@@ -817,8 +824,8 @@ function decoEngine(port: Port) {
             webZone(L, 0, 64, false); webZone(L, 1, 48, false); webZone(L, 2, 70, true);
             // pumpkins on top of your profile panel and by the tree
             if (zon(1)) for (const f of [0.18, 0.34]) { pkX[pumpkins] = zx(1) + zw(1) * f; pkY[pumpkins++] = zy(1); }
-            setCornerPiece(150, 150, c => tree(c, 110, -1, 150, 150));
-            { const [r, b] = cornerSpot(); for (const dx of [-150, -122]) if (pumpkins < pkX.length) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
+            setCornerPiece(TREE_W, TREE_H, c => tree(c, TREE_X, -1, TREE_H - 2, 150));
+            { const [r, b] = cornerSpot(); for (const dx of [-120, -92]) if (pumpkins < pkX.length) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
             spOn = true;
             if (zon(2)) { spX = zx(2) + zw(2) * 0.72; spTop = zy(2); } else { spX = W * 0.6; spTop = TOP_CLEAR; }
         } else if (th === "easter" && props) {
@@ -836,7 +843,7 @@ function decoEngine(port: Port) {
             }
             bunnyOn = true;
         } else if (th === "summer" && props) {
-            setCornerPiece(150, 170, c => palm(c, 120, 1, 170, 170));
+            setCornerPiece(PALM_W, PALM_H, c => palm(c, PALM_X, 1, PALM_H - 4, 165));
         } else if (th === "birthday" && props) {
             const colors = o.colors ?? CONFETTI;
             bunting(L, colors);
@@ -854,8 +861,8 @@ function decoEngine(port: Port) {
                 }
             }
         } else if (th === "autumn" && props) {
-            setCornerPiece(150, 150, c => tree(c, 110, -1, 150, 150));
-            { const [r, b] = cornerSpot(); for (const dx of [-150, -122]) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
+            setCornerPiece(TREE_W, TREE_H, c => tree(c, TREE_X, -1, TREE_H - 2, 150));
+            { const [r, b] = cornerSpot(); for (const dx of [-120, -92]) { pkX[pumpkins] = r + dx; pkY[pumpkins++] = b; } }
             if (zon(1)) for (const f of [0.18, 0.34]) { pkX[pumpkins] = zx(1) + zw(1) * f; pkY[pumpkins++] = zy(1); }
         } else if (th === "aprilfools" && props) {
             for (const i of big) {
